@@ -36,4 +36,5 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
     tryItOutEnabled: true
+    server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
   show-actuator: true
