@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.SubscriptionStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,7 +37,8 @@ public class Subscription {
     private BigDecimal price = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "subscription_status_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private SubscriptionStatus status = SubscriptionStatus.PENDING_PAYMENT;
 

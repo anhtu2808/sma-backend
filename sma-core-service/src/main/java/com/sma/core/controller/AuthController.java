@@ -1,7 +1,8 @@
 package com.sma.core.controller;
 
 
-import com.sma.core.dto.request.auth.AuthenticationRequest;
+import com.sma.core.dto.request.auth.LoginRequest;
+import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.sma.core.service.AuthService;
@@ -24,7 +25,7 @@ public class AuthController {
      * Register as candidate
      */
     @PostMapping("/candidate/register")
-    public ApiResponse<AuthenticationResponse> registerAsCandidate(@RequestBody AuthenticationRequest request) {
+    public ApiResponse<AuthenticationResponse> registerAsCandidate(@RequestBody RegisterRequest request) {
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Register as candidate successfully")
                 .data(authService.registerAsCandidate(request))
@@ -35,7 +36,7 @@ public class AuthController {
      * Login
      */
     @PostMapping("/login")
-    public ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
+    public ApiResponse<AuthenticationResponse> login(@RequestBody LoginRequest request) {
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Login successfully")
                 .data(authService.login(request))

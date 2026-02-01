@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.ExportType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -28,7 +30,8 @@ public class ExportRecord {
     private Job job;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "export_type", nullable = false)
+    @Column(name = "export_type", nullable = false, columnDefinition = "export_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ExportType exportType;
 
     @Column(name = "candidate_count", nullable = false)

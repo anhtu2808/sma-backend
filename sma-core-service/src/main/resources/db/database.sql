@@ -3,59 +3,59 @@
 -- ==============================================
 
 -- Users
-CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended', 'pending_verification');
-CREATE TYPE gender_type AS ENUM ('male', 'female', 'other', 'prefer_not_to_say');
-CREATE TYPE token_type AS ENUM ('access', 'refresh', 'reset_password', 'email_verification');
+CREATE TYPE user_status AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION');
+CREATE TYPE gender_type AS ENUM ('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY');
+CREATE TYPE token_type AS ENUM ('ACCESS', 'REFRESH', 'RESET_PASSWORD', 'EMAIL_VERIFICATION');
 
 -- Jobs
-CREATE TYPE job_status AS ENUM ('draft', 'pending_review', 'approved', 'suspended', 'closed');
-CREATE TYPE job_level_type AS ENUM ('intern', 'junior', 'middle', 'senior', 'lead', 'manager');
-CREATE TYPE working_model_type AS ENUM ('remote', 'onsite', 'hybrid');
+CREATE TYPE job_status AS ENUM ('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'SUSPENDED', 'CLOSED');
+CREATE TYPE job_level_type AS ENUM ('INTERN', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'MANAGER');
+CREATE TYPE working_model_type AS ENUM ('REMOTE', 'ONSITE', 'HYBRID');
 
 -- Applications
-CREATE TYPE application_status AS ENUM ('applied', 'viewed', 'shortlisted', 'auto_rejected', 'not_suitable');
+CREATE TYPE application_status AS ENUM ('APPLIED', 'VIEWED', 'SHORTLISTED', 'AUTO_REJECTED', 'NOT_SUITABLE');
 
 -- Candidates
-CREATE TYPE job_search_status AS ENUM ('actively_looking', 'open_to_offers', 'not_looking');
+CREATE TYPE job_search_status AS ENUM ('ACTIVELY_LOOKING', 'OPEN_TO_OFFERS', 'NOT_LOOKING');
 
 -- Criteria
-CREATE TYPE criteria_type AS ENUM ('hard_skills', 'soft_skills', 'experience', 'education', 'job_title', 'job_level');
+CREATE TYPE criteria_type AS ENUM ('HARD_SKILLS', 'SOFT_SKILLS', 'EXPERIENCE', 'EDUCATION', 'JOB_TITLE', 'JOB_LEVEL');
 
 -- Company
-CREATE TYPE company_status AS ENUM ('active', 'inactive', 'pending_verification', 'suspended');
+CREATE TYPE company_status AS ENUM ('ACTIVE', 'INACTIVE', 'PENDING_VERIFICATION', 'SUSPENDED');
 
 -- Resume
-CREATE TYPE resume_status AS ENUM ('draft', 'active', 'archived');
-CREATE TYPE resume_language AS ENUM ('vi', 'en');
-CREATE TYPE degree_type AS ENUM ('high_school', 'associate', 'bachelor', 'master', 'doctorate', 'certificate');
-CREATE TYPE project_type AS ENUM ('personal', 'academic', 'professional', 'open_source', 'freelance');
+CREATE TYPE resume_status AS ENUM ('DRAFT', 'ACTIVE', 'ARCHIVED');
+CREATE TYPE resume_language AS ENUM ('VI', 'EN');
+CREATE TYPE degree_type AS ENUM ('HIGH_SCHOOL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'CERTIFICATE');
+CREATE TYPE project_type AS ENUM ('PERSONAL', 'ACADEMIC', 'PROFESSIONAL', 'OPEN_SOURCE', 'FREELANCE');
 
 -- Evaluation
-CREATE TYPE gap_type AS ENUM ('hard_skill', 'soft_skill', 'experience', 'education', 'certification');
-CREATE TYPE impact_type AS ENUM ('critical', 'high', 'medium', 'low');
-CREATE TYPE match_level_type AS ENUM ('excellent', 'good', 'fair', 'poor', 'not_matched');
-CREATE TYPE evaluation_status_type AS ENUM ('waiting', 'partial', 'finish', 'fail');
-CREATE TYPE skill_category_type AS ENUM ('programming_language', 'framework', 'tool', 'database', 'other');
-CREATE TYPE skill_level_type AS ENUM ('junior', 'mid', 'senior', 'expert');
-CREATE TYPE relevance_type AS ENUM ('high', 'medium', 'low');
-CREATE TYPE transferability_type AS ENUM ('high', 'medium', 'low');
-CREATE TYPE experience_gravity_type AS ENUM ('high', 'medium', 'low');
+CREATE TYPE gap_type AS ENUM ('HARD_SKILL', 'SOFT_SKILL', 'EXPERIENCE', 'EDUCATION', 'CERTIFICATION');
+CREATE TYPE impact_type AS ENUM ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW');
+CREATE TYPE match_level_type AS ENUM ('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'NOT_MATCHED');
+CREATE TYPE evaluation_status_type AS ENUM ('WAITING', 'PARTIAL', 'FINISH', 'FAIL');
+CREATE TYPE skill_category_type AS ENUM ('PROGRAMMING_LANGUAGE', 'FRAMEWORK', 'TOOL', 'DATABASE', 'OTHER');
+CREATE TYPE skill_level_type AS ENUM ('JUNIOR', 'MID', 'SENIOR', 'EXPERT');
+CREATE TYPE relevance_type AS ENUM ('HIGH', 'MEDIUM', 'LOW');
+CREATE TYPE transferability_type AS ENUM ('HIGH', 'MEDIUM', 'LOW');
+CREATE TYPE experience_gravity_type AS ENUM ('HIGH', 'MEDIUM', 'LOW');
 
 -- Packages
-CREATE TYPE package_target_type AS ENUM ('candidate', 'company');
-CREATE TYPE package_type AS ENUM ('credit', 'feature');
-CREATE TYPE billing_cycle_type AS ENUM ('monthly', 'yearly', 'one_time');
-CREATE TYPE subscription_status AS ENUM ('active', 'expired', 'cancelled', 'pending_payment');
-CREATE TYPE credit_type AS ENUM ('earned', 'consumed', 'expired', 'bonus');
-CREATE TYPE reference_type AS ENUM ('ai_suggestion', 'matching_score', 'cv_score', 'talent_unlock', 'cycle_reset', 'trial');
-CREATE TYPE payment_method_type AS ENUM ('credit_card', 'vnpay', 'sepay', 'momo', 'bank_transfer');
-CREATE TYPE payment_status_type AS ENUM ('pending', 'success', 'failed');
+CREATE TYPE package_target_type AS ENUM ('CANDIDATE', 'COMPANY');
+CREATE TYPE package_type AS ENUM ('CREDIT', 'FEATURE');
+CREATE TYPE billing_cycle_type AS ENUM ('MONTHLY', 'YEARLY', 'ONE_TIME');
+CREATE TYPE subscription_status AS ENUM ('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING_PAYMENT');
+CREATE TYPE credit_type AS ENUM ('EARNED', 'CONSUMED', 'EXPIRED', 'BONUS');
+CREATE TYPE reference_type AS ENUM ('AI_SUGGESTION', 'MATCHING_SCORE', 'CV_SCORE', 'TALENT_UNLOCK', 'CYCLE_RESET', 'TRIAL');
+CREATE TYPE payment_method_type AS ENUM ('CREDIT_CARD', 'VNPAY', 'SEPAY', 'MOMO', 'BANK_TRANSFER');
+CREATE TYPE payment_status_type AS ENUM ('PENDING', 'SUCCESS', 'FAILED');
 
 -- Notifications
-CREATE TYPE notification_type AS ENUM ('application_status', 'rejection', 'company_registration', 'flagged_job', 'payment_failure', 'ai_downtime', 'system');
+CREATE TYPE notification_type AS ENUM ('APPLICATION_STATUS', 'REJECTION', 'COMPANY_REGISTRATION', 'FLAGGED_JOB', 'PAYMENT_FAILURE', 'AI_DOWNTIME', 'SYSTEM');
 
 -- Export
-CREATE TYPE export_type AS ENUM ('xlsx', 'csv');
+CREATE TYPE export_type AS ENUM ('XLSX', 'CSV');
 
 -- ==============================================
 -- TABLE DEFINITIONS
@@ -106,7 +106,7 @@ CREATE TABLE candidates (
   website_url varchar(500),
   expected_salary_min decimal(15,2),
   expected_salary_max decimal(15,2),
-  job_search_status job_search_status DEFAULT 'open_to_offers',
+  job_search_status job_search_status DEFAULT 'OPEN_TO_OFFERS',
   availability_date date,
   is_profile_public boolean DEFAULT true,
   profile_completeness int DEFAULT 0
@@ -528,7 +528,7 @@ CREATE TABLE subscriptions (
   company_id int,
   package_id int NOT NULL,
   price decimal(15,2) NOT NULL DEFAULT 0,
-  status subscription_status NOT NULL DEFAULT 'pending_payment',
+  status subscription_status NOT NULL DEFAULT 'PENDING_PAYMENT',
   start_date TIMESTAMP NOT NULL,
   end_date TIMESTAMP NOT NULL,
   purchased_at TIMESTAMP DEFAULT now(),
@@ -551,7 +551,7 @@ CREATE TABLE payment_histories (
   amount decimal(15,2) NOT NULL,
   currency varchar(3) NOT NULL DEFAULT 'VND',
   payment_method payment_method_type NOT NULL,
-  payment_status payment_status_type NOT NULL DEFAULT 'pending',
+  payment_status payment_status_type NOT NULL DEFAULT 'PENDING',
   transaction_code varchar(255),
   paid_at TIMESTAMP,
   created_at TIMESTAMP DEFAULT now()
@@ -732,3 +732,11 @@ ALTER TABLE evaluation_experience_details ADD FOREIGN KEY (evaluation_criteria_s
 ALTER TABLE evaluation_gaps ADD FOREIGN KEY (evaluation_id) REFERENCES resume_evaluations (id);
 
 ALTER TABLE evaluation_criteria_scores ADD FOREIGN KEY (scoring_criteria_id) REFERENCES scoring_criterias (id);
+
+-- ==============================================
+-- INITIAL DATA
+-- ==============================================
+
+INSERT INTO roles (name) VALUES ('CANDIDATE'), ('ADMIN'), ('RECRUITER');
+
+

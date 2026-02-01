@@ -5,6 +5,8 @@ import com.sma.core.enums.PackageTarget;
 import com.sma.core.enums.PackageType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -30,11 +32,13 @@ public class Package {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "package_target", nullable = false)
+    @Column(name = "package_target", nullable = false, columnDefinition = "package_target_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private PackageTarget packageTarget;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "package_type")
+    @Column(name = "package_type", columnDefinition = "package_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private PackageType packageType;
 
     @Column(name = "original_price", nullable = false, precision = 15, scale = 2)
@@ -50,7 +54,8 @@ public class Package {
     private String currency = "VND";
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "billing_cycle", nullable = false)
+    @Column(name = "billing_cycle", nullable = false, columnDefinition = "billing_cycle_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private BillingCycle billingCycle;
 
     @Column(name = "credit_quota")

@@ -4,6 +4,8 @@ import com.sma.core.enums.CreditType;
 import com.sma.core.enums.ReferenceType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -25,14 +27,16 @@ public class CreditTransaction {
     private CreditWallet creditWallet;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "credit_type", nullable = false)
+    @Column(name = "credit_type", nullable = false, columnDefinition = "credit_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private CreditType creditType;
 
     @Column(nullable = false)
     private Integer amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reference_type")
+    @Column(name = "reference_type", columnDefinition = "reference_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ReferenceType referenceType;
 
     @Column(columnDefinition = "TEXT")

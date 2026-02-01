@@ -16,6 +16,7 @@ public enum ErrorCode {
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
+    PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
 
     //403 - Unauthorized
     UNAUTHORIZED(HttpStatus.FORBIDDEN, "Unauthorized"),
@@ -25,6 +26,8 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),
     ROLE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Role does not exist"),
+    EMAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, "Email does not exist"),
+
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

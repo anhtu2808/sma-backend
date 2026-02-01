@@ -5,6 +5,8 @@ import com.sma.core.enums.SkillCategory;
 import com.sma.core.enums.SkillLevel;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "evaluation_hard_skills")
@@ -26,15 +28,18 @@ public class EvaluationHardSkill {
     private String evidence;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "skill_category")
+    @Column(name = "skill_category", columnDefinition = "skill_category_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SkillCategory skillCategory;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "required_level")
+    @Column(name = "required_level", columnDefinition = "skill_level_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SkillLevel requiredLevel;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "candidate_level")
+    @Column(name = "candidate_level", columnDefinition = "skill_level_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SkillLevel candidateLevel;
 
     @Column(name = "match_score")
@@ -56,6 +61,8 @@ public class EvaluationHardSkill {
     private Boolean isExtra;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "relevance", columnDefinition = "relevance_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private RelevanceType relevance;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -4,6 +4,8 @@ import com.sma.core.enums.Gender;
 import com.sma.core.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +32,8 @@ public class User {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "user_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserStatus status;
 
     @Column(name = "full_name")
@@ -44,6 +48,8 @@ public class User {
     private LocalDate dateOfBirth;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "gender", columnDefinition = "gender_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private Gender gender;
 
     @ManyToMany(fetch = FetchType.LAZY)

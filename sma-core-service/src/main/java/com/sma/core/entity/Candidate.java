@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.JobSearchStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -45,7 +47,8 @@ public class Candidate {
     private BigDecimal expectedSalaryMax;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "job_search_status")
+    @Column(name = "job_search_status", columnDefinition = "job_search_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private JobSearchStatus jobSearchStatus = JobSearchStatus.OPEN_TO_OFFERS;
 

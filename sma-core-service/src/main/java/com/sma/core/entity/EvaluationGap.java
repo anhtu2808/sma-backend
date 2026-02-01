@@ -4,6 +4,8 @@ import com.sma.core.enums.GapType;
 import com.sma.core.enums.ImpactType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "evaluation_gaps")
@@ -19,7 +21,8 @@ public class EvaluationGap {
     private Integer id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "gap_type")
+    @Column(name = "gap_type", columnDefinition = "gap_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private GapType gapType;
 
     @Column(name = "item_name")
@@ -29,6 +32,8 @@ public class EvaluationGap {
     private String description;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "impact", columnDefinition = "impact_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ImpactType impact;
 
     @Column(name = "impact_score")

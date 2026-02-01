@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.TokenType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -27,7 +29,8 @@ public class UserToken {
     private String token;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "token_type", nullable = false)
+    @Column(name = "token_type", nullable = false, columnDefinition = "token_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private TokenType tokenType;
 
     @Column(name = "expires_at", nullable = false)

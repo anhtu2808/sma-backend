@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.CompanyStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -38,6 +40,8 @@ public class Company {
     private Integer followerNumber;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "company_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private CompanyStatus status;
 
     @Column(name = "company_type")

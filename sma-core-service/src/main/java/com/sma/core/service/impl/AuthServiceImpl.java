@@ -5,7 +5,8 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.nimbusds.jose.*;
-import com.sma.core.dto.request.auth.AuthenticationRequest;
+import com.sma.core.dto.request.auth.LoginRequest;
+import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -28,10 +29,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
-import java.util.Date;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -43,6 +41,8 @@ public class AuthServiceImpl implements AuthService {
     String CLIENT_ID;
     @Value("${jwt.secret}")
     String ACCESS_TOKEN_SECRET;
+    @Value("${jwt.expiration}")
+    Long TOKEN_EXPIRATION;
 
     final UserRepository userRepository;
     final RoleRepository roleRepository;
@@ -69,7 +69,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthenticationResponse registerAsCandidate(AuthenticationRequest request) {
+    public AuthenticationResponse registerAsCandidate(RegisterRequest request) {
         log.info("Email: {}, password: {}", request.getEmail(), request.getPassword());
         User oldUser = userRepository.findByEmail(request.getEmail()).orElse(null);
         if (oldUser != null)
@@ -78,12 +78,14 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
                 .status(UserStatus.ACTIVE)
-                .candidate(new Candidate())
+                .gender(request.getGender())
+                .build();;
+        user.setRoles(Set.of(roleRepository.findByNameIgnoreCase("CANDIDATE")
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED))));
+        Candidate candidate = Candidate.builder()
+                .user(user)
                 .build();
-
-        user.getRoles().add(roleRepository.findByNameIgnoreCase("CANDIDATE")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED)));
-
+        user.setCandidate(candidate);
         userRepository.save(user);
         return AuthenticationResponse.builder()
                 .accessToken(generateToken(user))
@@ -96,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null)
             return registerAsCandidate(
-                    AuthenticationRequest.builder()
+                    RegisterRequest.builder()
                     .email(email)
                     .build()
             );
@@ -107,12 +109,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthenticationResponse login(AuthenticationRequest request) {
+    public AuthenticationResponse login(LoginRequest request) {
         var user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_EXISTED));
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
         if (!authenticated) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            throw new AppException(ErrorCode.PASSWORD_INCORRECT);
         }
         var token = generateToken(user);
 //        var refreshToken = generateRefreshToken(user);
@@ -129,10 +131,10 @@ public class AuthServiceImpl implements AuthService {
                 .issuer("smartrecruit.tech")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(1000, ChronoUnit.DAYS).toEpochMilli()
+                        Instant.now().plus(TOKEN_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()
                 )).jwtID(UUID.randomUUID().toString())
                 .claim("userId", user.getId())
-                .claim("candidateId", user.getRecruiter() != null ? user.getRecruiter().getId() : null)
+                .claim("candidateId", user.getCandidate() != null ? user.getCandidate().getId() : null)
                 .claim("recruiterId", user.getRecruiter() != null ? user.getRecruiter().getId() : null)
                 .claim("scope", buildScope(user))
                 .build();
