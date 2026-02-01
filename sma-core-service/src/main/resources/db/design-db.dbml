@@ -95,7 +95,9 @@ Table Jobs {
   is_violated boolean
   upload_time datetime
   exp_date datetime
-  salary varchar
+  salary_start decimal(15,2)
+  salary_end decimal(15,2)
+  currency varchar(3) [default: 'VND']
   experience_time varchar
   status enum('draft', 'pending_review', 'approved', 'suspended', 'closed')
   job_level enum('intern', 'junior', 'middle', 'senior', 'lead', 'manager')
@@ -146,10 +148,19 @@ Table Job_expertise_groups {
   description text
 }
 
-Table Job_benefits {
+Table Benefits {
   id int [pk, increment]
   name varchar
   description text
+}
+
+Table Job_benefits {
+  job_id int
+  benefit_id int
+
+  indexes {
+    (job_id, benefit_id) [pk]
+  }
 }
 
 Table Job_locations {
@@ -173,10 +184,19 @@ Table Job_answers {
   job_question_id int
 }
 
-Table Job_domains {
+Table Domains {
   id int [pk, increment]
   name varchar
   description text
+}
+
+Table Job_domains {
+  job_id int
+  domain_id int
+
+  indexes {
+    (job_id, domain_id) [pk]
+  }
 }
 
 

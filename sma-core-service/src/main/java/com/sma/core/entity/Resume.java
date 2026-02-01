@@ -1,0 +1,83 @@
+package com.sma.core.entity;
+
+import com.sma.core.enums.ResumeLanguage;
+import com.sma.core.enums.ResumeStatus;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "resumes")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Resume {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(name = "file_name")
+    private String fileName;
+
+    @Column(name = "original_file")
+    private String originalFile;
+
+    @Column(name = "raw_text", columnDefinition = "TEXT")
+    private String rawText;
+
+    @Column(name = "address_in_resume")
+    private String addressInResume;
+
+    @Column(name = "phone_in_resume")
+    private String phoneInResume;
+
+    @Column(name = "email_in_resume")
+    private String emailInResume;
+
+    @Column(name = "github_link")
+    private String githubLink;
+
+    @Column(name = "linkedin_link")
+    private String linkedinLink;
+
+    @Column(name = "portfolio_link")
+    private String portfolioLink;
+
+    @Column(name = "full_name")
+    private String fullName;
+
+    private String avatar;
+
+    @Enumerated(EnumType.STRING)
+    private ResumeStatus status;
+
+    @Enumerated(EnumType.STRING)
+    private ResumeLanguage language;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "candidate_id")
+    private Candidate candidate;
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResumeSkill> skills = new HashSet<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResumeEducation> educations = new HashSet<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResumeExperience> experiences = new HashSet<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResumeProject> projects = new HashSet<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResumeCertification> certifications = new HashSet<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ResumeEvaluation> evaluations = new HashSet<>();
+}
