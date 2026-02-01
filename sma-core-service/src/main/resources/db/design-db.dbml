@@ -1,0 +1,824 @@
+// ==============================================
+// GROUP 1: AUTH & USER DATA
+// ==============================================
+
+  Table Users {
+    id int [pk, increment]
+    email varchar(255) [unique, not null]
+    password_hash varchar(255) [not null]
+    status enum('active', 'inactive', 'suspended', 'pending_verification') 
+    full_name varchar(255)
+    avatar varchar(500)
+    last_login_at datetime
+    date_of_birth date
+    gender enum('male', 'female', 'other', 'prefer_not_to_say')
+  }
+
+  Table User_tokens {
+  id int [pk, increment]
+  user_id int [not null]
+  token varchar(500) [unique, not null]
+  token_type enum('access', 'refresh', 'reset_password', 'email_verification') [not null]
+  expires_at datetime [not null]
+  created_at datetime [default: `now()`]
+  revoked boolean [default: false]
+  revoked_at datetime
+  ip_address varchar(45)
+  user_agent varchar(500)
+  }
+
+ Table Users_Roles {
+  user_id int
+  role_id int
+
+    indexes {
+      (user_id, role_id) [pk]
+    }
+  }
+
+Table Roles {
+  id int [pk, increment]
+  name varchar(10)
+}
+
+Table Candidates {
+  id int [pk, increment]
+  user_id int [not null, unique]
+  job_title varchar(255)
+  linkedin_url varchar(500)
+  github_url varchar(500)
+  website_url varchar(500)
+  expected_salary_min decimal(15,2)
+  expected_salary_max decimal(15,2)
+  job_search_status enum('actively_looking', 'open_to_offers', 'not_looking') [default: 'open_to_offers']
+  availability_date date
+  is_profile_public boolean [default: true]
+  profile_completeness int [default: 0]
+}
+
+Table Recruiters {
+  id int [pk, increment]
+  user_id int [not null, unique]
+  company_id int [not null]
+  is_verified boolean [default: false]
+  is_root_candidate boolean [default: false]
+  verified_at datetime
+}
+
+Ref: Users_Roles.user_id > Users.id [delete: cascade]
+Ref: Users_Roles.role_id > Roles.id [delete: cascade]
+Ref: Candidates.user_id > Users.id [delete: cascade]
+Ref: Recruiters.user_id > Users.id [delete: cascade]
+Ref: Recruiters.company_id > Companies.id [delete: cascade]
+Ref: User_tokens.user_id > Users.id [delete: cascade]
+
+
+TableGroup "Auth & User Data" [color: #3498db] {
+  Users
+  Candidates
+  Recruiters
+  User_tokens
+  Users_Roles
+  Roles
+}
+
+// ==============================================
+// GROUP 2: COMPANY & JOB
+// ==============================================
+
+Table Jobs {
+  id int [pk, increment]
+  name varchar
+  about text
+  responsibilities text
+  requirement text
+  is_violated boolean
+  upload_time datetime
+  exp_date datetime
+  salary_start decimal(15,2)
+  salary_end decimal(15,2)
+  currency varchar(3) [default: 'VND']
+  experience_time varchar
+  status enum('draft', 'pending_review', 'approved', 'suspended', 'closed')
+  job_level enum('intern', 'junior', 'middle', 'senior', 'lead', 'manager')
+  working_model enum('remote', 'onsite', 'hybrid')
+  quantity int
+  auto_reject_threshold double
+  root_id int
+  company_id int
+}
+
+Table Applications {
+  id int [pk, increment]
+  status enum('pending', 'reviewing', 'shortlisted', 'interview', 'offer', 'hired', 'rejected', 'withdrawn')
+  attempt int
+  full_name varchar
+  phone varchar
+  email varchar
+  applied_at datetime
+  candidate_id int 
+  resume_id int
+  job_id int
+}
+
+Table Scoring_criteria {
+  id int [pk, increment]
+  context text
+  weight double
+  job_id int
+  criteria_id int
+}
+
+Table Criteria {
+  id int [pk, increment]
+  name varchar  //  Hard skill, Soft skill, Experience, Education, job title, job level, 
+  criteria_type enum('hard_skills', 'soft_skills', 'experience', 'education', 'job_title', 'job_level') 
+  default_weight double
+}
+
+Table Job_marks {
+  id int [pk, increment]
+  user_id int 
+  job_id int
+}
+
+Table Job_expertise_groups {
+  id int [pk, increment]
+  name varchar
+  description text
+}
+
+Table Benefits {
+  id int [pk, increment]
+  name varchar
+  description text
+}
+
+Table Job_benefits {
+  job_id int
+  benefit_id int
+
+  indexes {
+    (job_id, benefit_id) [pk]
+  }
+}
+
+Table Job_locations {
+  company_location_id  int
+  job_id int
+}
+
+Table Job_questions {
+  id int [pk, increment]
+  name varchar
+  is_required bool
+  description text
+  job_id int
+}
+
+Table Job_answers {
+  id int [pk, increment]
+  name varchar
+  answer text
+  application_id int
+  job_question_id int
+}
+
+Table Domains {
+  id int [pk, increment]
+  name varchar
+  description text
+}
+
+Table Job_domains {
+  job_id int
+  domain_id int
+
+  indexes {
+    (job_id, domain_id) [pk]
+  }
+}
+
+
+Table Job_expertises {
+  id int [pk, increment]
+  name varchar
+  description text
+}
+
+Table Job_skills {
+  skill_id int
+  job_id int
+}
+
+TableGroup "Job" [color: #27ae60] {
+  Jobs
+  Applications
+  Job_expertise_groups
+  Job_benefits
+  Job_locations
+  Job_questions
+  Job_domains
+  Job_expertises
+  Job_answers
+  Job_marks
+  Scoring_criteria
+  Criteria
+  Job_skills
+}
+
+
+Ref: "Jobs"."id" <> "Job_domains"."id"
+Ref: "Jobs"."id" < "Job_benefits"."id"
+Ref: "Job_expertise_groups"."id" < "Job_expertises"."id"
+Ref: "Job_questions"."id" - "Job_answers"."job_question_id"
+Ref: "Jobs"."id" < "Job_marks"."job_id"
+Ref: Job_marks.user_id > Users.id
+Ref: "Jobs"."id" < "Applications"."job_id"
+Ref: "Resumes"."id" < "Applications"."resume_id"
+Ref: "Applications"."id" < "Job_answers"."application_id"
+Ref: "Jobs"."id" < "Job_questions"."job_id"
+Ref: "Jobs"."id" < "Scoring_criteria"."job_id"
+Ref: "Jobs"."id" > "Jobs"."root_id"
+Ref: "Criteria"."id" < "Scoring_criteria"."criteria_id"
+
+
+Ref: "Jobs"."id" < "Job_skills"."job_id"
+
+Ref: "Skills"."id" < "Job_skills"."skill_id"
+
+Ref: "Jobs"."id" < "Job_locations"."job_id"
+
+// ==============================================
+// GROUP 2: COMPANY
+// ==============================================
+
+Table Company_images {
+  id int [pk, increment]
+  url varchar
+  description varchar
+}
+
+Table Companies {
+  id int [pk, increment]
+  name varchar
+  country varchar
+  company_industry varchar
+  size varchar
+  description text
+  link varchar
+  follower_number int
+  status enum('active', 'inactive', 'pending_verification', 'suspended')
+  company_type varchar
+  logo varchar
+  tax_identification_number varchar
+  email varchar
+  phone varchar
+  sign_commitment boolean //cam kết 
+  ERC varchar //Giấy đăng ký doanh nghiệp hoặc Giấy tờ tương đương khác
+  //mình chỉ tính đến công ty thôi hay cả hộ kinh doanh, nếu cả hộ kinh doanh thì sẽ có Giấy ủy quyền và Giấy tờ định danh
+  //maybe phải có thêm Văn bản Thoả thuận xử lý Dữ liệu cá nhân giữa Ứng viên - Nhà tuyển dụng
+}
+
+Table Company_blocked_candidates {
+  id int [pk, increment]
+  candidate_id int
+  block_date datetime
+  reason varchar
+}
+
+Table Company_follows {
+  id int [pk, increment]
+  company_id int
+  candidate_id int
+}
+
+Table Company_locations {
+  id int [pk, increment]
+  company_id int [not null]
+  name varchar                     // e.g. "Chi nhánh HCM 1"
+  address varchar                  // e.g. "123 Nguyễn Huệ"
+  district varchar                 // e.g. "Quận 1"
+  city varchar                     // e.g. "Ho Chi Minh City"
+  country varchar                  // e.g. "Vietnam"
+  description varchar
+}
+
+
+TableGroup "Company" [color: #f1c40f] {
+  Companies
+  Company_blocked_candidates
+  Company_images
+  Company_locations
+  Company_follows
+}
+
+
+
+
+// ==============================================
+// GROUP 3: RESUME & SKILL
+// ==============================================
+Table Resumes {
+  id int [pk, increment]
+  file_name varchar
+  original_file varchar
+  raw_text text
+  address_in_resume varchar
+  phone_in_resume varchar
+  email_in_resume varchar
+  github_link varchar
+  linkedin_link varchar
+  portfolio_link varchar
+  full_name varchar
+  avatar varchar
+  status enum('draft', 'active', 'archived')
+  language enum('vi', 'en')
+  candidate_id int
+}
+
+Table Skills {
+  id int [pk, increment]
+  name varchar
+  description varchar
+  category_id int
+}
+
+Table Skill_Categories {
+  id int [pk, increment]
+  name varchar
+
+}
+
+Table Resume_skills {
+   id int [pk, increment]
+   raw_skill_section tinytext
+   skill_id int
+   resume_id int
+}
+
+Table Resume_educations {
+   id int [pk, increment]
+   institution varchar
+   degree enum('high_school', 'associate', 'bachelor', 'master', 'doctorate', 'certificate')
+   major_field varchar
+   gpa double
+   start_date date
+   end_date date
+   is_current bool
+   resume_id int
+}
+
+Table Resume_experiences {
+   id int [pk, increment]
+   company varchar
+   start_date date
+   end_date date
+   is_current bool
+   resume_id int
+}
+
+Table Resume_projects {
+   id int [pk, increment]
+   title varchar
+   team_size int
+   position varchar
+   description text
+   project_type enum('personal', 'academic', 'professional', 'open_source', 'freelance')
+   start_date date
+   end_date date
+   is_current bool
+   project_url varchar
+   resume_id int 
+}
+
+Table Resume_certifications  {
+   id int [pk, increment]
+   name varchar
+   issuer varchar
+   credential_url varchar
+   image varchar
+   description text  
+   resume_id int 
+}
+
+Table Resume_experience_details {
+   id int [pk, increment]
+   description text
+   title varchar
+   position varchar
+   start_date date
+   end_date date
+   is_current bool
+   experience_id int
+}
+
+Table Experience_skills {
+   id int [pk, increment]
+   description text
+   detail_id int
+   skill_id int
+}
+
+Table Project_skills {
+   id int [pk, increment]
+   description text
+   project_id int
+   skill_id int
+}
+
+Table Evaluation_Gaps{
+   id int [pk, increment]
+   gap_type enum('hard_skill', 'soft_skill', 'experience', 'education', 'certification')
+   item_name varchar
+   description text
+   impact enum('critical', 'high', 'medium', 'low')
+   impact_score float
+   suggestion text
+   evaluation_id int  
+}
+
+Table Evaluation_Weakness{
+   id int [pk, increment]
+   weakness_text text
+   suggestion text
+   start_index int
+   end_index int
+   context varchar
+  criterion_type enum('hard_skills', 'soft_skills', 'experience', 'education', 'job_title', 'job_level') 
+   severity smallint
+   evaluation_id int  
+}
+
+Table Resume_Evaluations {
+  id int [pk, increment]
+  ai_overall_score float
+  recruiter_overall_score float
+  match_level enum('excellent', 'good', 'fair', 'poor', 'not_matched')
+  summary text
+  strengths text
+  weakness text
+  is_true_level bool
+  has_related_experience bool
+  is_specific_JD bool
+  evaluation_status enum('waiting', 'partial', 'finish', 'fail')
+  processing_time_second float
+  ai_model_version varchar
+  resume_id int
+  job_id int
+}
+
+Table Evaluation_Criteria_Scores {
+  id int [pk, increment]
+  scoring_criteria_id int
+  max_score float [default: 100]
+  ai_score float
+  manual_score float
+  weighted_score float
+  ai_explanation text
+  manual_explanation text
+  evaluation_id int
+}
+
+Table Evaluation_Hard_Skills
+{
+  id int [pk, increment]
+  skill_name varchar
+  evidence text
+  skill_category enum('programming_language', 'framework', 'tool', 'database', 'other')
+  required_level enum('junior', 'mid', 'senior', 'expert') 
+  candidate_level enum('junior', 'mid', 'senior', 'expert')
+  match_score float
+  years_of_experience float
+  is_critical bool
+  is_matched bool
+  is_missing bool
+  is_extra bool
+  relevance enum('high', 'medium', 'low')
+  evaluation_criteria_score_id int
+}
+
+Table Evaluation_Soft_Skills
+{
+  id int [pk, increment]
+  skill_name varchar
+  evidence text
+  is_required boolean
+  is_found boolean
+  evaluation_criteria_score_id int
+}
+
+
+
+Table Evaluation_Experience_Details
+{
+  id int [pk, increment]
+  company_name varchar
+  position varchar
+  duration_months int
+  key_achievements text
+  technologies_used text
+  is_relevant boolean
+  transferability_to_role enum('high', 'medium', 'low')
+  experience_gravity enum('high', 'medium', 'low')
+  evaluation_criteria_score_id int
+}
+
+TableGroup "Matching Score" [color: #e74c3c] {
+  Evaluation_Weakness
+  Resume_Evaluations
+  Evaluation_Hard_Skills
+  Evaluation_Experience_Details
+  Evaluation_Criteria_Scores 
+  Evaluation_Soft_Skills 
+  Evaluation_Gaps
+}
+
+TableGroup "Resume & Skill" [color: #e74c3c] {
+  Resumes
+  Resume_skills
+  Skills
+  Resume_educations
+  Resume_experiences
+  Resume_experience_details
+  Resume_projects
+  Experience_skills
+  Project_skills
+  Skill_Categories
+  Resume_certifications 
+}
+Ref: "Resumes"."id" < "Resume_skills"."resume_id"
+Ref: "Resume_skills"."skill_id" > "Skills"."id"
+
+Ref: "Resumes"."id" < "Resume_educations"."resume_id"
+Ref: "Skills"."category_id" > "Skill_Categories"."id"
+
+Ref: "Resumes"."id" < "Resume_projects"."resume_id"
+
+Ref: "Resume_projects"."id" < "Project_skills"."project_id"
+Ref: "Skills"."id" < "Project_skills"."skill_id"
+Ref: "Resumes"."id" < "Resume_experiences"."resume_id"
+Ref: "Resume_experiences"."id" < "Resume_experience_details"."experience_id"
+Ref: "Resume_experience_details"."id" < "Experience_skills"."detail_id"
+Ref: "Skills"."id" < "Experience_skills"."skill_id"
+Ref: "Resumes"."id" < "Resume_certifications"."resume_id"
+
+Ref: "Resume_Evaluations"."id" < Evaluation_Weakness."evaluation_id"
+Ref: "Resumes"."id" < "Resume_Evaluations"."resume_id"
+Ref: "Resume_Evaluations"."id" < "Evaluation_Criteria_Scores"."evaluation_id"
+// ==============================================
+// GROUP 4: PACKAGE & SUBSCRIPTION
+// ==============================================
+
+Table Packages {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  description text
+  package_target enum('candidate', 'company') [not null]
+  package_type enum('credit', 'feature')
+  original_price decimal(15,2) [not null, default: 0]
+  sale_price decimal(15,2) [not null, default: 0]
+  currency varchar(3) [not null, default: 'VND']
+  billing_cycle enum('monthly', 'yearly', 'one_time') [not null]
+  credit_quota int [default: 0]
+  is_active boolean [not null, default: true]
+}
+
+Table Features {
+  id int [pk, increment]
+  name varchar(100) [not null]                                          // e.g. "CV Upload Limit", "AI Suggestion", "Export Shortlist"
+  description text
+  feature_key varchar(100) [unique, not null]                           // unique key cho code check
+  is_active boolean [not null, default: true]
+}
+
+Table Credit_wallet {
+  id int [pk, increment]
+  company_id int 
+  candidate_id int
+  balance int
+}
+
+Table Package_Features {
+  package_id int [not null]
+  feature_id int [not null]
+  indexes {
+    (package_id, feature_id) [pk]
+  }
+  max_quota int [default: 0]
+
+}
+
+
+Table Subscriptions {
+  id int [pk, increment]
+  company_id int
+  package_id int [not null]
+  price decimal(15,2) [not null, default: 0]
+  status enum('active', 'expired', 'cancelled', 'pending_payment') [not null, default: 'pending_payment']
+  start_date datetime [not null]                                       // start of current billing cycle
+  end_date datetime [not null]                                       // end of current billing cycle → credits expire here   // current remaining credits                             // max credits this cycle (snapshot from Package)
+  purchased_at datetime [default: `now()`]
+  renewed_at datetime
+}
+
+Table Credit_Transactions {
+  id int [pk, increment]
+  credit_wallet_id int [not null] 
+  credit_type enum('earned', 'consumed', 'expired', 'bonus') [not null]
+  amount int [not null]
+  reference_type enum('ai_suggestion', 'matching_score', 'cv_score', 'talent_unlock', 'cycle_reset', 'trial')
+  description text
+  created_at datetime [default: `now()`]
+}
+
+
+Table Payment_Histories {
+  id int [pk, increment]
+  subscription_id int [not null]
+  amount decimal(15,2) [not null]
+  currency varchar(3) [not null, default: 'VND']
+  payment_method enum('credit_card', 'vnpay', 'sepay', 'momo', 'bank_transfer') [not null]
+  payment_status enum('pending', 'success', 'failed') [not null, default: 'pending']
+  transaction_code varchar(255)
+  paid_at datetime
+  created_at datetime [default: `now()`]
+}
+
+Ref: Package_Features.package_id > Packages.id [delete: cascade]
+Ref: Package_Features.feature_id > Features.id [delete: cascade]
+Ref: Subscriptions.company_id > Companies.id [delete: cascade]
+Ref: Payment_Histories.subscription_id > Subscriptions.id [delete: cascade]
+Ref: Subscriptions.package_id > Packages.id
+Ref: Applications.candidate_id > Candidates.id
+
+TableGroup "Package & Subscription" [color: #8e44ad] {
+  Packages
+  Features
+  Subscriptions
+  Payment_Histories
+  Package_Features
+  Credit_Transactions
+  Credit_wallet
+}
+
+
+
+// ==============================================
+// GROUP 5: OTHER
+// ==============================================
+Table Notifications {
+  id int [pk, increment]
+  user_id int [not null]
+  notification_type enum('application_status', 'rejection', 'company_registration', 'flagged_job', 'payment_failure', 'ai_downtime', 'system') [not null]
+  title varchar(255) [not null]
+  message text [not null]
+  related_entity_type varchar(50)                                       // nullable — e.g. 'application', 'company', 'job'
+  related_entity_id int                                                 // nullable — ID of related entity
+  is_read boolean [not null, default: false]
+  created_at datetime [default: `now()`]
+}
+
+Table Notification_Settings {
+  id int [pk, increment]
+  user_id int [not null]
+  notification_type enum('application_status', 'rejection', 'company_registration', 'flagged_job', 'payment_failure', 'ai_downtime', 'system') [not null]
+  email_enabled boolean [not null, default: true]
+  in_app_enabled boolean [not null, default: true]
+  indexes {
+    (user_id, notification_type) [unique]
+  }
+}
+
+Table FAQs {
+  id int [pk, increment]
+  category varchar(100) [not null]                                      // e.g. "Account", "CV", "Payment", "Job"
+  question text [not null]
+  answer text [not null]
+  is_published boolean [not null, default: false]                       // admin draft trước khi publish
+  created_at datetime [default: `now()`]
+  updated_at datetime [default: `now()`]
+}
+
+Table ExportRecords {
+  id int [pk, increment]
+  exported_by int [not null]                                            // FK → Users (Recruiter)
+  job_id int [not null]                                                 // FK → Jobs — export shortlist cho job nào
+  export_type enum('xlsx', 'csv') [not null]
+  candidate_count int [not null, default: 0]                            // số candidates trong export
+  file_url varchar(500)                                                 // S3 link của file export
+  created_at datetime [default: `now()`]
+}
+
+
+TableGroup "Other" [color: #2c3e50] {
+  Notifications
+  Notification_Settings
+  FAQs
+  ExportRecords
+}
+
+Ref: Notifications.user_id > Users.id [delete: cascade]
+Ref: Notification_Settings.user_id > Users.id [delete: cascade]
+Ref: ExportRecords.exported_by > Users.id [delete: cascade]
+Ref: ExportRecords.job_id > Jobs.id [delete: cascade]
+
+
+
+
+Note note_1769616152578 {
+'''Cấu trúc 1 resume:
+  
+  1. Resume data: - 1 item,name, job title, dob, avt, gender, address, phone, email, github link, link, referance_content, metadata
+     
+  2. **Introduce**
+  
+  3. **Skill:** (Nhiều item, có mức độ thành thạo)
+     - Soft skills
+     - Tech skills
+     
+  4. **Education:** - Nhiều item (start, end, name, type, major, description, gpa, loại bằng tốt nghiệp)
+     
+  5. **Work Experience:** - Nhiều item đi với company (start, end, job title, description, skills in experiences, ref_links, experience type)
+     
+  6. **Project:** - Start, end, name, description, ref_links, skills in projects'''
+}
+
+Note note_1769617025833 {
+'''Job; có cột name, job description, responsibity, requirement
+
+- Nhiều job_domain.
+- nhiều skill
+- Job level có thể là 1 enums trong bảng job
+- T nghĩ 1 job co 1 location thôi, có cần tách bảng ra ko
+'''
+}
+
+Note note_Company {
+'''Company:
+- General information: company name, company type, company industry, company size, country, working days, image, location.
+
+-  Company overview: description,  link, policy, 
+
+- Company Follower
+
+- Company skills: tag, job title (including: framework, language, library,... ) 
+
+- CompanyBenefit: Description, image
+
+-  Job List
+
+- Blocked-Candidate List
+
+- Account List
+
+- Company Subcription : Số job dc post, credits
+
+- Company Verification: Business license,Tax ID document, Company Information.
+
+- Các bảng CompanyUser, CompanySubscription, CompanyJobList không cần tách ra đâu
+
+- CompanySkill bỏ được luôn nha
+
+- CompanyVerification bỏ được tại vì chỉ cần trạng thái ở Company.
+
+- Company có nhiều location thì sao (trên 1 thành phố vd như FPT software có 2 chi nhánh HCM)
+'''
+
+
+}
+
+
+Ref: "Companies"."id" < "Company_follows"."id"
+Ref: "Companies"."id" < "Company_blocked_candidates"."id"
+Ref: "Companies"."id" < "Company_images"."id"
+Ref: "Companies"."id" < "Company_locations"."id"
+
+
+
+
+
+
+
+
+
+Ref: "Job_expertises"."id" < "Jobs"."id"
+
+Ref: "Companies"."id" < "Jobs"."company_id"
+
+
+Ref: "Credit_wallet"."id" < "Credit_Transactions"."credit_wallet_id"
+
+Ref: "Companies"."id" < "Credit_wallet"."company_id"
+
+Ref: "Candidates"."id" < "Credit_wallet"."candidate_id"
+
+Ref: "Evaluation_Criteria_Scores"."id" < "Evaluation_Hard_Skills"."evaluation_criteria_score_id"
+
+Ref: "Evaluation_Criteria_Scores"."id" < "Evaluation_Soft_Skills"."evaluation_criteria_score_id"
+
+Ref: "Evaluation_Criteria_Scores"."id" < "Evaluation_Experience_Details"."evaluation_criteria_score_id"
+
+Ref: "Resume_Evaluations"."id" < "Evaluation_Gaps"."evaluation_id"
+
+Ref: "Scoring_criteria"."id" < "Evaluation_Criteria_Scores"."scoring_criteria_id"
