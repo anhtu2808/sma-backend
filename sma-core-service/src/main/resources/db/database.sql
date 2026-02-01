@@ -13,7 +13,7 @@ CREATE TYPE job_level_type AS ENUM ('intern', 'junior', 'middle', 'senior', 'lea
 CREATE TYPE working_model_type AS ENUM ('remote', 'onsite', 'hybrid');
 
 -- Applications
-CREATE TYPE application_status AS ENUM ('pending', 'reviewing', 'shortlisted', 'interview', 'offer', 'hired', 'rejected', 'withdrawn');
+CREATE TYPE application_status AS ENUM ('applied', 'viewed', 'shortlisted', 'auto_rejected', 'not_suitable');
 
 -- Candidates
 CREATE TYPE job_search_status AS ENUM ('actively_looking', 'open_to_offers', 'not_looking');

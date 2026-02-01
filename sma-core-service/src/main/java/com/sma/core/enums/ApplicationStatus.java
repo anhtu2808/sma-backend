@@ -1,12 +1,9 @@
 package com.sma.core.enums;
 
 public enum ApplicationStatus {
-    PENDING,
-    REVIEWING,
+    APPLIED,
+    VIEWED,
     SHORTLISTED,
-    INTERVIEW,
-    OFFER,
-    HIRED,
-    REJECTED,
-    WITHDRAWN
+    AUTO_REJECTED,
+    NOT_SUITABLE,
 }

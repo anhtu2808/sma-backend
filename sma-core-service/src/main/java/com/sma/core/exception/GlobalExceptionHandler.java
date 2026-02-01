@@ -3,6 +3,8 @@ package com.sma.core.exception;
 import com.sma.core.dto.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,6 +25,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getStatusCode())
                 .body(ApiResponse.<Void>builder()
+                        .code(errorCode.getStatusCode().value())
                         .message(errorCode.getMessage())
                         .build());
     }
@@ -33,10 +36,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e) {
-
+            HttpStatusCode code = ErrorCode.BAD_REQUEST.getStatusCode();
         return ResponseEntity
-                .status(ErrorCode.BAD_REQUEST.getStatusCode())
+                .status(code)
                 .body(ApiResponse.<Void>builder()
+                        .code(code.value())
                         .message("Invalid request data")
                         .build());
     }
@@ -47,9 +51,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
             ConstraintViolationException e) {
+        HttpStatusCode code = ErrorCode.BAD_REQUEST.getStatusCode();
         return ResponseEntity
-                .status(ErrorCode.BAD_REQUEST.getStatusCode())
+                .status(code)
                 .body(ApiResponse.<Void>builder()
+                        .code(code.value())
                         .message("Invalid request parameters")
                         .build());
     }
@@ -60,9 +66,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(
             AccessDeniedException e) {
+        HttpStatusCode code = ErrorCode.UNAUTHORIZED.getStatusCode();
         return ResponseEntity
-                .status(ErrorCode.UNAUTHORIZED.getStatusCode())
+                .status(code)
                 .body(ApiResponse.<Void>builder()
+                        .code(code.value())
                         .message(ErrorCode.UNAUTHORIZED.getMessage())
                         .build());
     }
@@ -73,10 +81,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnhandledException(Exception e) {
         log.error("Unhandled exception", e);
-
+        HttpStatusCode code = ErrorCode.INTERNAL_SERVER_ERROR.getStatusCode();
         return ResponseEntity
-                .status(ErrorCode.INTERNAL_SERVER_ERROR.getStatusCode())
+                .status(code)
                 .body(ApiResponse.<Void>builder()
+                        .code(code.value())
                         .message(ErrorCode.INTERNAL_SERVER_ERROR.getMessage())
                         .build());
     }

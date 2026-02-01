@@ -12,16 +12,19 @@ public enum ErrorCode {
 
     //400 - Bad request
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad request"),
+    USER_EXISTS(HttpStatus.BAD_REQUEST, "User already exists"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
 
     //403 - Unauthorized
-    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
+    UNAUTHORIZED(HttpStatus.FORBIDDEN, "Unauthorized"),
+    REFRESH_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, "Refresh token expired"),
 
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
-
+    USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),
+    ROLE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Role does not exist"),
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
