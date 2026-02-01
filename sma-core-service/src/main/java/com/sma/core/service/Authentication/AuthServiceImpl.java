@@ -19,8 +19,8 @@ import java.util.Collections;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class AuthServiceImpl implements AuthService {
 
-    @Value("${google.oauth.client-id}")
-    String clientId;
+//    @Value("${google.oauth.client-id}")
+//    String clientId;
 
     public GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString) {
 //        try {
