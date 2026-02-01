@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.ProjectType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 
@@ -30,7 +32,8 @@ public class ResumeProject {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "project_type")
+    @Column(name = "project_type", columnDefinition = "project_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ProjectType projectType;
 
     @Column(name = "start_date")

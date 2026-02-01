@@ -19,6 +19,10 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
 
 logging:
   level:
@@ -50,3 +54,10 @@ aws:
 file:
   s3-storage-path: ${FILE_S3_STORAGE_PATH:uploads}
   download-base-url: ${FILE_DOWNLOAD_BASE_URL:https://api.smartrecruit.tech/files}
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID}

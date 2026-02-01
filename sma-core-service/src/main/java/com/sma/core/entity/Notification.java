@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -24,7 +26,8 @@ public class Notification {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "notification_type", nullable = false)
+    @Column(name = "notification_type", nullable = false, columnDefinition = "notification_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private NotificationType notificationType;
 
     @Column(nullable = false)

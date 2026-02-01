@@ -4,6 +4,8 @@ import com.sma.core.enums.PaymentMethod;
 import com.sma.core.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,11 +35,13 @@ public class PaymentHistory {
     private String currency = "VND";
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method", nullable = false, columnDefinition = "payment_method_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false)
+    @Column(name = "payment_status", nullable = false, columnDefinition = "payment_status_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 

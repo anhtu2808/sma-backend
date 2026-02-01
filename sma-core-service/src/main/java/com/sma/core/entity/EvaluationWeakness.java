@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.CriteriaType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "evaluation_weaknesses")
@@ -32,7 +34,8 @@ public class EvaluationWeakness {
     private String context;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "criterion_type")
+    @Column(name = "criterion_type", columnDefinition = "criteria_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private CriteriaType criterionType;
 
     private Short severity;

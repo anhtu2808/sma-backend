@@ -4,6 +4,8 @@ import com.sma.core.enums.EvaluationStatus;
 import com.sma.core.enums.MatchLevel;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -28,7 +30,8 @@ public class ResumeEvaluation {
     private Float recruiterOverallScore;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "match_level")
+    @Column(name = "match_level", columnDefinition = "match_level_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private MatchLevel matchLevel;
 
     @Column(columnDefinition = "TEXT")
@@ -50,7 +53,8 @@ public class ResumeEvaluation {
     private Boolean isSpecificJd;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "evaluation_status")
+    @Column(name = "evaluation_status", columnDefinition = "evaluation_status_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private EvaluationStatus evaluationStatus;
 
     @Column(name = "processing_time_second")

@@ -4,6 +4,8 @@ import com.sma.core.enums.ResumeLanguage;
 import com.sma.core.enums.ResumeStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -54,9 +56,13 @@ public class Resume {
     private String avatar;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "resume_status_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ResumeStatus status;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "language", columnDefinition = "resume_language_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ResumeLanguage language;
 
     @ManyToOne(fetch = FetchType.LAZY)

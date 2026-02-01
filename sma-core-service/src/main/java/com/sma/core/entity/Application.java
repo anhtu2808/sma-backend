@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import com.sma.core.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -22,6 +24,8 @@ public class Application {
     private Integer id;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "application_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ApplicationStatus status;
 
     private Integer attempt;

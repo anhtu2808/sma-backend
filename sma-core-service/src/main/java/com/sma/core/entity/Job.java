@@ -5,6 +5,8 @@ import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.WorkingModel;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -58,14 +60,18 @@ public class Job {
     private String experienceTime;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", columnDefinition = "job_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private JobStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "job_level")
+    @Column(name = "job_level", columnDefinition = "job_level_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private JobLevel jobLevel;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "working_model")
+    @Column(name = "working_model", columnDefinition = "working_model_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private WorkingModel workingModel;
 
     private Integer quantity;
