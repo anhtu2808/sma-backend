@@ -4,7 +4,9 @@ server:
 spring:
   application:
     name: sma-core-service
-
+  web:
+    resources:
+      add-mappings: false
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
