@@ -91,7 +91,6 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
                 .status(UserStatus.ACTIVE)
-                .gender(request.getGender())
                 .build();;
         user.setRoles(Set.of(roleRepository.findByNameIgnoreCase("CANDIDATE")
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED))));
