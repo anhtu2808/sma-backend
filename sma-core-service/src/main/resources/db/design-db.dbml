@@ -6,19 +6,19 @@
     id int [pk, increment]
     email varchar(255) [unique, not null]
     password_hash varchar(255) [not null]
-    status enum('active', 'inactive', 'suspended', 'pending_verification') 
+    status enum('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION') 
     full_name varchar(255)
     avatar varchar(500)
     last_login_at datetime
     date_of_birth date
-    gender enum('male', 'female', 'other', 'prefer_not_to_say')
+    gender enum('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY')
   }
 
   Table User_tokens {
   id int [pk, increment]
   user_id int [not null]
   token varchar(500) [unique, not null]
-  token_type enum('access', 'refresh', 'reset_password', 'email_verification') [not null]
+  token_type enum('ACCESS', 'REFRESH', 'RESET_PASSWORD', 'EMAIL_VERIFICATION') [not null]
   expires_at datetime [not null]
   created_at datetime [default: `now()`]
   revoked boolean [default: false]
@@ -50,7 +50,7 @@ Table Candidates {
   website_url varchar(500)
   expected_salary_min decimal(15,2)
   expected_salary_max decimal(15,2)
-  job_search_status enum('actively_looking', 'open_to_offers', 'not_looking') [default: 'open_to_offers']
+  job_search_status enum('ACTIVELY_LOOKING', 'OPEN_TO_OFFERS', 'NOT_LOOKING') [default: 'OPEN_TO_OFFERS']
   availability_date date
   is_profile_public boolean [default: true]
   profile_completeness int [default: 0]
@@ -99,9 +99,9 @@ Table Jobs {
   salary_end decimal(15,2)
   currency varchar(3) [default: 'VND']
   experience_time varchar
-  status enum('draft', 'pending_review', 'approved', 'suspended', 'closed')
-  job_level enum('intern', 'junior', 'middle', 'senior', 'lead', 'manager')
-  working_model enum('remote', 'onsite', 'hybrid')
+  status enum('DRAFT', 'PENDING_REVIEW', 'APPROVED', 'SUSPENDED', 'CLOSED')
+  job_level enum('INTERN', 'JUNIOR', 'MIDDLE', 'SENIOR', 'LEAD', 'MANAGER')
+  working_model enum('REMOTE', 'ONSITE', 'HYBRID')
   quantity int
   auto_reject_threshold double
   root_id int
@@ -110,7 +110,7 @@ Table Jobs {
 
 Table Applications {
   id int [pk, increment]
-  status enum('pending', 'reviewing', 'shortlisted', 'interview', 'offer', 'hired', 'rejected', 'withdrawn')
+  status enum('APPLIED', 'VIEWED', 'SHORTLISTED', 'AUTO_REJECTED', 'NOT_SUITABLE')
   attempt int
   full_name varchar
   phone varchar
@@ -132,7 +132,7 @@ Table Scoring_criteria {
 Table Criteria {
   id int [pk, increment]
   name varchar  //  Hard skill, Soft skill, Experience, Education, job title, job level, 
-  criteria_type enum('hard_skills', 'soft_skills', 'experience', 'education', 'job_title', 'job_level') 
+  criteria_type enum('HARD_SKILLS', 'SOFT_SKILLS', 'EXPERIENCE', 'EDUCATION', 'JOB_TITLE', 'JOB_LEVEL') 
   default_weight double
 }
 
@@ -228,8 +228,10 @@ TableGroup "Job" [color: #27ae60] {
 }
 
 
-Ref: "Jobs"."id" <> "Job_domains"."id"
-Ref: "Jobs"."id" < "Job_benefits"."id"
+Ref: "Jobs"."id" < "Job_domains"."job_id"
+Ref: "Domains"."id" < "Job_domains"."domain_id"
+Ref: "Jobs"."id" < "Job_benefits"."job_id"
+Ref: "Benefits"."id" < "Job_benefits"."benefit_id"
 Ref: "Job_expertise_groups"."id" < "Job_expertises"."id"
 Ref: "Job_questions"."id" - "Job_answers"."job_question_id"
 Ref: "Jobs"."id" < "Job_marks"."job_id"
@@ -268,14 +270,14 @@ Table Companies {
   description text
   link varchar
   follower_number int
-  status enum('active', 'inactive', 'pending_verification', 'suspended')
+  status enum('ACTIVE', 'INACTIVE', 'PENDING_VERIFICATION', 'SUSPENDED')
   company_type varchar
   logo varchar
   tax_identification_number varchar
   email varchar
   phone varchar
   sign_commitment boolean //cam kết 
-  ERC varchar //Giấy đăng ký doanh nghiệp hoặc Giấy tờ tương đương khác
+  erc varchar //Giấy đăng ký doanh nghiệp hoặc Giấy tờ tương đương khác
   //mình chỉ tính đến công ty thôi hay cả hộ kinh doanh, nếu cả hộ kinh doanh thì sẽ có Giấy ủy quyền và Giấy tờ định danh
   //maybe phải có thêm Văn bản Thoả thuận xử lý Dữ liệu cá nhân giữa Ứng viên - Nhà tuyển dụng
 }
@@ -332,8 +334,8 @@ Table Resumes {
   portfolio_link varchar
   full_name varchar
   avatar varchar
-  status enum('draft', 'active', 'archived')
-  language enum('vi', 'en')
+  status enum('DRAFT', 'ACTIVE', 'ARCHIVED')
+  language enum('VI', 'EN')
   candidate_id int
 }
 
@@ -352,7 +354,7 @@ Table Skill_Categories {
 
 Table Resume_skills {
    id int [pk, increment]
-   raw_skill_section tinytext
+   raw_skill_section TEXT
    skill_id int
    resume_id int
 }
@@ -360,7 +362,7 @@ Table Resume_skills {
 Table Resume_educations {
    id int [pk, increment]
    institution varchar
-   degree enum('high_school', 'associate', 'bachelor', 'master', 'doctorate', 'certificate')
+   degree enum('HIGH_SCHOOL', 'ASSOCIATE', 'BACHELOR', 'MASTER', 'DOCTORATE', 'CERTIFICATE')
    major_field varchar
    gpa double
    start_date date
@@ -384,7 +386,7 @@ Table Resume_projects {
    team_size int
    position varchar
    description text
-   project_type enum('personal', 'academic', 'professional', 'open_source', 'freelance')
+   project_type enum('PERSONAL', 'ACADEMIC', 'PROFESSIONAL', 'OPEN_SOURCE', 'FREELANCE')
    start_date date
    end_date date
    is_current bool
@@ -429,10 +431,10 @@ Table Project_skills {
 
 Table Evaluation_Gaps{
    id int [pk, increment]
-   gap_type enum('hard_skill', 'soft_skill', 'experience', 'education', 'certification')
+   gap_type enum('HARD_SKILL', 'SOFT_SKILL', 'EXPERIENCE', 'EDUCATION', 'CERTIFICATION')
    item_name varchar
    description text
-   impact enum('critical', 'high', 'medium', 'low')
+   impact enum('CRITICAL', 'HIGH', 'MEDIUM', 'LOW')
    impact_score float
    suggestion text
    evaluation_id int  
@@ -445,7 +447,7 @@ Table Evaluation_Weakness{
    start_index int
    end_index int
    context varchar
-  criterion_type enum('hard_skills', 'soft_skills', 'experience', 'education', 'job_title', 'job_level') 
+   criterion_type enum('HARD_SKILLS', 'SOFT_SKILLS', 'EXPERIENCE', 'EDUCATION', 'JOB_TITLE', 'JOB_LEVEL') 
    severity smallint
    evaluation_id int  
 }
@@ -454,14 +456,14 @@ Table Resume_Evaluations {
   id int [pk, increment]
   ai_overall_score float
   recruiter_overall_score float
-  match_level enum('excellent', 'good', 'fair', 'poor', 'not_matched')
+  match_level enum('EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'NOT_MATCHED')
   summary text
   strengths text
   weakness text
   is_true_level bool
   has_related_experience bool
-  is_specific_JD bool
-  evaluation_status enum('waiting', 'partial', 'finish', 'fail')
+  is_specific_jd bool
+  evaluation_status enum('WAITING', 'PARTIAL', 'FINISH', 'FAIL')
   processing_time_second float
   ai_model_version varchar
   resume_id int
@@ -485,16 +487,16 @@ Table Evaluation_Hard_Skills
   id int [pk, increment]
   skill_name varchar
   evidence text
-  skill_category enum('programming_language', 'framework', 'tool', 'database', 'other')
-  required_level enum('junior', 'mid', 'senior', 'expert') 
-  candidate_level enum('junior', 'mid', 'senior', 'expert')
+  skill_category enum('PROGRAMMING_LANGUAGE', 'FRAMEWORK', 'TOOL', 'DATABASE', 'OTHER')
+  required_level enum('JUNIOR', 'MID', 'SENIOR', 'EXPERT') 
+  candidate_level enum('JUNIOR', 'MID', 'SENIOR', 'EXPERT')
   match_score float
   years_of_experience float
   is_critical bool
   is_matched bool
   is_missing bool
   is_extra bool
-  relevance enum('high', 'medium', 'low')
+  relevance enum('HIGH', 'MEDIUM', 'LOW')
   evaluation_criteria_score_id int
 }
 
@@ -519,8 +521,8 @@ Table Evaluation_Experience_Details
   key_achievements text
   technologies_used text
   is_relevant boolean
-  transferability_to_role enum('high', 'medium', 'low')
-  experience_gravity enum('high', 'medium', 'low')
+  transferability_to_role enum('HIGH', 'MEDIUM', 'LOW')
+  experience_gravity enum('HIGH', 'MEDIUM', 'LOW')
   evaluation_criteria_score_id int
 }
 
@@ -566,6 +568,7 @@ Ref: "Resumes"."id" < "Resume_certifications"."resume_id"
 Ref: "Resume_Evaluations"."id" < Evaluation_Weakness."evaluation_id"
 Ref: "Resumes"."id" < "Resume_Evaluations"."resume_id"
 Ref: "Resume_Evaluations"."id" < "Evaluation_Criteria_Scores"."evaluation_id"
+Ref: "Resume_Evaluations"."job_id" > "Jobs"."id"
 // ==============================================
 // GROUP 4: PACKAGE & SUBSCRIPTION
 // ==============================================
@@ -574,12 +577,12 @@ Table Packages {
   id int [pk, increment]
   name varchar(100) [not null]
   description text
-  package_target enum('candidate', 'company') [not null]
-  package_type enum('credit', 'feature')
+  package_target enum('CANDIDATE', 'COMPANY') [not null]
+  package_type enum('CREDIT', 'FEATURE')
   original_price decimal(15,2) [not null, default: 0]
   sale_price decimal(15,2) [not null, default: 0]
   currency varchar(3) [not null, default: 'VND']
-  billing_cycle enum('monthly', 'yearly', 'one_time') [not null]
+  billing_cycle enum('MONTHLY', 'YEARLY', 'ONE_TIME') [not null]
   credit_quota int [default: 0]
   is_active boolean [not null, default: true]
 }
@@ -592,7 +595,7 @@ Table Features {
   is_active boolean [not null, default: true]
 }
 
-Table Credit_wallet {
+Table Credit_wallets {
   id int [pk, increment]
   company_id int 
   candidate_id int
@@ -615,7 +618,7 @@ Table Subscriptions {
   company_id int
   package_id int [not null]
   price decimal(15,2) [not null, default: 0]
-  status enum('active', 'expired', 'cancelled', 'pending_payment') [not null, default: 'pending_payment']
+  status enum('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING_PAYMENT') [not null, default: 'PENDING_PAYMENT']
   start_date datetime [not null]                                       // start of current billing cycle
   end_date datetime [not null]                                       // end of current billing cycle → credits expire here   // current remaining credits                             // max credits this cycle (snapshot from Package)
   purchased_at datetime [default: `now()`]
@@ -625,9 +628,9 @@ Table Subscriptions {
 Table Credit_Transactions {
   id int [pk, increment]
   credit_wallet_id int [not null] 
-  credit_type enum('earned', 'consumed', 'expired', 'bonus') [not null]
+  credit_type enum('EARNED', 'CONSUMED', 'EXPIRED', 'BONUS') [not null]
   amount int [not null]
-  reference_type enum('ai_suggestion', 'matching_score', 'cv_score', 'talent_unlock', 'cycle_reset', 'trial')
+  reference_type enum('AI_SUGGESTION', 'MATCHING_SCORE', 'CV_SCORE', 'TALENT_UNLOCK', 'CYCLE_RESET', 'TRIAL')
   description text
   created_at datetime [default: `now()`]
 }
@@ -638,8 +641,8 @@ Table Payment_Histories {
   subscription_id int [not null]
   amount decimal(15,2) [not null]
   currency varchar(3) [not null, default: 'VND']
-  payment_method enum('credit_card', 'vnpay', 'sepay', 'momo', 'bank_transfer') [not null]
-  payment_status enum('pending', 'success', 'failed') [not null, default: 'pending']
+  payment_method enum('CREDIT_CARD', 'VNPAY', 'SEPAY', 'MOMO', 'BANK_TRANSFER') [not null]
+  payment_status enum('PENDING', 'SUCCESS', 'FAILED') [not null, default: 'PENDING']
   transaction_code varchar(255)
   paid_at datetime
   created_at datetime [default: `now()`]
@@ -659,7 +662,7 @@ TableGroup "Package & Subscription" [color: #8e44ad] {
   Payment_Histories
   Package_Features
   Credit_Transactions
-  Credit_wallet
+  Credit_wallets
 }
 
 
@@ -670,7 +673,7 @@ TableGroup "Package & Subscription" [color: #8e44ad] {
 Table Notifications {
   id int [pk, increment]
   user_id int [not null]
-  notification_type enum('application_status', 'rejection', 'company_registration', 'flagged_job', 'payment_failure', 'ai_downtime', 'system') [not null]
+  notification_type enum('APPLICATION_STATUS', 'REJECTION', 'COMPANY_REGISTRATION', 'FLAGGED_JOB', 'PAYMENT_FAILURE', 'AI_DOWNTIME', 'SYSTEM') [not null]
   title varchar(255) [not null]
   message text [not null]
   related_entity_type varchar(50)                                       // nullable — e.g. 'application', 'company', 'job'
@@ -682,7 +685,7 @@ Table Notifications {
 Table Notification_Settings {
   id int [pk, increment]
   user_id int [not null]
-  notification_type enum('application_status', 'rejection', 'company_registration', 'flagged_job', 'payment_failure', 'ai_downtime', 'system') [not null]
+  notification_type enum('APPLICATION_STATUS', 'REJECTION', 'COMPANY_REGISTRATION', 'FLAGGED_JOB', 'PAYMENT_FAILURE', 'AI_DOWNTIME', 'SYSTEM') [not null]
   email_enabled boolean [not null, default: true]
   in_app_enabled boolean [not null, default: true]
   indexes {
@@ -704,7 +707,7 @@ Table ExportRecords {
   id int [pk, increment]
   exported_by int [not null]                                            // FK → Users (Recruiter)
   job_id int [not null]                                                 // FK → Jobs — export shortlist cho job nào
-  export_type enum('xlsx', 'csv') [not null]
+  export_type enum('XLSX', 'CSV') [not null]
   candidate_count int [not null, default: 0]                            // số candidates trong export
   file_url varchar(500)                                                 // S3 link của file export
   created_at datetime [default: `now()`]
@@ -807,11 +810,11 @@ Ref: "Job_expertises"."id" < "Jobs"."id"
 Ref: "Companies"."id" < "Jobs"."company_id"
 
 
-Ref: "Credit_wallet"."id" < "Credit_Transactions"."credit_wallet_id"
+Ref: "Credit_wallets"."id" < "Credit_Transactions"."credit_wallet_id"
 
-Ref: "Companies"."id" < "Credit_wallet"."company_id"
+Ref: "Companies"."id" < "Credit_wallets"."company_id"
 
-Ref: "Candidates"."id" < "Credit_wallet"."candidate_id"
+Ref: "Candidates"."id" < "Credit_wallets"."candidate_id"
 
 Ref: "Evaluation_Criteria_Scores"."id" < "Evaluation_Hard_Skills"."evaluation_criteria_score_id"
 
