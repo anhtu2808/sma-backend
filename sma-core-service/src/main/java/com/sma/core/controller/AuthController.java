@@ -1,12 +1,14 @@
 package com.sma.core.controller;
 
 import com.sma.core.dto.request.auth.LoginRequest;
+import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
 import com.sma.core.dto.request.auth.LogoutRequest;
 import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.sma.core.service.AuthService;
+import com.sma.core.service.RecruiterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +26,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/auth")
 public class AuthController {
 
+    @Autowired
+    RecruiterService recruiterService;
     final AuthService authService;
 
     @PostMapping("/login")
@@ -47,6 +51,17 @@ public class AuthController {
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Refresh token successfully")
                 .data(authService.refreshToken(request))
+                .build();
+    }
+  
+   //Register as recruiter
+    @PostMapping("/recruiter/register")
+    public ApiResponse<Void> registerAsRecruiter(
+            @RequestBody RecruiterRegisterRequest request
+    ) {
+        recruiterService.registerRecruiter(request);
+        return ApiResponse.<Void>builder()
+                .message("Registration submitted successfully. Please wait for admin approval.")
                 .build();
     }
 

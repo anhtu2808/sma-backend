@@ -27,6 +27,8 @@ public enum ErrorCode {
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),
     ROLE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Role does not exist"),
     EMAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, "Email does not exist"),
+    EMAIL_EXISTS(HttpStatus.NOT_FOUND, "Email already exists"),
+    COMPANY_ALREADY_REGISTERED(HttpStatus.NOT_FOUND, "Company already registered"),
     TOKEN_NOT_EXISTED(HttpStatus.NOT_FOUND, "Token does not exist"),
 
     //500 - Server Error
