@@ -301,6 +301,8 @@ CREATE TABLE resumes (
   portfolio_link varchar,
   full_name varchar,
   avatar varchar,
+  resume_url varchar(500),
+  is_original boolean DEFAULT true,
   status resume_status,
   language resume_language,
   candidate_id int
