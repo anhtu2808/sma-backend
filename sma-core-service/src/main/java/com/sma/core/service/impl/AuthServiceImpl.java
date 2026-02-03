@@ -26,6 +26,7 @@ import com.sma.core.repository.UserRepository;
 import com.sma.core.repository.UserTokenRepository;
 import com.sma.core.service.AuthService;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
