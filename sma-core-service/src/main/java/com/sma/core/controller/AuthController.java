@@ -2,10 +2,12 @@ package com.sma.core.controller;
 
 
 import com.sma.core.dto.request.auth.LoginRequest;
+import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.sma.core.service.AuthService;
+import com.sma.core.service.RecruiterService;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,8 @@ public class AuthController {
 
     @Autowired
     AuthService authService;
+    @Autowired
+    RecruiterService recruiterService;
 
     /**
      * Register as candidate
@@ -53,6 +57,18 @@ public class AuthController {
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Login successfully")
                 .data(authService.registerOrLogin(email))
+                .build();
+    }
+
+
+    //Register as recruiter
+    @PostMapping("/recruiter/register")
+    public ApiResponse<Void> registerAsRecruiter(
+            @RequestBody RecruiterRegisterRequest request
+    ) {
+        recruiterService.registerRecruiter(request);
+        return ApiResponse.<Void>builder()
+                .message("Registration submitted successfully. Please wait for admin approval.")
                 .build();
     }
 
