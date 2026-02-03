@@ -1,6 +1,7 @@
 package com.sma.core.exception;
 
 import com.sma.core.dto.response.ApiResponse;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.reactive.resource.NoResourceFoundException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @ControllerAdvice
 @Slf4j
@@ -34,14 +40,23 @@ public class GlobalExceptionHandler {
      * Validation error @Valid body
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleMethodArgumentNotValid(
             MethodArgumentNotValidException e) {
-            HttpStatusCode code = ErrorCode.BAD_REQUEST.getStatusCode();
+
+        HttpStatusCode code = ErrorCode.BAD_REQUEST.getStatusCode();
+
+        Map<String, String> errors = new HashMap<>();
+        e.getBindingResult().getFieldErrors()
+                .forEach(error ->
+                        errors.put(error.getField(), error.getDefaultMessage())
+                );
+
         return ResponseEntity
                 .status(code)
-                .body(ApiResponse.<Void>builder()
+                .body(ApiResponse.<Map<String, String>>builder()
                         .code(code.value())
-                        .message("Invalid request data")
+                        .message("Validation failed")
+                        .data(errors)
                         .build());
     }
 
@@ -51,14 +66,23 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
             ConstraintViolationException e) {
+
         HttpStatusCode code = ErrorCode.BAD_REQUEST.getStatusCode();
+
+        String message = e.getConstraintViolations()
+                .stream()
+                .findFirst()
+                .map(ConstraintViolation::getMessage)
+                .orElse("Invalid request parameters");
+
         return ResponseEntity
                 .status(code)
                 .body(ApiResponse.<Void>builder()
                         .code(code.value())
-                        .message("Invalid request parameters")
+                        .message(message)
                         .build());
     }
+
 
     /**
      * Spring Security – access denied
@@ -72,6 +96,32 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.<Void>builder()
                         .code(code.value())
                         .message(ErrorCode.UNAUTHORIZED.getMessage())
+                        .build());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException e) {
+
+        HttpStatusCode code = HttpStatus.NOT_FOUND;
+
+        return ResponseEntity
+                .status(code)
+                .body(ApiResponse.<Void>builder()
+                        .code(code.value())
+                        .message("API endpoint not found")
+                        .build());
+    }
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNoHandlerFound(NoHandlerFoundException e) {
+
+        HttpStatusCode code = HttpStatus.NOT_FOUND;
+
+        return ResponseEntity
+                .status(code)
+                .body(ApiResponse.<Void>builder()
+                        .code(code.value())
+                        .message("API endpoint not found")
                         .build());
     }
 

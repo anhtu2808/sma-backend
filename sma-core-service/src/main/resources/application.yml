@@ -4,7 +4,9 @@ server:
 spring:
   application:
     name: sma-core-service
-
+  web:
+    resources:
+      add-mappings: false
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -58,7 +60,8 @@ file:
 jwt:
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION}
-  refresh-expiration: 12096000 # 14 days in seconds
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+  refresh-secret: ${JWT_REFRESH_SECRET}
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}

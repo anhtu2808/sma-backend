@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface UserTokenRepository extends JpaRepository<UserToken, Integer> {
 
     Optional<UserToken> findByToken(String token);
+
+    boolean existsUserTokenByTokenAndRevoked(String token, boolean revoked);
 }

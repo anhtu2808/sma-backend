@@ -57,7 +57,7 @@ public class Job {
     private String currency = "VND";
 
     @Column(name = "experience_time")
-    private String experienceTime;
+    private Integer experienceTime;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "job_status")
@@ -86,6 +86,10 @@ public class Job {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "expertise_id")
+    private JobExpertise expertise;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "job_skills", joinColumns = @JoinColumn(name = "job_id"), inverseJoinColumns = @JoinColumn(name = "skill_id"))
