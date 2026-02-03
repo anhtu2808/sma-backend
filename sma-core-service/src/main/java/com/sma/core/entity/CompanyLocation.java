@@ -3,6 +3,8 @@ package com.sma.core.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "company_locations")
 @Getter
@@ -31,4 +33,13 @@ public class CompanyLocation {
     private String country;
 
     private String description;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal longitude;
+
+    @Column(precision = 10, scale = 7)
+    private BigDecimal latitude;
+
+    @Column(name = "google_map_link", length = 500)
+    private String googleMapLink;
 }
