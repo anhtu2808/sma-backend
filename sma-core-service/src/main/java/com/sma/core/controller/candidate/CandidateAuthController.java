@@ -1,5 +1,6 @@
 package com.sma.core.controller.candidate;
 
+import com.sma.core.dto.request.auth.GoogleTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
@@ -32,11 +33,11 @@ public class CandidateAuthController {
     }
 
     @PostMapping("/google-login")
-    public ApiResponse<AuthenticationResponse> loginWithGoogle(@RequestParam("idToken") String idToken) {
-        var googlePayload = authService.verifyGoogleIdToken(idToken);
+    public ApiResponse<AuthenticationResponse> loginWithGoogle(@RequestBody GoogleTokenRequest request) {
+        var googlePayload = authService.verifyGoogleIdToken(request.getIdToken());
         var email = googlePayload.getEmail();
         return ApiResponse.<AuthenticationResponse>builder()
-                .message("Login successfully")
+                .message("Login with google successfully")
                 .data(authService.registerOrLogin(email))
                 .build();
     }
