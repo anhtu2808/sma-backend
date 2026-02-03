@@ -55,6 +55,12 @@ public class Resume {
 
     private String avatar;
 
+    @Column(name = "resume_url")
+    private String resumeUrl;
+
+    @Column(name = "is_original")
+    private Boolean isOriginal;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "resume_status_type")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

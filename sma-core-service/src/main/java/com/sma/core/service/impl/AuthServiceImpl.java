@@ -5,18 +5,25 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.SignedJWT;
 import com.sma.core.dto.request.auth.LoginRequest;
+import com.sma.core.dto.request.auth.LogoutRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.User;
+import com.sma.core.entity.UserToken;
+import com.sma.core.enums.TokenType;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.mapper.UserMapper;
 import com.sma.core.repository.RoleRepository;
 import com.sma.core.repository.UserRepository;
+import com.sma.core.repository.UserTokenRepository;
 import com.sma.core.service.AuthService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +34,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.text.ParseException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -43,10 +52,14 @@ public class AuthServiceImpl implements AuthService {
     String ACCESS_TOKEN_SECRET;
     @Value("${jwt.expiration}")
     Long TOKEN_EXPIRATION;
+    @Value("${jwt.refresh-expiration}")
+    Long REFRESH_EXPIRATION;
 
     final UserRepository userRepository;
     final RoleRepository roleRepository;
     final PasswordEncoder passwordEncoder;
+    final UserTokenRepository userTokenRepository;
+    final UserMapper userMapper;
 
 
     @Override
@@ -109,6 +122,21 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public Boolean logout(LogoutRequest request) {
+        var token = userTokenRepository.findByToken(request.getRefreshToken())
+                .orElseThrow(() -> new AppException(ErrorCode.TOKEN_NOT_EXISTED));
+        token.setRevoked(true);
+        token.setRevokedAt(LocalDateTime.now());
+        userTokenRepository.save(token);
+        return true;
+    }
+
+    @Override
+    public String refreshToken(String refreshToken) {
+        return "";
+    }
+
+    @Override
     public AuthenticationResponse login(LoginRequest request) {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_EXISTED));
@@ -132,7 +160,8 @@ public class AuthServiceImpl implements AuthService {
                 .issueTime(new Date())
                 .expirationTime(new Date(
                         Instant.now().plus(TOKEN_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()
-                )).jwtID(UUID.randomUUID().toString())
+                ))
+                .jwtID(UUID.randomUUID().toString())
                 .claim("userId", user.getId())
                 .claim("candidateId", user.getCandidate() != null ? user.getCandidate().getId() : null)
                 .claim("recruiterId", user.getRecruiter() != null ? user.getRecruiter().getId() : null)
@@ -159,6 +188,17 @@ public class AuthServiceImpl implements AuthService {
         return stringJoiner.toString();
     }
 
+    boolean saveRefreshToken(User user, String refreshToken) {
+        UserToken userToken = UserToken.builder()
+                .token(refreshToken)
+                .tokenType(TokenType.REFRESH)
+                .user(user)
+        //        .expiresAt()
+                .build();
+        userTokenRepository.save(userToken);
+        return true;
+    }
+
 //     String generateRefreshToken(User user)  {
 //        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
 //        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
@@ -178,7 +218,7 @@ public class AuthServiceImpl implements AuthService {
 //        } catch (JOSEException e) {
 //            throw new RuntimeException("Failed to sign JWSObject: " + e.getMessage(), e);
 //        }
-//        return jWSObject.serialize();
+//        return saveRefreshToken(user, jWSObject.serialize());
 //    }
 
 //    AuthenticationResponse refreshToken(String refreshToken) throws JOSEException, ParseException {
@@ -203,17 +243,17 @@ public class AuthServiceImpl implements AuthService {
 //            boolean verified = signedJWT.verify(verifier);
 //
 //            if (!verified) {
-//                throw new AppException(ErrorCode.UNAUTHENTICATED); // chữ ký sai
+//                throw new AppException(ErrorCode.UNAUTHENTICATED);
 //            }
 //
 //            if (expiryTime.before(new Date())) {
-//                throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED); // token hết hạn
+//                throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
 //            }
 //
 //            return signedJWT;
 //
 //        } catch (JOSEException | ParseException e) {
-//            throw new AppException(ErrorCode.UNAUTHENTICATED); // lỗi khi verify/parse
+//            throw new AppException(ErrorCode.UNAUTHENTICATED);
 //        }
 //    }
 }
