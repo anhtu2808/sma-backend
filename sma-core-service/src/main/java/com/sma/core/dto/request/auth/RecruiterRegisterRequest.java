@@ -2,6 +2,7 @@ package com.sma.core.dto.request.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -17,6 +18,7 @@ public class RecruiterRegisterRequest {
     @Email
     private String recruiterEmail;
     @NotBlank
+    @Size(min = 6, max = 100,message = "Password must be between 6 and 100 characters")
     private String password;
 
     // Company info

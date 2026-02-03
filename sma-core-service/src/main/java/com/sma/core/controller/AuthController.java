@@ -26,8 +26,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/auth")
 public class AuthController {
 
-    @Autowired
-    RecruiterService recruiterService;
     final AuthService authService;
 
     @PostMapping("/login")
@@ -51,17 +49,6 @@ public class AuthController {
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Refresh token successfully")
                 .data(authService.refreshToken(request))
-                .build();
-    }
-  
-   //Register as recruiter
-    @PostMapping("/recruiter/register")
-    public ApiResponse<Void> registerAsRecruiter(
-            @RequestBody RecruiterRegisterRequest request
-    ) {
-        recruiterService.registerRecruiter(request);
-        return ApiResponse.<Void>builder()
-                .message("Registration submitted successfully. Please wait for admin approval.")
                 .build();
     }
 
