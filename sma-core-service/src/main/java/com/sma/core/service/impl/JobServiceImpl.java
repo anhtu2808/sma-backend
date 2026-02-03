@@ -2,6 +2,7 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.job.JobResponse;
+import com.sma.core.mapper.JobMapper;
 import com.sma.core.repository.JobRepository;
 import com.sma.core.service.JobService;
 import lombok.AccessLevel;
@@ -20,8 +21,12 @@ public class JobServiceImpl implements JobService {
 
     final JobRepository jobRepository;
 
+    final JobMapper jobMapper;
+
     @Override
     public Page<JobResponse> getAllJobAsCandidate(JobSearchRequest request) {
-        return null;
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(request.getPage(), request.getSize());
+        return jobRepository.findAll(com.sma.core.repository.spec.JobSpecification.withFilter(request), pageable)
+                .map(jobMapper::toOverallJobResponse);
     }
 }

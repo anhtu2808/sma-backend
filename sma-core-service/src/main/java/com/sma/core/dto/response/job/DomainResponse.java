@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.job;
 
+import jakarta.persistence.Column;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -11,4 +12,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class DomainResponse {
     Integer id;
+    String name;
+    String description;
 }
