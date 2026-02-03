@@ -9,6 +9,7 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
 import com.sma.core.dto.request.auth.LoginRequest;
 import com.sma.core.dto.request.auth.LogoutRequest;
+import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.nimbusds.jose.crypto.MACSigner;
@@ -26,7 +27,6 @@ import com.sma.core.repository.UserRepository;
 import com.sma.core.repository.UserTokenRepository;
 import com.sma.core.service.AuthService;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +38,7 @@ import org.springframework.util.CollectionUtils;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -55,6 +56,8 @@ public class AuthServiceImpl implements AuthService {
     Long TOKEN_EXPIRATION;
     @Value("${jwt.refresh-expiration}")
     Long REFRESH_EXPIRATION;
+    @Value("${jwt.refresh-secret}")
+    String REFRESH_SECRET;
 
     final UserRepository userRepository;
     final RoleRepository roleRepository;
@@ -92,7 +95,6 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
                 .status(UserStatus.ACTIVE)
-                .gender(request.getGender())
                 .build();;
         user.setRoles(Set.of(roleRepository.findByNameIgnoreCase("CANDIDATE")
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED))));
@@ -103,7 +105,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
         return AuthenticationResponse.builder()
                 .accessToken(generateToken(user))
-//                .refreshToken(generateRefreshToken(user))
+                .refreshToken(generateRefreshToken(user))
                 .build();
     }
 
@@ -118,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
             );
         return AuthenticationResponse.builder()
                 .accessToken(generateToken(user))
-//                .refreshToken(generateRefreshToken(user))
+                .refreshToken(generateRefreshToken(user))
                 .build();
     }
 
@@ -133,11 +135,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public String refreshToken(String refreshToken) {
-        return "";
-    }
-
-    @Override
     public AuthenticationResponse login(LoginRequest request) {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_EXISTED));
@@ -146,14 +143,34 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.PASSWORD_INCORRECT);
         }
         var token = generateToken(user);
-//        var refreshToken = generateRefreshToken(user);
+        var refreshToken = generateRefreshToken(user);
         return AuthenticationResponse.builder()
                 .accessToken(token)
-//                .refreshToken(refreshToken)
+                .refreshToken(refreshToken)
                 .build();
     }
 
-    private String generateToken(User user) {
+    @Override
+    public AuthenticationResponse refreshToken(RefreshTokenRequest request) {
+        try {
+            var signedJWT = verifyRefreshToken(request.getRefreshToken());
+            JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
+            if (!"refresh_token".equals(claims.getStringClaim("type"))) {
+                throw new AppException(ErrorCode.UNAUTHENTICATED);
+            }
+            var user = userRepository.findByEmail(claims.getSubject())
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+            var newAccessToken = generateToken(user);
+            return AuthenticationResponse.builder()
+                    .accessToken(newAccessToken)
+                    .build();
+        }
+        catch (ParseException | RuntimeException ex) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+    }
+
+    String generateToken(User user) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getEmail())
@@ -189,72 +206,67 @@ public class AuthServiceImpl implements AuthService {
         return stringJoiner.toString();
     }
 
-    boolean saveRefreshToken(User user, String refreshToken) {
+     String generateRefreshToken(User user)  {
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
+        Date expDate = new Date(
+                Instant.now().plus(REFRESH_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()
+        );
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
+                .subject(user.getEmail())
+                .issuer("smartrecruit.tech")
+                .issueTime(new Date())
+                .expirationTime(expDate)
+                .jwtID(UUID.randomUUID().toString())
+                .claim("type", "refresh_token")
+                .claim("userId", user.getId())
+                .build();
+
+        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
+        JWSObject jWSObject = new JWSObject(header, payload);
+        try {
+            jWSObject.sign(new MACSigner(REFRESH_SECRET.getBytes()));
+        } catch (JOSEException e) {
+            throw new RuntimeException("Failed to sign JWSObject: " + e.getMessage(), e);
+        }
+        String refreshToken = jWSObject.serialize();
+        saveRefreshToken(user, expDate, refreshToken);
+        return refreshToken;
+    }
+
+    SignedJWT verifyRefreshToken(String token) {
+        try {
+            JWSVerifier verifier = new MACVerifier(REFRESH_SECRET.getBytes());
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+            boolean verified = signedJWT.verify(verifier);
+            boolean revoked = userTokenRepository.existsUserTokenByTokenAndRevoked(token, true);
+
+            if (!verified) {
+                throw new AppException(ErrorCode.UNAUTHENTICATED);
+            }
+
+            if (expiryTime.before(new Date()) || revoked) {
+                throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
+            }
+
+            return signedJWT;
+
+        } catch (JOSEException | ParseException e) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+    }
+
+    void saveRefreshToken(User user, Date expDate ,String refreshToken) {
+        LocalDateTime expiresAt = expDate
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
         UserToken userToken = UserToken.builder()
                 .token(refreshToken)
                 .tokenType(TokenType.REFRESH)
                 .user(user)
-        //        .expiresAt()
+                .expiresAt(expiresAt)
                 .build();
         userTokenRepository.save(userToken);
-        return true;
     }
-
-//     String generateRefreshToken(User user)  {
-//        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
-//        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
-//                .subject(user.getEmail())
-//                .issuer("smartrecruit.tech")
-//                .issueTime(new Date())
-//                .expirationTime(new Date(Instant.now().plus(30*3, ChronoUnit.DAYS).toEpochMilli()))
-//                .jwtID(UUID.randomUUID().toString())
-//                .claim("type", "refresh_token")
-//                .claim("userId", user.getId())
-//                .build();
-//
-//        Payload payload = new Payload(jwtClaimsSet.toJSONObject());
-//        JWSObject jWSObject = new JWSObject(header, payload);
-//        try {
-//            jWSObject.sign(new MACSigner(REFRESH_TOKEN_SECRET.getBytes()));
-//        } catch (JOSEException e) {
-//            throw new RuntimeException("Failed to sign JWSObject: " + e.getMessage(), e);
-//        }
-//        return saveRefreshToken(user, jWSObject.serialize());
-//    }
-
-//    AuthenticationResponse refreshToken(String refreshToken) throws JOSEException, ParseException {
-//        var signedJWT = verifyRefreshToken(refreshToken);
-//        var claims = signedJWT.getJWTClaimsSet();
-//        if (!"refresh_token".equals(claims.getStringClaim("type"))) {
-//            throw new AppException(ErrorCode.UNAUTHENTICATED);
-//        }
-//        var user = userRepository.findByEmail(claims.getSubject())
-//                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
-//        var newAccessToken = generateToken(user);
-//        return AuthenticationResponse.builder()
-//                .accessToken(newAccessToken)
-//                .build();
-//    }
-
-//    SignedJWT verifyRefreshToken(String token) {
-//        try {
-//            JWSVerifier verifier = new MACVerifier(REFRESH_TOKEN_SECRET.getBytes());
-//            SignedJWT signedJWT = SignedJWT.parse(token);
-//            Date expiryTime = signedJWT.getJWTClaimsSet().getExpirationTime();
-//            boolean verified = signedJWT.verify(verifier);
-//
-//            if (!verified) {
-//                throw new AppException(ErrorCode.UNAUTHENTICATED);
-//            }
-//
-//            if (expiryTime.before(new Date())) {
-//                throw new AppException(ErrorCode.REFRESH_TOKEN_EXPIRED);
-//            }
-//
-//            return signedJWT;
-//
-//        } catch (JOSEException | ParseException e) {
-//            throw new AppException(ErrorCode.UNAUTHENTICATED);
-//        }
-//    }
 }
