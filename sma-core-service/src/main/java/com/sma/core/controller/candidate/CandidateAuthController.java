@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +18,10 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequestMapping("/v1/candidate/auth")
+@RequiredArgsConstructor
 public class CandidateAuthController {
 
-    @Autowired
-    AuthService authService;
+    final AuthService authService;
 
     @PostMapping("/register")
     public ApiResponse<AuthenticationResponse> registerAsCandidate(@Valid @RequestBody RegisterRequest request) {

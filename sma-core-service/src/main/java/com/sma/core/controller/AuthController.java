@@ -2,6 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.auth.LoginRequest;
 import com.sma.core.dto.request.auth.LogoutRequest;
+import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
@@ -38,6 +39,14 @@ public class AuthController {
         return ApiResponse.<Boolean>builder()
                 .message("Logout successfully")
                 .data(authService.logout(request))
+                .build();
+    }
+
+    @PostMapping("/refresh-token")
+    public ApiResponse<AuthenticationResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
+        return ApiResponse.<AuthenticationResponse>builder()
+                .message("Refresh token successfully")
+                .data(authService.refreshToken(request))
                 .build();
     }
 
