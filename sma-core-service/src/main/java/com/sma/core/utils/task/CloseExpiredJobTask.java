@@ -1,6 +1,5 @@
 package com.sma.core.utils.task;
 
-import com.sma.core.repository.JobRepository;
 import com.sma.core.service.JobService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

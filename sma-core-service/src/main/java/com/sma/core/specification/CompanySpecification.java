@@ -1,7 +1,8 @@
 package com.sma.core.specification;
 
 import com.sma.core.dto.request.company.CompanyFilterRequest;
-import com.sma.core.entity.*;
+import com.sma.core.entity.Company;
+import com.sma.core.entity.CompanyLocation;
 import com.sma.core.enums.CompanyStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;

@@ -7,8 +7,6 @@ import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 
-import java.text.ParseException;
-
 public interface AuthService {
 
     GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString);

@@ -1,9 +1,5 @@
 package com.sma.core.dto.response.company;
 
-import com.sma.core.dto.response.job.BaseJobResponse;
-import com.sma.core.entity.CompanyImage;
-import com.sma.core.entity.CompanyLocation;
-import com.sma.core.entity.Job;
 import com.sma.core.entity.Recruiter;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
