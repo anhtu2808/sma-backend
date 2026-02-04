@@ -13,6 +13,8 @@ public enum ErrorCode {
     //400 - Bad request
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad request"),
     USER_EXISTS(HttpStatus.BAD_REQUEST, "User already exists"),
+    JOB_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Job not available"),
+    COMPANY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Company not available"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
@@ -30,6 +32,8 @@ public enum ErrorCode {
     EMAIL_EXISTS(HttpStatus.NOT_FOUND, "Email already exists"),
     COMPANY_ALREADY_REGISTERED(HttpStatus.NOT_FOUND, "Company already registered"),
     TOKEN_NOT_EXISTED(HttpStatus.NOT_FOUND, "Token does not exist"),
+    JOB_NOT_EXISTED(HttpStatus.NOT_FOUND, "Job does not exist"),
+    COMPANY_NOT_EXISTED(HttpStatus.NOT_FOUND, "Company does not exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

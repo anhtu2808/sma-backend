@@ -1,14 +1,13 @@
 package com.sma.core.dto.request.job;
 
-import com.sma.core.entity.Skill;
 import com.sma.core.enums.JobLevel;
+import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.WorkingModel;
-import jakarta.persistence.Column;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.EnumSet;
 import java.util.Set;
 
 @Getter
@@ -17,7 +16,7 @@ import java.util.Set;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class JobSearchRequest {
+public class JobFilterRequest {
 
     String name;
     BigDecimal salaryStart;
@@ -30,6 +29,8 @@ public class JobSearchRequest {
     Set<Integer> expertiseId;
     Set<Integer> domainId;
     Set<String> location;
+    EnumSet<JobStatus> statuses;
+    Integer companyId;
 
     @Builder.Default
     Integer page = 0;
