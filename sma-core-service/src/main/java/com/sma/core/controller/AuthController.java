@@ -1,12 +1,14 @@
 package com.sma.core.controller;
 
 import com.sma.core.dto.request.auth.LoginRequest;
+import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
 import com.sma.core.dto.request.auth.LogoutRequest;
 import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.sma.core.service.AuthService;
+import com.sma.core.service.RecruiterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
