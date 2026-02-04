@@ -1,10 +1,8 @@
-package com.sma.core.repository.spec;
+package com.sma.core.specification;
 
-import com.sma.core.dto.request.company.CompanySearchRequest;
-import com.sma.core.dto.request.job.JobSearchRequest;
+import com.sma.core.dto.request.company.CompanyFilterRequest;
 import com.sma.core.entity.*;
 import com.sma.core.enums.CompanyStatus;
-import com.sma.core.enums.JobStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -19,7 +17,7 @@ import java.util.List;
 public class CompanySpecification {
 
     public static Specification<Company> withFilter(
-            CompanySearchRequest request,
+            CompanyFilterRequest request,
             EnumSet<CompanyStatus> allowedStatus) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();

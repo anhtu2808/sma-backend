@@ -6,6 +6,7 @@ import com.sma.core.entity.Company;
 import com.sma.core.mapper.job.JobMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring",
         uses = {
@@ -16,10 +17,15 @@ import org.mapstruct.Mapping;
 public interface CompanyMapper {
 
     @Mapping(target = "companyStatus", source = "status")
+    @Named("baseCompany")
     BaseCompanyResponse toBaseCompanyResponse(Company company);
 
-    @Mapping(target = "jobs", qualifiedByName = "baseJob")
     @Mapping(target = "companyStatus", source = "status")
+    @Named("clientCompanyDetail")
     CompanyDetailResponse toCompanyDetailResponse(Company company);
+
+    @Mapping(target = "companyStatus", source = "status")
+    @Named("fullCompanyDetail")
+    CompanyDetailResponse toInternalCompanyResponse(Company company);
 
 }

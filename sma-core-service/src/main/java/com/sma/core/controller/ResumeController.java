@@ -23,7 +23,7 @@ public class ResumeController {
     final ResumeService resumeService;
 
     @PostMapping
-//    @PreAuthorize("hasRole('CANDIDATE')")
+    @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ResumeResponse> uploadResume(@RequestBody UploadResumeRequest request) {
         return ApiResponse.<ResumeResponse>builder()
                 .message("Upload resume successfully")

@@ -4,6 +4,7 @@ import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.CompanyLocation;
 import com.sma.core.entity.Job;
+import com.sma.core.entity.Recruiter;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
@@ -26,8 +27,11 @@ public class CompanyDetailResponse extends BaseCompanyResponse {
     String companyType;
     String email;
     String phone;
-    Set<BaseJobResponse> jobs;
     Set<CompanyLocationResponse> locations;
     Set<CompanyImageResponse> images;
+    String taxIdentificationNumber;
+    Boolean signCommitment;
+    String erc;
+    Set<Recruiter> recruiters = new HashSet<>();
 
 }

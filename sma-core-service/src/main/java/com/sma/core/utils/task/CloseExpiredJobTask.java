@@ -15,7 +15,7 @@ public class CloseExpiredJobTask {
 
     final JobService jobService;
 
-    @Scheduled(cron = "0 */10 * * * *")
+    @Scheduled(cron = "0 59 23 * * *")
     public void closeExpiredJobs() {
         jobService.closeExpiredJob();
     }

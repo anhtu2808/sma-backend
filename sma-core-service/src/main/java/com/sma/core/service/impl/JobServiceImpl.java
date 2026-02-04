@@ -1,8 +1,7 @@
 package com.sma.core.service.impl;
 
-import com.sma.core.dto.request.job.JobSearchRequest;
+import com.sma.core.dto.request.job.JobFilterRequest;
 import com.sma.core.dto.response.job.BaseJobResponse;
-import com.sma.core.dto.response.job.JobInternalResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Recruiter;
@@ -13,7 +12,7 @@ import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.job.JobMapper;
 import com.sma.core.repository.JobRepository;
 import com.sma.core.repository.RecruiterRepository;
-import com.sma.core.repository.spec.JobSpecification;
+import com.sma.core.specification.JobSpecification;
 import com.sma.core.service.JobService;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -45,19 +44,21 @@ public class JobServiceImpl implements JobService {
         Job job = jobRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         // handle restrict candidate access to SUSPENDED, DRAFT, PENDING REVIEW job
-        if (JwtTokenProvider.getCurrentRole().equals(Role.CANDIDATE)) {
-            EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.APPROVED, JobStatus.CLOSED);
+        Role role = JwtTokenProvider.getCurrentRole();
+        if (role == null || role.equals(Role.CANDIDATE)) {
+            EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.PUBLISHED, JobStatus.CLOSED);
             if(!allowedStatus.contains(job.getStatus()))
                 throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
+            return jobMapper.toJobDetailResponse(job);
         }
-        return jobMapper.toJobDetailResponse(job);
+        return jobMapper.toJobInternalResponse(job);
     }
 
     @Override
     @Transactional
     public void closeExpiredJob() {
         LocalDateTime now = LocalDateTime.now();
-        List<Job> expiredJob = jobRepository.findByExpDateBeforeAndStatus(now, JobStatus.APPROVED);
+        List<Job> expiredJob = jobRepository.findByExpDateBeforeAndStatus(now, JobStatus.PUBLISHED);
         expiredJob.forEach(job -> job.setStatus(JobStatus.CLOSED));
         jobRepository.saveAll(expiredJob);
     }
@@ -66,34 +67,26 @@ public class JobServiceImpl implements JobService {
      * Get all job on job board page
      */
     @Override
-    public Page<BaseJobResponse> getAllJob(JobSearchRequest request) {
+    public Page<BaseJobResponse> getAllJob(JobFilterRequest request) {
+        Role role = JwtTokenProvider.getCurrentRole();
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.APPROVED);
-        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, null), pageable)
+        EnumSet<JobStatus> allowedStatus = null;
+        LocalDateTime date = null;
+        if (role == null || role.equals(Role.CANDIDATE)) {
+            allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
+            date = LocalDateTime.now();
+        } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
+            if (!request.getStatuses().isEmpty())
+                allowedStatus = request.getStatuses();
+            else
+                allowedStatus = EnumSet.noneOf(JobStatus.class);
+            if (role.equals(Role.RECRUITER)) {
+                Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentActorId());
+                request.setCompanyId(recruiter.getCompany().getId());
+            }
+        }
+        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable)
                 .map(jobMapper::toBaseJobResponse);
-    }
-
-    /**
-     * Get all job on admin dashboard page
-     */
-    @Override
-    public Page<JobInternalResponse> getAllJobAsAdmin(JobSearchRequest request) {
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        EnumSet<JobStatus> allowedStatus = EnumSet.noneOf(JobStatus.class);
-        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, null), pageable)
-                .map(jobMapper::toJobInternalResponse);
-    }
-
-    /**
-     * Get all job on recruiter dashboard page
-     */
-    @Override
-    public Page<JobInternalResponse> getAllJobAsRecruiter(JobSearchRequest request) {
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        EnumSet<JobStatus> allowedStatus = EnumSet.noneOf(JobStatus.class);
-        Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentActorId());
-        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, recruiter.getCompany().getId()), pageable)
-                .map(jobMapper::toJobInternalResponse);
     }
 
     /**

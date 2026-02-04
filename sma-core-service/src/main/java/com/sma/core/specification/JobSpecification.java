@@ -1,7 +1,6 @@
-package com.sma.core.repository.spec;
+package com.sma.core.specification;
 
-import com.sma.core.dto.request.job.JobSearchRequest;
-import com.sma.core.entity.Company;
+import com.sma.core.dto.request.job.JobFilterRequest;
 import com.sma.core.entity.Domain;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Skill;
@@ -12,22 +11,28 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 public class JobSpecification {
 
     public static Specification<Job> withFilter(
-            JobSearchRequest request,
+            JobFilterRequest request,
             EnumSet<JobStatus> allowedStatus,
-            Integer companyId) {
+            LocalDateTime date) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (companyId != null) {
-                predicates.add(cb.equal(root.get("company"), companyId));
+            if (request.getCompanyId() != null) {
+                predicates.add(
+                        cb.equal(root.get("company").get("id"), request.getCompanyId())
+                );
+            }
+
+            if (date != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("expDate"), date));
             }
 
             // 1. Keyword search (Name, About, Responsibilities, Requirement)
