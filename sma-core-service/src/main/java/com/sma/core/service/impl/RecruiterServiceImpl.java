@@ -3,6 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
 import com.sma.core.entity.*;
 import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -28,7 +29,6 @@ public class RecruiterServiceImpl implements RecruiterService {
     private final CompanyRepository companyRepository;
     private final RecruiterRepository recruiterRepository;
     private final CompanyLocationRepository companyLocationRepository;
-    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -43,14 +43,11 @@ public class RecruiterServiceImpl implements RecruiterService {
             throw new AppException(ErrorCode.COMPANY_ALREADY_REGISTERED);
         }
 
-        Role recruiterRole = roleRepository.findByNameIgnoreCase("RECRUITER")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED));
-
         User user = User.builder()
                 .email(request.getRecruiterEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .status(UserStatus.INACTIVE)
-                .roles(Set.of(recruiterRole))
+                .role(Role.RECRUITER)
                 .build();
         userRepository.save(user);
 

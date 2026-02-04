@@ -17,12 +17,11 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.User;
 import com.sma.core.entity.UserToken;
+import com.sma.core.enums.Role;
 import com.sma.core.enums.TokenType;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
-import com.sma.core.mapper.UserMapper;
-import com.sma.core.repository.RoleRepository;
 import com.sma.core.repository.UserRepository;
 import com.sma.core.repository.UserTokenRepository;
 import com.sma.core.service.AuthService;
@@ -59,10 +58,8 @@ public class AuthServiceImpl implements AuthService {
     String REFRESH_SECRET;
 
     final UserRepository userRepository;
-    final RoleRepository roleRepository;
     final PasswordEncoder passwordEncoder;
     final UserTokenRepository userTokenRepository;
-    final UserMapper userMapper;
 
     @Override
     public GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString) {
@@ -92,12 +89,11 @@ public class AuthServiceImpl implements AuthService {
             throw new AppException(ErrorCode.USER_EXISTS);
         User user = User.builder()
                 .email(request.getEmail())
+                .fullName(request.getFullName())
                 .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
                 .status(UserStatus.ACTIVE)
+                .role(Role.CANDIDATE)
                 .build();
-        ;
-        user.setRole(roleRepository.findByNameIgnoreCase("CANDIDATE")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED)));
         Candidate candidate = Candidate.builder()
                 .user(user)
                 .build();
@@ -196,7 +192,7 @@ public class AuthServiceImpl implements AuthService {
     String buildScope(User user) {
         StringJoiner stringJoiner = new StringJoiner(" ");
         if (user.getRole() != null) {
-            stringJoiner.add("ROLE_" + user.getRole().getName());
+            stringJoiner.add("ROLE_" + user.getRole());
         }
         return stringJoiner.toString();
     }

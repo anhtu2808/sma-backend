@@ -1,6 +1,7 @@
 package com.sma.core.entity;
 
 import com.sma.core.enums.Gender;
+import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -52,8 +53,9 @@ public class User {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private Gender gender;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "role_id")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", columnDefinition = "user_role")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private Role role;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
