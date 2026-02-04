@@ -13,5 +13,6 @@ public interface JobService {
     Page<JobInternalResponse> getAllJobAsRecruiter(JobSearchRequest request);
     Page<BaseJobResponse> getAllMySavedJob();
     JobDetailResponse getJobById(Integer id);
+    void closeExpiredJob();
 
 }

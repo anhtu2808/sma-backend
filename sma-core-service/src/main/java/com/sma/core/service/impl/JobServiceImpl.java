@@ -24,8 +24,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.EnumSet;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -48,6 +51,15 @@ public class JobServiceImpl implements JobService {
                 throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
         }
         return jobMapper.toJobDetailResponse(job);
+    }
+
+    @Override
+    @Transactional
+    public void closeExpiredJob() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Job> expiredJob = jobRepository.findByExpDateBeforeAndStatus(now, JobStatus.APPROVED);
+        expiredJob.forEach(job -> job.setStatus(JobStatus.CLOSED));
+        jobRepository.saveAll(expiredJob);
     }
 
     /**
