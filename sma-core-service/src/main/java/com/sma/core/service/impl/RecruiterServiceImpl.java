@@ -50,7 +50,7 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .email(request.getRecruiterEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .status(UserStatus.INACTIVE)
-                .roles(Set.of(recruiterRole))
+                .role(recruiterRole)
                 .build();
         userRepository.save(user);
 
