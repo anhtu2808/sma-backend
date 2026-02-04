@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.job;
 
+import com.sma.core.dto.response.company.CompanyDetailResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
@@ -10,9 +11,10 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @SuperBuilder
-public class PublicJobResponse extends BaseJobResponse{
+public class JobInternalResponse extends CompanyDetailResponse {
 
-    String about;
-    String responsibilities;
-    String requirement;
+    Boolean isViolated;
+    Integer quantity;
+    Double autoRejectThreshold;
+    JobInternalResponse rootJob;
 }

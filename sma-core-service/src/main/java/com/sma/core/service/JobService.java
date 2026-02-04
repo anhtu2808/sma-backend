@@ -2,17 +2,16 @@ package com.sma.core.service;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.job.BaseJobResponse;
-import com.sma.core.dto.response.job.JobResponse;
-import com.sma.core.dto.response.job.PublicJobResponse;
+import com.sma.core.dto.response.job.JobInternalResponse;
+import com.sma.core.dto.response.job.JobDetailResponse;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 public interface JobService {
 
     Page<BaseJobResponse> getAllJob(JobSearchRequest request);
-    Page<JobResponse> getAllJobAsAdmin(JobSearchRequest request);
-    Page<JobResponse> getAllJobAsRecruiter(JobSearchRequest request);
-    Page<PublicJobResponse> getAllMySavedJob();
-    PublicJobResponse getJobById(Integer id);
+    Page<JobInternalResponse> getAllJobAsAdmin(JobSearchRequest request);
+    Page<JobInternalResponse> getAllJobAsRecruiter(JobSearchRequest request);
+    Page<BaseJobResponse> getAllMySavedJob();
+    JobDetailResponse getJobById(Integer id);
 
 }

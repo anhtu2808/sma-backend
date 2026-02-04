@@ -2,16 +2,15 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.job.BaseJobResponse;
-import com.sma.core.dto.response.job.JobResponse;
-import com.sma.core.dto.response.job.PublicJobResponse;
+import com.sma.core.dto.response.job.JobInternalResponse;
+import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Recruiter;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
-import com.sma.core.mapper.JobMapper;
-import com.sma.core.repository.CompanyRepository;
+import com.sma.core.mapper.job.JobMapper;
 import com.sma.core.repository.JobRepository;
 import com.sma.core.repository.RecruiterRepository;
 import com.sma.core.repository.spec.JobSpecification;
@@ -27,7 +26,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.EnumSet;
-import java.util.HashSet;
 
 @Service
 @Slf4j
@@ -40,7 +38,7 @@ public class JobServiceImpl implements JobService {
     final RecruiterRepository recruiterRepository;
 
     @Override
-    public PublicJobResponse getJobById(Integer id) {
+    public JobDetailResponse getJobById(Integer id) {
         Job job = jobRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         // handle restrict candidate access to SUSPENDED, DRAFT, PENDING REVIEW job
@@ -49,7 +47,7 @@ public class JobServiceImpl implements JobService {
             if(!allowedStatus.contains(job.getStatus()))
                 throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
         }
-        return jobMapper.toPublicJobResponse(job);
+        return jobMapper.toJobDetailResponse(job);
     }
 
     /**
@@ -67,30 +65,30 @@ public class JobServiceImpl implements JobService {
      * Get all job on admin dashboard page
      */
     @Override
-    public Page<JobResponse> getAllJobAsAdmin(JobSearchRequest request) {
+    public Page<JobInternalResponse> getAllJobAsAdmin(JobSearchRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = EnumSet.noneOf(JobStatus.class);
         return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, null), pageable)
-                .map(jobMapper::toJobResponse);
+                .map(jobMapper::toJobInternalResponse);
     }
 
     /**
      * Get all job on recruiter dashboard page
      */
     @Override
-    public Page<JobResponse> getAllJobAsRecruiter(JobSearchRequest request) {
+    public Page<JobInternalResponse> getAllJobAsRecruiter(JobSearchRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = EnumSet.noneOf(JobStatus.class);
         Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentActorId());
         return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, recruiter.getCompany().getId()), pageable)
-                .map(jobMapper::toJobResponse);
+                .map(jobMapper::toJobInternalResponse);
     }
 
     /**
      * Get all saved job of current user on candidate dashboard
      */
     @Override
-    public Page<PublicJobResponse> getAllMySavedJob() {
+    public Page<BaseJobResponse> getAllMySavedJob() {
         return null;
     }
 

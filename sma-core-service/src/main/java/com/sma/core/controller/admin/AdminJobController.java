@@ -2,7 +2,7 @@ package com.sma.core.controller.admin;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.ApiResponse;
-import com.sma.core.dto.response.job.JobResponse;
+import com.sma.core.dto.response.job.JobInternalResponse;
 import com.sma.core.service.JobService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +24,8 @@ public class AdminJobController {
     final JobService jobService;
 
     @GetMapping()
-    public ApiResponse<Page<JobResponse>> getAllJobAsAdmin(@ParameterObject JobSearchRequest request) {
-        return ApiResponse.<Page<JobResponse>>builder()
+    public ApiResponse<Page<JobInternalResponse>> getAllJobAsAdmin(@ParameterObject JobSearchRequest request) {
+        return ApiResponse.<Page<JobInternalResponse>>builder()
                 .message("Get all job as admin successfully")
                 .data(jobService.getAllJobAsAdmin(request))
                 .build();

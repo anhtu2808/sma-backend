@@ -1,9 +1,17 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.company.CompanySearchRequest;
-import com.sma.core.dto.response.company.CompanyResponse;
+import com.sma.core.dto.response.company.BaseCompanyResponse;
+import com.sma.core.dto.response.company.CompanyDetailResponse;
+import com.sma.core.entity.Company;
+import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.Role;
+import com.sma.core.exception.AppException;
+import com.sma.core.exception.ErrorCode;
+import com.sma.core.mapper.company.CompanyMapper;
 import com.sma.core.repository.CompanyRepository;
 import com.sma.core.service.CompanyService;
+import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -13,6 +21,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumSet;
+
 @Service
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -20,15 +30,25 @@ import org.springframework.stereotype.Service;
 public class CompanyServiceImpl implements CompanyService {
 
     final CompanyRepository companyRepository;
+    final CompanyMapper companyMapper;
 
     @Override
-    public Page<CompanyResponse> getAllCompany(CompanySearchRequest request) {
+    public CompanyDetailResponse getCompanyById(Integer id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
+        // handle restrict candidate access to INACTIVE, SUSPENDED, PENDING_VERIFICATION company
+        if (JwtTokenProvider.getCurrentRole().equals(Role.CANDIDATE)) {
+            EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+            if(!allowedStatus.contains(company.getStatus()))
+                throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
+        }
+        return companyMapper.toCompanyDetailResponse(company);
+    }
+
+    @Override
+    public Page<BaseCompanyResponse> getAllCompany(CompanySearchRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         return null;
     }
 
-    @Override
-    public CompanyResponse getCompanyById(Integer id) {
-        return null;
-    }
 }

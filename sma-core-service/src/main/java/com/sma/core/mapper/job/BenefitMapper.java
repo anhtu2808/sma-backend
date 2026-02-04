@@ -1,4 +1,4 @@
-package com.sma.core.mapper;
+package com.sma.core.mapper.job;
 
 import com.sma.core.dto.response.job.BenefitResponse;
 import com.sma.core.entity.Benefit;
