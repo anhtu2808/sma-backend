@@ -69,8 +69,9 @@ CREATE TABLE users (
   full_name varchar(255),
   avatar varchar(500),
   last_login_at TIMESTAMP,
-  date_of_birth date,
-  gender gender_type
+  date_of_birth TIMESTAMP,
+  gender gender_type,
+  role_id int
 );
 
 CREATE TABLE user_tokens (
@@ -84,12 +85,6 @@ CREATE TABLE user_tokens (
   revoked_at TIMESTAMP,
   ip_address varchar(45),
   user_agent varchar(500)
-);
-
-CREATE TABLE users_roles (
-  user_id int,
-  role_id int,
-  PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE roles (
@@ -134,6 +129,7 @@ CREATE TABLE jobs (
   salary_end decimal(15,2),
   currency varchar(3) DEFAULT 'VND',
   experience_time int,
+  enable_ai_scoring boolean,
   status job_status,
   job_level job_level_type,
   working_model working_model_type,
@@ -198,7 +194,8 @@ CREATE TABLE job_benefits (
 
 CREATE TABLE job_locations (
   company_location_id int,
-  job_id int
+  job_id int,
+  PRIMARY KEY (company_location_id, job_id)
 );
 
 CREATE TABLE job_questions (
@@ -287,7 +284,10 @@ CREATE TABLE company_locations (
   district varchar,
   city varchar,
   country varchar,
-  description varchar
+  description varchar,
+  longitude decimal(10, 7),
+  latitude decimal(10, 7),
+  google_map_link varchar(500)
 );
 
 CREATE TABLE resumes (
@@ -611,9 +611,7 @@ CREATE UNIQUE INDEX ON notification_settings (user_id, notification_type);
 -- FOREIGN KEYS
 -- ==============================================
 
-ALTER TABLE users_roles ADD FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
-
-ALTER TABLE users_roles ADD FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE;
+ALTER TABLE users ADD FOREIGN KEY (role_id) REFERENCES roles (id);
 
 ALTER TABLE candidates ADD FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE;
 
@@ -658,6 +656,8 @@ ALTER TABLE job_skills ADD FOREIGN KEY (job_id) REFERENCES jobs (id);
 ALTER TABLE job_skills ADD FOREIGN KEY (skill_id) REFERENCES skills (id);
 
 ALTER TABLE job_locations ADD FOREIGN KEY (job_id) REFERENCES jobs (id);
+
+ALTER TABLE job_locations ADD FOREIGN KEY (company_location_id) REFERENCES company_locations (id);
 
 ALTER TABLE resume_skills ADD FOREIGN KEY (resume_id) REFERENCES resumes (id);
 
@@ -742,5 +742,88 @@ ALTER TABLE evaluation_criteria_scores ADD FOREIGN KEY (scoring_criteria_id) REF
 -- ==============================================
 
 INSERT INTO roles (name) VALUES ('CANDIDATE'), ('ADMIN'), ('RECRUITER');
+
+-- Init Company
+INSERT INTO companies (name, country, company_industry, size, description, status, email, phone) 
+VALUES ('Tech Innovations', 'Vietnam', 'Information Technology', '50-100', 'Leading tech solution provider', 'ACTIVE', 'contact@techinnovations.com', '0123456789');
+
+-- Init Company Location
+INSERT INTO company_locations (company_id, name, address, district, city, country, description)
+VALUES ((SELECT id FROM companies WHERE name = 'Tech Innovations'), 'Headquarters', '123 Tech Park', 'District 1', 'Ho Chi Minh City', 'Vietnam', 'Main Office');
+
+-- Init User (Recruiter)
+INSERT INTO users (email, password_hash, status, full_name, role_id) 
+VALUES ('recruiter@techinnovations.com', '$2a$10$NotRealHashJustExample', 'ACTIVE', 'John Recruiter', (SELECT id FROM roles WHERE name = 'RECRUITER'));
+
+-- Link User to Company (Recruiter)
+INSERT INTO recruiters (user_id, company_id, is_verified) 
+VALUES ((SELECT id FROM users WHERE email = 'recruiter@techinnovations.com'), (SELECT id FROM companies WHERE name = 'Tech Innovations'), true);
+
+-- Init Expertise
+INSERT INTO job_expertise_groups (name, description) VALUES ('Software Development', 'All software related jobs');
+INSERT INTO job_expertises (name, description, expertise_group_id) 
+VALUES ('Backend Developer', 'Server side development', (SELECT id FROM job_expertise_groups WHERE name = 'Software Development'));
+
+-- Init Skills
+INSERT INTO skill_categories (name) VALUES ('Programming Language'), ('Framework');
+INSERT INTO skills (name, category_id) VALUES ('Java', (SELECT id FROM skill_categories WHERE name = 'Programming Language'));
+INSERT INTO skills (name, category_id) VALUES ('Spring Boot', (SELECT id FROM skill_categories WHERE name = 'Framework'));
+INSERT INTO skills (name, category_id) VALUES ('PostgreSQL', (SELECT id FROM skill_categories WHERE name = 'Programming Language'));
+
+-- Init Benefits
+INSERT INTO benefits (name, description) VALUES ('Health Insurance', 'Full coverage'), ('Flexible Hours', 'Work anytime');
+
+-- Init Job 1
+INSERT INTO jobs (name, about, responsibilities, requirement, salary_start, salary_end, currency, status, job_level, working_model, quantity, company_id, expertise_id) 
+VALUES (
+    'Senior Backend Engineer', 
+    'Join our core team enabling high scale.', 
+    'Design and implement microservices.', 
+    '5+ years in Java, Spring Boot.', 
+    30000000, 60000000, 'VND', 
+    'APPROVED', 
+    'SENIOR', 
+    'HYBRID', 
+    2, 
+    (SELECT id FROM companies WHERE name = 'Tech Innovations'), 
+    (SELECT id FROM job_expertises WHERE name = 'Backend Developer')
+);
+
+-- Init Job 2
+INSERT INTO jobs (name, about, responsibilities, requirement, salary_start, salary_end, currency, status, job_level, working_model, quantity, company_id, expertise_id) 
+VALUES (
+    'Junior Java Developer', 
+    'Great opportunity for learning.', 
+    'Maintain existing codebase.', 
+    '1+ years in Java.', 
+    15000000, 25000000, 'VND', 
+    'APPROVED', 
+    'JUNIOR', 
+    'ONSITE', 
+    5, 
+    (SELECT id FROM companies WHERE name = 'Tech Innovations'), 
+    (SELECT id FROM job_expertises WHERE name = 'Backend Developer')
+);
+
+-- Link Job 1 Relations
+INSERT INTO job_skills (job_id, skill_id) VALUES 
+((SELECT id FROM jobs WHERE name = 'Senior Backend Engineer'), (SELECT id FROM skills WHERE name = 'Java')),
+((SELECT id FROM jobs WHERE name = 'Senior Backend Engineer'), (SELECT id FROM skills WHERE name = 'Spring Boot'));
+
+INSERT INTO job_benefits (job_id, benefit_id) VALUES 
+((SELECT id FROM jobs WHERE name = 'Senior Backend Engineer'), (SELECT id FROM benefits WHERE name = 'Health Insurance'));
+
+INSERT INTO job_locations (job_id, company_location_id) VALUES 
+((SELECT id FROM jobs WHERE name = 'Senior Backend Engineer'), (SELECT id FROM company_locations WHERE name = 'Headquarters'));
+
+-- Link Job 2 Relations
+INSERT INTO job_skills (job_id, skill_id) VALUES 
+((SELECT id FROM jobs WHERE name = 'Junior Java Developer'), (SELECT id FROM skills WHERE name = 'Java'));
+
+INSERT INTO job_benefits (job_id, benefit_id) VALUES 
+((SELECT id FROM jobs WHERE name = 'Junior Java Developer'), (SELECT id FROM benefits WHERE name = 'Flexible Hours'));
+
+INSERT INTO job_locations (job_id, company_location_id) VALUES 
+((SELECT id FROM jobs WHERE name = 'Junior Java Developer'), (SELECT id FROM company_locations WHERE name = 'Headquarters'));
 
 

@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -65,11 +64,11 @@ public class AuthServiceImpl implements AuthService {
     final UserTokenRepository userTokenRepository;
     final UserMapper userMapper;
 
-
     @Override
     public GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString) {
         try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
+                    new GsonFactory())
                     .setAudience(Collections.singletonList(CLIENT_ID))
                     .build();
             GoogleIdToken idToken = verifier.verify(idTokenString);
@@ -95,9 +94,10 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
                 .status(UserStatus.ACTIVE)
-                .build();;
-        user.setRoles(Set.of(roleRepository.findByNameIgnoreCase("CANDIDATE")
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED))));
+                .build();
+        ;
+        user.setRole(roleRepository.findByNameIgnoreCase("CANDIDATE")
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_EXISTED)));
         Candidate candidate = Candidate.builder()
                 .user(user)
                 .build();
@@ -115,9 +115,8 @@ public class AuthServiceImpl implements AuthService {
         if (user == null)
             return registerAsCandidate(
                     RegisterRequest.builder()
-                    .email(email)
-                    .build()
-            );
+                            .email(email)
+                            .build());
         return AuthenticationResponse.builder()
                 .accessToken(generateToken(user))
                 .refreshToken(generateRefreshToken(user))
@@ -164,8 +163,7 @@ public class AuthServiceImpl implements AuthService {
             return AuthenticationResponse.builder()
                     .accessToken(newAccessToken)
                     .build();
-        }
-        catch (ParseException | RuntimeException ex) {
+        } catch (ParseException | RuntimeException ex) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
     }
@@ -177,8 +175,7 @@ public class AuthServiceImpl implements AuthService {
                 .issuer("smartrecruit.tech")
                 .issueTime(new Date())
                 .expirationTime(new Date(
-                        Instant.now().plus(TOKEN_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()
-                ))
+                        Instant.now().plus(TOKEN_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()))
                 .jwtID(UUID.randomUUID().toString())
                 .claim("userId", user.getId())
                 .claim("candidateId", user.getCandidate() != null ? user.getCandidate().getId() : null)
@@ -198,19 +195,16 @@ public class AuthServiceImpl implements AuthService {
 
     String buildScope(User user) {
         StringJoiner stringJoiner = new StringJoiner(" ");
-        if (!CollectionUtils.isEmpty(user.getRoles())) {
-            user.getRoles().forEach(role -> {
-                stringJoiner.add("ROLE_" + role.getName());
-            });
+        if (user.getRole() != null) {
+            stringJoiner.add("ROLE_" + user.getRole().getName());
         }
         return stringJoiner.toString();
     }
 
-     String generateRefreshToken(User user)  {
+    String generateRefreshToken(User user) {
         JWSHeader header = new JWSHeader(JWSAlgorithm.HS512);
         Date expDate = new Date(
-                Instant.now().plus(REFRESH_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli()
-        );
+                Instant.now().plus(REFRESH_EXPIRATION, ChronoUnit.SECONDS).toEpochMilli());
         JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder()
                 .subject(user.getEmail())
                 .issuer("smartrecruit.tech")
@@ -256,7 +250,7 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    void saveRefreshToken(User user, Date expDate ,String refreshToken) {
+    void saveRefreshToken(User user, Date expDate, String refreshToken) {
         LocalDateTime expiresAt = expDate
                 .toInstant()
                 .atZone(ZoneId.systemDefault())

@@ -40,6 +40,9 @@ public class Job {
     @Column(name = "is_violated")
     private Boolean isViolated;
 
+    @Column(name = "enable_ai_scoring")
+    private Boolean enableAiScoring;
+
     @Column(name = "upload_time")
     private LocalDateTime uploadTime;
 
@@ -117,4 +120,9 @@ public class Job {
     @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<ScoringCriteria> scoringCriterias = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "job_locations", joinColumns = @JoinColumn(name = "job_id"), inverseJoinColumns = @JoinColumn(name = "company_location_id"))
+    @Builder.Default
+    private Set<CompanyLocation> locations = new HashSet<>();
 }

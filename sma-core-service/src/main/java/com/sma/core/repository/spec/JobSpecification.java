@@ -1,6 +1,7 @@
 package com.sma.core.repository.spec;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
+import com.sma.core.entity.Company;
 import com.sma.core.entity.Domain;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Skill;
@@ -26,9 +27,7 @@ public class JobSpecification {
                 predicates.add(
                         cb.or(
                                 cb.like(cb.lower(root.get("name")), pattern),
-                                cb.like(cb.lower(root.get("about")), pattern),
-                                cb.like(cb.lower(root.get("responsibilities")), pattern),
-                                cb.like(cb.lower(root.get("requirement")), pattern)));
+                                cb.like(cb.lower(root.get("about")), pattern)));
             }
 
             // 2. Salary Range
@@ -61,6 +60,7 @@ public class JobSpecification {
             if (!CollectionUtils.isEmpty(request.getSkillId())) {
                 Join<Job, Skill> skillsJoin = root.join("skills");
                 predicates.add(skillsJoin.get("id").in(request.getSkillId()));
+                assert query != null;
                 query.distinct(true);
             }
 
@@ -73,6 +73,7 @@ public class JobSpecification {
             if (!CollectionUtils.isEmpty(request.getDomainId())) {
                 Join<Job, Domain> domainsJoin = root.join("domains");
                 predicates.add(domainsJoin.get("id").in(request.getDomainId()));
+                assert query != null;
                 query.distinct(true);
             }
 

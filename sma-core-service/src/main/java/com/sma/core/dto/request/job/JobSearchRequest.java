@@ -29,6 +29,8 @@ public class JobSearchRequest {
     Set<Integer> skillId;
     Set<Integer> expertiseId;
     Set<Integer> domainId;
+    Set<String> location;
+
     @Builder.Default
     Integer page = 0;
 

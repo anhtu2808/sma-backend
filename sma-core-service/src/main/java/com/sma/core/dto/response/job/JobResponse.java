@@ -33,7 +33,7 @@ public class JobResponse {
     BigDecimal salaryStart;
     BigDecimal salaryEnd;
     String currency;
-    String experienceTime;
+    Integer experienceTime;
     JobStatus status;
     JobLevel jobLevel;
     WorkingModel workingModel;
