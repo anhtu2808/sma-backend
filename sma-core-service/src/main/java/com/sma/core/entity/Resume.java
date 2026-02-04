@@ -23,11 +23,11 @@ public class Resume {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
+    @Column(name = "resume_name")
+    private String resumeName;
+
     @Column(name = "file_name")
     private String fileName;
-
-    @Column(name = "original_file")
-    private String originalFile;
 
     @Column(name = "raw_text", columnDefinition = "TEXT")
     private String rawText;

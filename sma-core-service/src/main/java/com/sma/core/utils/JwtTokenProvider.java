@@ -10,19 +10,14 @@ import org.springframework.security.oauth2.jwt.Jwt;
 public class JwtTokenProvider {
 
     public static Integer getCurrentUserId() {
-        Jwt jwt = getJwt();
-        Integer userId = jwt.getClaim("userId");
-        if (userId == null) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
-        }
-        return userId;
+        return getIntClaim(getJwt(), "userId");
     }
 
     public static Role getCurrentRole() {
         Jwt jwt = getJwt();
         String scope = jwt.getClaim("scope");
         if (scope == null || scope.isBlank()) {
-            return null;
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
         String roleName = scope.replace("ROLE_", "");
         return Role.valueOf(roleName);
@@ -36,13 +31,34 @@ public class JwtTokenProvider {
         }
         String roleName = scope.replace("ROLE_", "");
         Role role = Role.valueOf(roleName);
-        String actorId = null;
         if (role.equals(Role.CANDIDATE))
-            actorId = jwt.getClaim("candidateId");
+            return getIntClaim(jwt, "candidateId");
         else if (role.equals(Role.RECRUITER))
-            actorId = jwt.getClaim("recruiterId");
-        assert actorId != null;
-        return Integer.parseInt(actorId);
+            return getIntClaim(jwt, "recruiterId");
+        return null;
+    }
+
+    public static Integer getCurrentCandidateId() {
+        return getIntClaim(getJwt(), "candidateId");
+    }
+
+    public static Integer getCurrentRecruiterId() {
+        return getIntClaim(getJwt(), "recruiterId");
+    }
+
+    private static Integer getIntClaim(Jwt jwt, String claimName) {
+        Object value = jwt.getClaim(claimName);
+        if (value == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        if (value instanceof Number n) {
+            return n.intValue();
+        }
+        try {
+            return Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
     }
 
     private static Jwt getJwt() {
@@ -57,5 +73,5 @@ public class JwtTokenProvider {
         return jwt;
     }
 
-//    public static boolean hasRole(String token, Role role) { }
+    // public static boolean hasRole(String token, Role role) { }
 }

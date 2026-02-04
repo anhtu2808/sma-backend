@@ -34,6 +34,9 @@ public enum ErrorCode {
     TOKEN_NOT_EXISTED(HttpStatus.NOT_FOUND, "Token does not exist"),
     JOB_NOT_EXISTED(HttpStatus.NOT_FOUND, "Job does not exist"),
     COMPANY_NOT_EXISTED(HttpStatus.NOT_FOUND, "Company does not exist"),
+    RESUME_NOT_EXISTED(HttpStatus.NOT_FOUND, "Resume does not exist"),
+    CANDIDATE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Candidate does not exist"),
+    RECRUITER_NOT_EXISTED(HttpStatus.NOT_FOUND, "Recruiter does not exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
