@@ -71,8 +71,10 @@ public class JobServiceImpl implements JobService {
         Role role = JwtTokenProvider.getCurrentRole();
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = null;
+        LocalDateTime date = null;
         if (role == null || role.equals(Role.CANDIDATE)) {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
+            date = LocalDateTime.now();
         } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
             if (!request.getStatuses().isEmpty())
                 allowedStatus = request.getStatuses();
@@ -83,7 +85,7 @@ public class JobServiceImpl implements JobService {
                 request.setCompanyId(recruiter.getCompany().getId());
             }
         }
-        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus), pageable)
+        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable)
                 .map(jobMapper::toBaseJobResponse);
     }
 

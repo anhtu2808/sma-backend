@@ -36,12 +36,13 @@ public class JwtTokenProvider {
         }
         String roleName = scope.replace("ROLE_", "");
         Role role = Role.valueOf(roleName);
-        Integer actorId = null;
+        String actorId = null;
         if (role.equals(Role.CANDIDATE))
             actorId = jwt.getClaim("candidateId");
         else if (role.equals(Role.RECRUITER))
             actorId = jwt.getClaim("recruiterId");
-        return actorId;
+        assert actorId != null;
+        return Integer.parseInt(actorId);
     }
 
     private static Jwt getJwt() {
