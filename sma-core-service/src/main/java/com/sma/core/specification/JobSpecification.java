@@ -1,7 +1,6 @@
-package com.sma.core.repository.spec;
+package com.sma.core.specification;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
-import com.sma.core.entity.Company;
 import com.sma.core.entity.Domain;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Skill;
@@ -16,7 +15,6 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 
 public class JobSpecification {
 
@@ -28,9 +26,12 @@ public class JobSpecification {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (companyId != null) {
-                predicates.add(cb.equal(root.get("company"), companyId));
+            if (role == Role.ADMIN || role == Role.RECRUITER) {
+                if (companyId != null) {
+                    predicates.add(cb.equal(root.get("company"), companyId));
+                }
             }
+
 
             // 1. Keyword search (Name, About, Responsibilities, Requirement)
             if (StringUtils.hasText(request.getName())) {

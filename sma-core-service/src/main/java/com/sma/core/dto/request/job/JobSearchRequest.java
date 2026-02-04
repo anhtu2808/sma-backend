@@ -2,12 +2,14 @@ package com.sma.core.dto.request.job;
 
 import com.sma.core.entity.Skill;
 import com.sma.core.enums.JobLevel;
+import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.WorkingModel;
 import jakarta.persistence.Column;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +32,7 @@ public class JobSearchRequest {
     Set<Integer> expertiseId;
     Set<Integer> domainId;
     Set<String> location;
+    EnumSet<JobStatus> statuses;
 
     @Builder.Default
     Integer page = 0;
