@@ -3,6 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.job.JobResponse;
 import com.sma.core.entity.Job;
+import com.sma.core.enums.JobStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.JobMapper;
@@ -15,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.EnumSet;
 
 @Service
 @Slf4j
@@ -34,9 +37,13 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobResponse getJobById(Integer id) {
+    public JobResponse getJobByIdAsCandidate(Integer id) {
         Job job = jobRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.APPROVED, JobStatus.CLOSED);
+        if(!allowedStatus.contains(job.getStatus()))
+            throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
+
         return jobMapper.toJobResponse(job);
     }
 }

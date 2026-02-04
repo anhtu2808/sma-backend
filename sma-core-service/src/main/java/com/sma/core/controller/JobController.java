@@ -23,24 +23,4 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JobController {
 
-    final JobService jobService;
-
-    @GetMapping
-    public ApiResponse<Page<JobResponse>> getAllJobAsCandidate(@ParameterObject JobSearchRequest request)
-    {
-        return ApiResponse.<Page<JobResponse>>builder()
-                .message("Get all job as candidate successfully")
-                .data(jobService.getAllJobAsCandidate(request))
-                .build();
-    }
-
-    @GetMapping("/{id}")
-    public ApiResponse<JobResponse> getAllJobAsCandidate(@PathVariable Integer id)
-    {
-        return ApiResponse.<JobResponse>builder()
-                .message("Get all job as candidate successfully")
-                .data(jobService.getJobById(id))
-                .build();
-    }
-
 }

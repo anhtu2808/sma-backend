@@ -13,6 +13,7 @@ public enum ErrorCode {
     //400 - Bad request
     BAD_REQUEST(HttpStatus.BAD_REQUEST, "Bad request"),
     USER_EXISTS(HttpStatus.BAD_REQUEST, "User already exists"),
+    JOB_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Job not available"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
