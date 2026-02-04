@@ -5,11 +5,14 @@ import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.entity.Company;
 import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.company.CompanyMapper;
 import com.sma.core.repository.CompanyRepository;
+import com.sma.core.repository.spec.CompanySpecification;
+import com.sma.core.repository.spec.JobSpecification;
 import com.sma.core.service.CompanyService;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -48,7 +51,9 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     public Page<BaseCompanyResponse> getAllCompany(CompanySearchRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        return null;
+        EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+        return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
+                .map(companyMapper::toBaseCompanyResponse);
     }
 
 }

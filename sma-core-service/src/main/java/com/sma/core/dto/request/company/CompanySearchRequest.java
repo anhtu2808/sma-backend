@@ -3,6 +3,8 @@ package com.sma.core.dto.request.company;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -12,7 +14,7 @@ import lombok.experimental.FieldDefaults;
 public class CompanySearchRequest {
 
     String name;
-    String location;
+    Set<String> location;
 
     @Builder.Default
     Integer page = 0;

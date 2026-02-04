@@ -7,6 +7,7 @@ import com.sma.core.entity.Job;
 import com.sma.core.mapper.SkillMapper;
 import com.sma.core.mapper.company.CompanyMapper;
 import org.mapstruct.Mapper;
+import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring",
         uses = {
@@ -17,6 +18,7 @@ import org.mapstruct.Mapper;
         })
 public interface JobMapper {
 
+    @Named("baseJob")
     BaseJobResponse toBaseJobResponse(Job job);
     JobDetailResponse toJobDetailResponse(Job job);
     JobInternalResponse toJobInternalResponse(Job job);

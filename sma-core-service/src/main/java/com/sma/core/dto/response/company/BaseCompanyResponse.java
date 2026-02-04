@@ -19,7 +19,7 @@ public class BaseCompanyResponse {
     String companyIndustry;
     String link;
     Integer followerNumber;
-    CompanyStatus status;
+    CompanyStatus companyStatus;
     String logo;
 
 }
