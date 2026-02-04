@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.company;
 
+import com.sma.core.dto.response.recruiter.RecruiterShortResponse;
 import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.CompanyLocation;
 import com.sma.core.entity.Job;
@@ -12,6 +13,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -21,7 +23,7 @@ import java.util.Set;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class CompanyResponse {
-
+//RESPONSE FOR ADMIN AND RECRUITER
     Integer id;
     String name;
     String country;
@@ -38,8 +40,8 @@ public class CompanyResponse {
     String phone;
     Boolean signCommitment;
     String erc;
-//    Set<Recruiter> recruiters = new HashSet<>();
-//    Set<Job> jobs = new HashSet<>();
-//    Set<CompanyLocation> locations = new HashSet<>();
-//    Set<CompanyImage> images = new HashSet<>();
+    List<RecruiterShortResponse> recruiters;
+    List<LocationShortResponse> locations;
+    List<String> images;
+    long totalJobs;
 }

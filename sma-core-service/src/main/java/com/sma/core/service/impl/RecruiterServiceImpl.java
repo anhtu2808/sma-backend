@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
+import com.sma.core.dto.request.company.CompanyVerificationRequest;
 import com.sma.core.entity.*;
 import com.sma.core.enums.CompanyStatus;
 import com.sma.core.enums.Role;
@@ -17,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Service
@@ -81,4 +83,7 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .build();
         recruiterRepository.save(recruiter);
     }
+
+
+
 }

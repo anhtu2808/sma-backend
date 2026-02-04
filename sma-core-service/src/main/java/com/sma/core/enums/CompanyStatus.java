@@ -1,8 +1,8 @@
 package com.sma.core.enums;
 
 public enum CompanyStatus {
-    ACTIVE,
-    INACTIVE,
+    APPROVED,
+    UNDER_REVIEW,
     PENDING_VERIFICATION,
-    SUSPENDED
+    REJECTED
 }

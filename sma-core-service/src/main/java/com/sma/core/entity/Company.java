@@ -61,6 +61,9 @@ public class Company {
 
     private String erc;
 
+    @Column(name = "reject_reason", columnDefinition = "TEXT")
+    private String rejectReason;
+
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Recruiter> recruiters = new HashSet<>();
 
