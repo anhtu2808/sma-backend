@@ -48,7 +48,12 @@ public class SecurityConfig {
             "/webjars/**",
             "/actuator/**",
             "/v1/auth/**",
+            "v1/candidate/auth/**",
+            "v1/recruiter/auth/**",
+            "v1/companies/**",
+            "v1/jobs/**",
             "/files/**",
+            "/v1/heathcheck/**"
     };
 
     @Bean
