@@ -30,6 +30,7 @@ public enum ErrorCode {
     EMAIL_EXISTS(HttpStatus.NOT_FOUND, "Email already exists"),
     COMPANY_ALREADY_REGISTERED(HttpStatus.NOT_FOUND, "Company already registered"),
     TOKEN_NOT_EXISTED(HttpStatus.NOT_FOUND, "Token does not exist"),
+    JOB_NOT_EXISTED(HttpStatus.NOT_FOUND, "Job does not exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

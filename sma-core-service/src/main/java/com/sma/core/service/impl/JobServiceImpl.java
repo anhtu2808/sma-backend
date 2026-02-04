@@ -2,6 +2,9 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.job.JobResponse;
+import com.sma.core.entity.Job;
+import com.sma.core.exception.AppException;
+import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.JobMapper;
 import com.sma.core.repository.JobRepository;
 import com.sma.core.service.JobService;
@@ -28,5 +31,12 @@ public class JobServiceImpl implements JobService {
         Pageable pageable = org.springframework.data.domain.PageRequest.of(request.getPage(), request.getSize());
         return jobRepository.findAll(com.sma.core.repository.spec.JobSpecification.withFilter(request), pageable)
                 .map(jobMapper::toOverallJobResponse);
+    }
+
+    @Override
+    public JobResponse getJobById(Integer id) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        return jobMapper.toJobResponse(job);
     }
 }

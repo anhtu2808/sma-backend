@@ -21,4 +21,6 @@ public interface JobMapper {
     @Mapping(target = "company", ignore = true)
     JobResponse toOverallJobResponse(Job job);
 
+    JobResponse toJobResponse(Job job);
+
 }

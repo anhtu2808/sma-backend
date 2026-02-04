@@ -12,10 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -34,6 +31,15 @@ public class JobController {
         return ApiResponse.<Page<JobResponse>>builder()
                 .message("Get all job as candidate successfully")
                 .data(jobService.getAllJobAsCandidate(request))
+                .build();
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<JobResponse> getAllJobAsCandidate(@PathVariable Integer id)
+    {
+        return ApiResponse.<JobResponse>builder()
+                .message("Get all job as candidate successfully")
+                .data(jobService.getJobById(id))
                 .build();
     }
 

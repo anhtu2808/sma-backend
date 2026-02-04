@@ -8,5 +8,6 @@ import org.springframework.data.domain.Pageable;
 public interface JobService {
 
     Page<JobResponse> getAllJobAsCandidate(JobSearchRequest request);
+    JobResponse getJobById(Integer id);
 
 }
