@@ -1,0 +1,41 @@
+package com.sma.core.dto.response.resume;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ResumeResponse {
+
+     Integer id;
+    
+     String fileName;
+    
+     String originalFile;
+    
+     String rawText;
+    
+     String addressInResume;
+    
+     String phoneInResume;
+    
+     String emailInResume;
+    
+     String githubLink;
+
+     String linkedinLink;
+
+     String portfolioLink;
+
+     String fullName;
+
+     String avatar;
+
+     String resumeUrl;
+
+     Boolean isOriginal;
+}
