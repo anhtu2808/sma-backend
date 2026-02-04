@@ -2,7 +2,9 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobResponse;
+import com.sma.core.dto.response.job.PublicJobResponse;
 import com.sma.core.service.JobService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AccessLevel;
@@ -22,5 +24,23 @@ import java.util.List;
 @RequestMapping("/v1/jobs")
 @RequiredArgsConstructor
 public class JobController {
+    final JobService jobService;
 
+    @GetMapping
+    public ApiResponse<Page<BaseJobResponse>> getAllJob(@ParameterObject JobSearchRequest request)
+    {
+        return ApiResponse.<Page<BaseJobResponse>>builder()
+                .message("Get all job successfully")
+                .data(jobService.getAllJob(request))
+                .build();
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<PublicJobResponse> getJobById(@PathVariable Integer id)
+    {
+        return ApiResponse.<PublicJobResponse>builder()
+                .message("Get job by id successfully")
+                .data(jobService.getJobById(id))
+                .build();
+    }
 }

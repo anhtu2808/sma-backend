@@ -1,9 +1,9 @@
-package com.sma.core.controller.candidate;
+package com.sma.core.controller.recruiter;
 
 import com.sma.core.dto.request.job.JobSearchRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.job.JobResponse;
-import com.sma.core.dto.response.job.PublicJobResponse;
+import com.sma.core.service.CompanyService;
 import com.sma.core.service.JobService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,17 +19,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@RequestMapping("/v1/candidate/jobs")
+@RequestMapping("/v1/recruiter/companies")
 @RequiredArgsConstructor
-public class CandidateJobController {
+public class RecruiterCompanyController {
 
+    final CompanyService companyService;
     final JobService jobService;
 
-    @GetMapping("/saved")
-    public ApiResponse<Page<PublicJobResponse>> getMySavedJob() {
-        return ApiResponse.<Page<PublicJobResponse>>builder()
-                .message("Get my saved job successfully")
+    @GetMapping("/jobs")
+    ApiResponse<Page<JobResponse>> getMyCompanyJobs(@ParameterObject JobSearchRequest request) {
+        return ApiResponse.<Page<JobResponse>>builder()
+                .message("Get my company jobs successfully")
+                .data(jobService.getAllJobAsRecruiter(request))
                 .build();
     }
-
 }

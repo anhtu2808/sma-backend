@@ -13,13 +13,22 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 public class JobSpecification {
 
-    public static Specification<Job> withFilter(JobSearchRequest request) {
+    public static Specification<Job> withFilter(
+            JobSearchRequest request,
+            EnumSet<JobStatus> allowedStatus,
+            Integer companyId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (companyId != null) {
+                predicates.add(cb.equal(root.get("company"), companyId));
+            }
 
             // 1. Keyword search (Name, About, Responsibilities, Requirement)
             if (StringUtils.hasText(request.getName())) {
@@ -78,7 +87,8 @@ public class JobSpecification {
             }
 
             // 9. Status (Hardcoded Approved)
-            predicates.add(cb.equal(root.get("status"), JobStatus.APPROVED));
+            if (!allowedStatus.isEmpty())
+                predicates.add(root.get("status").in(allowedStatus));
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };
