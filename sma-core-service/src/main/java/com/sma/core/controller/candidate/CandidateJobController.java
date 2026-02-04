@@ -22,7 +22,7 @@ public class CandidateJobController {
 
     final JobService jobService;
 
-    @GetMapping("/saved")
+    @GetMapping()
     public ApiResponse<Page<BaseJobResponse>> getMySavedJob() {
         return ApiResponse.<Page<BaseJobResponse>>builder()
                 .message("Get my saved job successfully")
