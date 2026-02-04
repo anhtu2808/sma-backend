@@ -1,6 +1,6 @@
 package com.sma.core.service.impl;
 
-import com.sma.core.dto.request.job.JobSearchRequest;
+import com.sma.core.dto.request.job.JobFilterRequest;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.Job;
@@ -67,26 +67,23 @@ public class JobServiceImpl implements JobService {
      * Get all job on job board page
      */
     @Override
-    public Page<BaseJobResponse> getAllJob(JobSearchRequest request) {
+    public Page<BaseJobResponse> getAllJob(JobFilterRequest request) {
         Role role = JwtTokenProvider.getCurrentRole();
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = null;
-        Integer companyId = null;
         if (role == null || role.equals(Role.CANDIDATE)) {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
-            return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, null, role), pageable)
-                    .map(jobMapper::toBaseJobResponse);
         } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
-            if (request.getStatuses().isEmpty())
+            if (!request.getStatuses().isEmpty())
                 allowedStatus = request.getStatuses();
             else
                 allowedStatus = EnumSet.noneOf(JobStatus.class);
             if (role.equals(Role.RECRUITER)) {
                 Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentActorId());
-                companyId = recruiter.getCompany().getId();
+                request.setCompanyId(recruiter.getCompany().getId());
             }
         }
-        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, companyId, role), pageable)
+        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus), pageable)
                 .map(jobMapper::toBaseJobResponse);
     }
 

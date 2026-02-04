@@ -11,7 +11,7 @@ import java.util.Set;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class CompanySearchRequest {
+public class CompanyFilterRequest {
 
     String name;
     Set<String> location;

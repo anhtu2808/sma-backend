@@ -1,6 +1,6 @@
 package com.sma.core.service.impl;
 
-import com.sma.core.dto.request.company.CompanySearchRequest;
+import com.sma.core.dto.request.company.CompanyFilterRequest;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.entity.Company;
@@ -49,7 +49,7 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public Page<BaseCompanyResponse> getAllCompany(CompanySearchRequest request) {
+    public Page<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)

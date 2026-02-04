@@ -1,6 +1,6 @@
 package com.sma.core.controller;
 
-import com.sma.core.dto.request.job.JobSearchRequest;
+import com.sma.core.dto.request.job.JobFilterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
@@ -22,7 +22,7 @@ public class JobController {
     final JobService jobService;
 
     @GetMapping
-    public ApiResponse<Page<BaseJobResponse>> getAllJob(@ParameterObject JobSearchRequest request)
+    public ApiResponse<Page<BaseJobResponse>> getAllJob(@ParameterObject JobFilterRequest request)
     {
         return ApiResponse.<Page<BaseJobResponse>>builder()
                 .message("Get all job successfully")

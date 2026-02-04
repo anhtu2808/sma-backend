@@ -1,11 +1,10 @@
 package com.sma.core.specification;
 
-import com.sma.core.dto.request.job.JobSearchRequest;
+import com.sma.core.dto.request.job.JobFilterRequest;
 import com.sma.core.entity.Domain;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Skill;
 import com.sma.core.enums.JobStatus;
-import com.sma.core.enums.Role;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,19 +18,16 @@ import java.util.List;
 public class JobSpecification {
 
     public static Specification<Job> withFilter(
-            JobSearchRequest request,
-            EnumSet<JobStatus> allowedStatus,
-            Integer companyId,
-            Role role) {
+            JobFilterRequest request,
+            EnumSet<JobStatus> allowedStatus) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            if (role == Role.ADMIN || role == Role.RECRUITER) {
-                if (companyId != null) {
-                    predicates.add(cb.equal(root.get("company"), companyId));
-                }
+            if (request.getCompanyId() != null) {
+                predicates.add(
+                        cb.equal(root.get("company").get("id"), request.getCompanyId())
+                );
             }
-
 
             // 1. Keyword search (Name, About, Responsibilities, Requirement)
             if (StringUtils.hasText(request.getName())) {
