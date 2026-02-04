@@ -15,5 +15,9 @@ public class JobDetailResponse extends BaseJobResponse{
     String about;
     String responsibilities;
     String requirement;
+    Boolean isViolated;
+    Integer quantity;
+    Double autoRejectThreshold;
+    BaseJobResponse rootJob;
 
 }

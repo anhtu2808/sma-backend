@@ -39,13 +39,15 @@ public class CompanyServiceImpl implements CompanyService {
     public CompanyDetailResponse getCompanyById(Integer id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
+        Role role = JwtTokenProvider.getCurrentRole();
         // handle restrict candidate access to INACTIVE, SUSPENDED, PENDING_VERIFICATION company
-        if (JwtTokenProvider.getCurrentRole().equals(Role.CANDIDATE)) {
+        if (role == null || role.equals(Role.CANDIDATE)) {
             EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
             if(!allowedStatus.contains(company.getStatus()))
                 throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
+            return companyMapper.toCompanyDetailResponse(company);
         }
-        return companyMapper.toCompanyDetailResponse(company);
+        return companyMapper.toInternalCompanyResponse(company);
     }
 
     @Override

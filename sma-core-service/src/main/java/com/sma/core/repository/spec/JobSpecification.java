@@ -6,6 +6,7 @@ import com.sma.core.entity.Domain;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.Skill;
 import com.sma.core.enums.JobStatus;
+import com.sma.core.enums.Role;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -22,7 +23,8 @@ public class JobSpecification {
     public static Specification<Job> withFilter(
             JobSearchRequest request,
             EnumSet<JobStatus> allowedStatus,
-            Integer companyId) {
+            Integer companyId,
+            Role role) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 

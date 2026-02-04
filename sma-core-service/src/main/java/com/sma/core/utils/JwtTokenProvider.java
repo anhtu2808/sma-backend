@@ -22,13 +22,13 @@ public class JwtTokenProvider {
         Jwt jwt = getJwt();
         String scope = jwt.getClaim("scope");
         if (scope == null || scope.isBlank()) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            return null;
         }
         String roleName = scope.replace("ROLE_", "");
         return Role.valueOf(roleName);
     }
 
-    public static Integer getCurrentActorId(){
+    public static Integer getCurrentActorId() {
         Jwt jwt = getJwt();
         String scope = jwt.getClaim("scope");
         if (scope == null || scope.isBlank()) {

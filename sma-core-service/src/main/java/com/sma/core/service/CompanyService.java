@@ -3,7 +3,6 @@ package com.sma.core.service;
 import com.sma.core.dto.request.company.CompanySearchRequest;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
-import com.sma.core.dto.response.company.CompanyInternalResponse;
 import org.springframework.data.domain.Page;
 
 public interface CompanyService {
