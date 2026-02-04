@@ -40,6 +40,7 @@ public class CompanyResponse {
     String phone;
     Boolean signCommitment;
     String erc;
+    String rejectReason;
     List<RecruiterShortResponse> recruiters;
     List<LocationShortResponse> locations;
     List<String> images;

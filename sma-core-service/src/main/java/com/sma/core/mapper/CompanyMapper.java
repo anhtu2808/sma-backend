@@ -25,6 +25,7 @@ public interface CompanyMapper {
 
     @Mapping(target = "images", expression = "java(mapImagesToUrls(company.getImages()))")
     @Mapping(target = "totalJobs", ignore = true)
+    @Mapping(target = "rejectReason", source = "rejectReason")
     CompanyResponse toDetailResponse(Company company);
 
     default List<String> mapImagesToUrls(Set<CompanyImage> images) {
