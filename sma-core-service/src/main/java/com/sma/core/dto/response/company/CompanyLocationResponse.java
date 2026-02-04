@@ -1,10 +1,7 @@
 package com.sma.core.dto.response.company;
 
-import com.sma.core.entity.Company;
-import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 

@@ -1,13 +1,19 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
-import com.sma.core.entity.*;
+import com.sma.core.entity.Company;
+import com.sma.core.entity.CompanyLocation;
+import com.sma.core.entity.Recruiter;
+import com.sma.core.entity.User;
 import com.sma.core.enums.CompanyStatus;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
-import com.sma.core.repository.*;
+import com.sma.core.repository.CompanyLocationRepository;
+import com.sma.core.repository.CompanyRepository;
+import com.sma.core.repository.RecruiterRepository;
+import com.sma.core.repository.UserRepository;
 import com.sma.core.service.RecruiterService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Set;
 
 @Service
 @Slf4j
