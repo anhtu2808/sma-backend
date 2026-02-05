@@ -5,10 +5,6 @@ import com.sma.core.dto.request.company.UpdateCompanyRequest;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.dto.request.company.CompanyVerificationRequest;
-import com.sma.core.dto.response.company.AdminCompanyResponse;
-import com.sma.core.dto.response.company.CompanyResponse;
-import com.sma.core.dto.response.company.LocationShortResponse;
-import com.sma.core.dto.response.recruiter.RecruiterShortResponse;
 import com.sma.core.entity.Company;
 import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.Recruiter;
@@ -37,7 +33,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 
-
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
@@ -53,27 +48,6 @@ public class CompanyServiceImpl implements CompanyService {
     RecruiterRepository recruiterRepository;
     CompanyMapper companyMapper;
     JobRepository jobRepository;
-
-    @Override
-    @Transactional(readOnly = true)
-    public Page<AdminCompanyResponse> getAllCompaniesForAdmin(String name, CompanyStatus status, Pageable pageable) {
-        Page<Company> companies;
-        if (name != null && status != null) {
-            companies = companyRepository.findByNameContainingIgnoreCaseAndStatus(name, status, pageable);
-        } else if (name != null) {
-            companies = companyRepository.findByNameContainingIgnoreCase(name, pageable);
-        } else if (status != null) {
-            companies = companyRepository.findByStatus(status, pageable);
-        } else {
-            companies = companyRepository.findAll(pageable);
-        }
-
-        return companies.map(company -> {
-            AdminCompanyResponse response = companyMapper.toAdminResponse(company);
-            response.setRecruiterCount(recruiterRepository.countByCompanyId(company.getId()));
-            return response;
-        });
-    }
 
     @Override
     @Transactional
@@ -121,57 +95,29 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public CompanyResponse getCompanyDetailForAdmin(Integer companyId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-
-        CompanyResponse response = companyMapper.toDetailResponse(company);
-
-        response.setRecruiters(company.getRecruiters().stream()
-                .map(r -> RecruiterShortResponse.builder()
-                        .id(r.getId())
-                        .avatar(r.getUser().getAvatar())
-                        .fullName(r.getUser().getFullName())
-                        .email(r.getUser().getEmail())
-                        .isRootCandidate(r.getIsRootCandidate())
-                        .isVerified(r.getIsVerified())
-                        .build())
-                .toList());
-
-        response.setLocations(company.getLocations().stream()
-                .map(l -> LocationShortResponse.builder()
-                        .name(l.getName())
-                        .address(l.getAddress())
-                        .district(l.getDistrict())
-                        .city(l.getCity())
-                        .country(l.getCountry())
-                        .googleMapLink(l.getGoogleMapLink())
-                        .build())
-                .toList());
-
-        List<String> imageUrls = company.getImages().stream()
-                .map((CompanyImage img) -> img.getUrl())
-                .toList();
-        response.setImages(imageUrls);
-
-        response.setTotalJobs(jobRepository.countByCompanyId(companyId));
-
-        return response;
-    }
-
-    @Override
+    @Transactional(readOnly = true)
     public CompanyDetailResponse getCompanyById(Integer id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
         Role role = JwtTokenProvider.getCurrentRole();
-        // handle restrict candidate access to INACTIVE, SUSPENDED, PENDING_VERIFICATION company
-        if (role == null || role.equals(Role.CANDIDATE)) {
+
+        // internal users (Admin, Recruiter) or Owner can see more details or restricted
+        // companies
+        boolean isInternal = role != null && (role.equals(Role.ADMIN) || role.equals(Role.RECRUITER));
+
+        if (!isInternal) {
             EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
-            if(!allowedStatus.contains(company.getStatus()))
+            if (!allowedStatus.contains(company.getStatus()))
                 throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
-            return companyMapper.toCompanyDetailResponse(company);
         }
-        return companyMapper.toInternalCompanyResponse(company);
+
+        CompanyDetailResponse response = isInternal
+                ? companyMapper.toInternalCompanyResponse(company)
+                : companyMapper.toCompanyDetailResponse(company);
+
+        response.setTotalJobs(jobRepository.countByCompanyId(id));
+
+        return response;
     }
 
     @Override
@@ -188,13 +134,12 @@ public class CompanyServiceImpl implements CompanyService {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
         Role role = JwtTokenProvider.getCurrentRole();
-        if (role == null || role.equals(Role.CANDIDATE)) {
-            allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
-        } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
-            if (!request.getStatus().isEmpty())
-                allowedStatus = EnumSet.noneOf(CompanyStatus.class);
-            else
+        if (role != null && (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN))) {
+            if (!request.getStatus().isEmpty()) {
                 allowedStatus = request.getStatus();
+            } else {
+                allowedStatus = EnumSet.allOf(CompanyStatus.class);
+            }
         }
 
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
