@@ -41,8 +41,14 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<SkillCateResponse> getAll(Pageable pageable) {
-        return skillRepository.findAll(pageable).map(skillMapper::toCateResponse);
+    public Page<SkillCateResponse> getAll(String name, Pageable pageable) {
+        Page<Skill> skills;
+        if (name != null && !name.trim().isEmpty()) {
+            skills = skillRepository.findByNameContainingIgnoreCase(name, pageable);
+        } else {
+            skills = skillRepository.findAll(pageable);
+        }
+        return skills.map(skillMapper::toCateResponse);
     }
 
     @Override

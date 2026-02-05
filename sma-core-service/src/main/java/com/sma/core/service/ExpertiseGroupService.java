@@ -10,7 +10,7 @@ public interface ExpertiseGroupService {
     ExpertiseGroupResponse create(ExpertiseGroupRequest request);
     ExpertiseGroupResponse update(Integer id, ExpertiseGroupRequest request);
     void delete(Integer id);
-    Page<ExpertiseGroupResponse> getAll(Pageable pageable);
+    Page<ExpertiseGroupResponse> getAll(String name, Pageable pageable);
     ExpertiseGroupResponse getById(Integer id);
 
 }

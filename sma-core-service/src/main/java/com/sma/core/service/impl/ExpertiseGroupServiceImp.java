@@ -33,10 +33,14 @@ public class ExpertiseGroupServiceImp implements ExpertiseGroupService {
         return mapper.toResponse(repository.save(group));
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ExpertiseGroupResponse> getAll(Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toResponse);
+    public Page<ExpertiseGroupResponse> getAll(String name, Pageable pageable) {
+        Page<JobExpertiseGroup> groups;
+        if (name != null && !name.trim().isEmpty()) {
+            groups = repository.findByNameContainingIgnoreCase(name, pageable);
+        } else {
+            groups = repository.findAll(pageable);
+        }
+        return groups.map(mapper::toResponse);
     }
 
     @Override

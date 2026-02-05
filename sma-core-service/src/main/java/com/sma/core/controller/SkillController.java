@@ -27,9 +27,11 @@ public class SkillController {
     }
 
     @GetMapping
-    public ApiResponse<Page<SkillCateResponse>> getAll(Pageable pageable) {
+    public ApiResponse<Page<SkillCateResponse>> getAll(
+            @RequestParam(required = false) String name,
+            Pageable pageable) {
         return ApiResponse.<Page<SkillCateResponse>>builder()
-                .data(skillService.getAll(pageable))
+                .data(skillService.getAll(name, pageable))
                 .build();
     }
 

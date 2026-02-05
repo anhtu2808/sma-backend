@@ -35,8 +35,14 @@ public class SkillCategoryServiceImpl implements SkillCategoryService {
 
     @Transactional(readOnly = true)
     @Override
-    public Page<SkillCategoryResponse> getAll(Pageable pageable) {
-        return categoryRepository.findAll(pageable).map(skillMapper::toCategoryResponse);
+    public Page<SkillCategoryResponse> getAll(String name, Pageable pageable) {
+        Page<SkillCategory> categories;
+        if (name != null && !name.trim().isEmpty()) {
+            categories = categoryRepository.findByNameContainingIgnoreCase(name, pageable);
+        } else {
+            categories = categoryRepository.findAll(pageable);
+        }
+        return categories.map(skillMapper::toCategoryResponse);
     }
 
     @Override

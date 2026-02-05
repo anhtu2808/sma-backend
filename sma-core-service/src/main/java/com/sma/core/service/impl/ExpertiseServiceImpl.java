@@ -39,11 +39,14 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         return mapper.toResponse(repository.save(expertise));
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public Page<ExpertiseResponse> getAll(Pageable pageable) {
-        return repository.findAll(pageable)
-                .map(mapper::toResponse);
+    public Page<ExpertiseResponse> getAll(String name, Pageable pageable) {
+        Page<JobExpertise> expertises;
+        if (name != null && !name.trim().isEmpty()) {
+            expertises = repository.findByNameContainingIgnoreCase(name, pageable);
+        } else {
+            expertises = repository.findAll(pageable);
+        }
+        return expertises.map(mapper::toResponse);
     }
 
     @Override

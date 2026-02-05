@@ -25,8 +25,12 @@ public class ExpertiseGroupController {
     }
 
     @GetMapping
-    public ApiResponse<Page<ExpertiseGroupResponse>> getAll(Pageable pageable) {
-        return ApiResponse.<Page<ExpertiseGroupResponse>>builder().data(service.getAll(pageable)).build();
+    public ApiResponse<Page<ExpertiseGroupResponse>> getAll(
+            @RequestParam(required = false) String name,
+            Pageable pageable) {
+        return ApiResponse.<Page<ExpertiseGroupResponse>>builder()
+                .data(service.getAll(name, pageable)) 
+                .build();
     }
 
     @GetMapping("/{id}")
