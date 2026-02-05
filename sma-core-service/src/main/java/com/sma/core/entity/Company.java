@@ -30,9 +30,9 @@ public class Company {
     private String companyIndustry;
 
     @Column(name = "min_size")
-    private String minSize;
+    private Integer minSize;
     @Column(name= "max_size")
-    private String maxSize;
+    private Integer maxSize;
 
     @Column(columnDefinition = "TEXT")
     private String description;
