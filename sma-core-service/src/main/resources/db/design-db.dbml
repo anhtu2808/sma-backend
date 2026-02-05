@@ -323,8 +323,8 @@ TableGroup "Company" [color: #f1c40f] {
 // ==============================================
 Table Resumes {
   id int [pk, increment]
+  resume_name varchar
   file_name varchar
-  original_file varchar
   raw_text text
   address_in_resume varchar
   phone_in_resume varchar

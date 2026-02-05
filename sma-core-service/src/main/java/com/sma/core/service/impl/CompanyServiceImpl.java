@@ -1,5 +1,4 @@
 package com.sma.core.service.impl;
-
 import com.sma.core.dto.request.company.CompanyVerificationRequest;
 import com.sma.core.dto.response.company.AdminCompanyResponse;
 import com.sma.core.dto.response.company.CompanyResponse;
@@ -12,11 +11,17 @@ import com.sma.core.enums.CompanyStatus;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
-import com.sma.core.mapper.CompanyMapper;
 import com.sma.core.repository.CompanyRepository;
 import com.sma.core.repository.JobRepository;
 import com.sma.core.repository.RecruiterRepository;
 import com.sma.core.service.CompanyService;
+import com.sma.core.dto.request.company.CompanyFilterRequest;
+import com.sma.core.dto.response.company.BaseCompanyResponse;
+import com.sma.core.dto.response.company.CompanyDetailResponse;
+import com.sma.core.enums.Role;
+import com.sma.core.mapper.company.CompanyMapper;
+import com.sma.core.specification.CompanySpecification;
+import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,8 +30,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
@@ -144,4 +152,28 @@ public class CompanyServiceImpl implements CompanyService {
 
         return response;
     }
+
+    @Override
+    public CompanyDetailResponse getCompanyById(Integer id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
+        Role role = JwtTokenProvider.getCurrentRole();
+        // handle restrict candidate access to INACTIVE, SUSPENDED, PENDING_VERIFICATION company
+        if (role == null || role.equals(Role.CANDIDATE)) {
+            EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+            if(!allowedStatus.contains(company.getStatus()))
+                throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
+            return companyMapper.toCompanyDetailResponse(company);
+        }
+        return companyMapper.toInternalCompanyResponse(company);
+    }
+
+    @Override
+    public Page<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+        EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+        return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
+                .map(companyMapper::toBaseCompanyResponse);
+    }
+
 }

@@ -3,7 +3,7 @@ package com.sma.core.enums;
 public enum JobStatus {
     DRAFT,
     PENDING_REVIEW,
-    APPROVED,
+    PUBLISHED,
     SUSPENDED,
     CLOSED
 }

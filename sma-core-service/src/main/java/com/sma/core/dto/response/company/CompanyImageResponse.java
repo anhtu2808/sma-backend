@@ -1,4 +1,4 @@
-package com.sma.core.dto.response.skill;
+package com.sma.core.dto.response.company;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -9,9 +9,10 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class SkillResponse {
+public class CompanyImageResponse {
+
     Integer id;
-    String name;
+    String url;
     String description;
-//    SkillCategory category;
+
 }

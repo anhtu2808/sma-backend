@@ -5,15 +5,15 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sma.core.dto.request.auth.LoginRequest;
 import com.sma.core.dto.request.auth.LogoutRequest;
 import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jwt.JWTClaimsSet;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.User;
 import com.sma.core.entity.UserToken;
@@ -38,7 +38,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.StringJoiner;
+import java.util.UUID;
 
 @Service
 @Slf4j
