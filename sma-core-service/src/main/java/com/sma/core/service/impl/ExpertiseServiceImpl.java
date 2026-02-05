@@ -39,10 +39,12 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         return mapper.toResponse(repository.save(expertise));
     }
 
+    @Override
     public Page<ExpertiseResponse> getAll(String name, Pageable pageable) {
         Page<JobExpertise> expertises;
         if (name != null && !name.trim().isEmpty()) {
-            expertises = repository.findByNameContainingIgnoreCase(name, pageable);
+            expertises = repository.findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(
+                    name, name, pageable);
         } else {
             expertises = repository.findAll(pageable);
         }

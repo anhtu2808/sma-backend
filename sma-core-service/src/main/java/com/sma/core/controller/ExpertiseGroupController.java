@@ -29,7 +29,7 @@ public class ExpertiseGroupController {
             @RequestParam(required = false) String name,
             Pageable pageable) {
         return ApiResponse.<Page<ExpertiseGroupResponse>>builder()
-                .data(service.getAll(name, pageable)) 
+                .data(service.getAll(name, pageable))
                 .build();
     }
 

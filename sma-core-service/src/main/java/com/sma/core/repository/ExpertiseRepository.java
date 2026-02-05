@@ -8,4 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ExpertiseRepository extends JpaRepository<JobExpertise, Integer> {
     boolean existsByNameAndExpertiseGroupId(String name, Integer groupId);
     Page<JobExpertise> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<JobExpertise> findByExpertiseGroup_NameContainingIgnoreCase(String groupName, Pageable pageable);
+    Page<JobExpertise> findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(
+            String name, String groupName, Pageable pageable);
 }

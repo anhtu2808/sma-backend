@@ -44,7 +44,8 @@ public class SkillServiceImpl implements SkillService {
     public Page<SkillCateResponse> getAll(String name, Pageable pageable) {
         Page<Skill> skills;
         if (name != null && !name.trim().isEmpty()) {
-            skills = skillRepository.findByNameContainingIgnoreCase(name, pageable);
+            skills = skillRepository.findByNameContainingIgnoreCaseOrCategory_NameContainingIgnoreCase(
+                    name, name, pageable);
         } else {
             skills = skillRepository.findAll(pageable);
         }

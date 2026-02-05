@@ -31,6 +31,7 @@ public class SkillController {
             @RequestParam(required = false) String name,
             Pageable pageable) {
         return ApiResponse.<Page<SkillCateResponse>>builder()
+                .message("Request successfully")
                 .data(skillService.getAll(name, pageable))
                 .build();
     }

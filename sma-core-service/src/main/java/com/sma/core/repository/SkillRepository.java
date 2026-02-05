@@ -10,4 +10,9 @@ import org.springframework.stereotype.Repository;
 public interface SkillRepository extends JpaRepository<Skill, Integer> {
     boolean existsByNameAndCategoryId(String name, Integer categoryId);
     Page<Skill> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Page<Skill> findByNameContainingIgnoreCaseOrCategory_NameContainingIgnoreCase(
+            String name,
+            String categoryName,
+            Pageable pageable
+    );
 }

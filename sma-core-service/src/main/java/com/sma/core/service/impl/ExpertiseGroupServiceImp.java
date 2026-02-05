@@ -61,7 +61,14 @@ public class ExpertiseGroupServiceImp implements ExpertiseGroupService {
 
     @Override
     public void delete(Integer id) {
-        if (!repository.existsById(id)) throw new AppException(ErrorCode.NOT_FOUND);
-        repository.deleteById(id);
+        if (!repository.existsById(id)) {
+            throw new AppException(ErrorCode.NOT_FOUND);
+        }
+        try {
+            repository.deleteById(id);
+            repository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new AppException(ErrorCode.EXPERTISE_GROUP_IN_USE);
+        }
     }
 }
