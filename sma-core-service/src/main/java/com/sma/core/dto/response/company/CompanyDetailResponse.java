@@ -29,6 +29,7 @@ public class CompanyDetailResponse extends BaseCompanyResponse {
     String taxIdentificationNumber;
     Boolean signCommitment;
     String erc;
-    Set<Recruiter> recruiters = new HashSet<>();
+    long recruiterCount;
+    long totalJobs;
 
 }

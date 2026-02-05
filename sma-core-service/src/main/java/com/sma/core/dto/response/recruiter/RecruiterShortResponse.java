@@ -14,6 +14,6 @@ public class RecruiterShortResponse {
     String avatar;
     String fullName;
     String email;
-    Boolean isRootCandidate;
+    Boolean isRootRecruiter;
     Boolean isVerified;
 }

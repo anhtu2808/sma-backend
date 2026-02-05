@@ -34,11 +34,9 @@ public class CandidateAuthController {
 
     @PostMapping("/google-login")
     public ApiResponse<AuthenticationResponse> loginWithGoogle(@RequestBody GoogleTokenRequest request) {
-        var googlePayload = authService.verifyGoogleIdToken(request.getIdToken());
-        var email = googlePayload.getEmail();
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Login with google successfully")
-                .data(authService.registerOrLogin(email))
+                .data(authService.registerOrLogin(request.getIdToken()))
                 .build();
     }
 

@@ -25,68 +25,69 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Set;
+
 @Service
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 @Transactional
 public class RecruiterServiceImpl implements RecruiterService {
-    private final UserRepository userRepository;
-    private final CompanyRepository companyRepository;
-    private final RecruiterRepository recruiterRepository;
-    private final CompanyLocationRepository companyLocationRepository;
-    private final PasswordEncoder passwordEncoder;
+        private final UserRepository userRepository;
+        private final CompanyRepository companyRepository;
+        private final RecruiterRepository recruiterRepository;
+        private final CompanyLocationRepository companyLocationRepository;
+        private final PasswordEncoder passwordEncoder;
 
-    @Override
-    public void registerRecruiter(RecruiterRegisterRequest request) {
+        @Override
+        public void registerRecruiter(RecruiterRegisterRequest request) {
 
-        if (userRepository.findByEmail(request.getRecruiterEmail()).isPresent()) {
-            throw new AppException(ErrorCode.EMAIL_EXISTS);
+                if (userRepository.findByEmail(request.getRecruiterEmail()).isPresent()) {
+                        throw new AppException(ErrorCode.EMAIL_EXISTS);
+                }
+
+                if (companyRepository.existsByTaxIdentificationNumber(
+                                request.getTaxIdentificationNumber())) {
+                        throw new AppException(ErrorCode.COMPANY_ALREADY_REGISTERED);
+                }
+
+                User user = User.builder()
+                                .email(request.getRecruiterEmail())
+                                .passwordHash(passwordEncoder.encode(request.getPassword()))
+                                .status(UserStatus.INACTIVE)
+                                .role(Role.RECRUITER)
+                                .build();
+                userRepository.save(user);
+
+                Company company = Company.builder()
+                                .name(request.getCompanyName())
+                                .description(request.getDescription())
+                                .companyIndustry(request.getCompanyIndustry())
+                                .minSize(request.getMinSize())
+                                .maxSize(request.getMaxSize())
+                                .email(request.getCompanyEmail())
+                                .phone(request.getPhone())
+                                .country(request.getCountry())
+                                .taxIdentificationNumber(request.getTaxIdentificationNumber())
+                                .erc(request.getErc())
+                                .link(request.getCompanyLink())
+                                .status(CompanyStatus.PENDING_VERIFICATION)
+                                .build();
+                companyRepository.save(company);
+
+                CompanyLocation location = CompanyLocation.builder()
+                                .company(company)
+                                .address(request.getAddress())
+                                .country(request.getCountry())
+                                .build();
+                companyLocationRepository.save(location);
+
+                Recruiter recruiter = Recruiter.builder()
+                                .user(user)
+                                .company(company)
+                                .isVerified(false)
+                                .isRootRecruiter(true)
+                                .build();
+                recruiterRepository.save(recruiter);
         }
-
-        if (companyRepository.existsByTaxIdentificationNumber(
-                request.getTaxIdentificationNumber())) {
-            throw new AppException(ErrorCode.COMPANY_ALREADY_REGISTERED);
-        }
-
-        User user = User.builder()
-                .email(request.getRecruiterEmail())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .status(UserStatus.INACTIVE)
-                .role(Role.RECRUITER)
-                .build();
-        userRepository.save(user);
-
-        Company company = Company.builder()
-                .name(request.getCompanyName())
-                .description(request.getDescription())
-                .companyIndustry(request.getCompanyIndustry())
-                .minSize(request.getMinSize())
-                .maxSize(request.getMaxSize())
-                .email(request.getCompanyEmail())
-                .phone(request.getPhone())
-                .country(request.getCountry())
-                .taxIdentificationNumber(request.getTaxIdentificationNumber())
-                .erc(request.getErc())
-                .link(request.getCompanyLink())
-                .status(CompanyStatus.PENDING_VERIFICATION)
-                .build();
-        companyRepository.save(company);
-
-        CompanyLocation location = CompanyLocation.builder()
-                .company(company)
-                .address(request.getAddress())
-                .country(request.getCountry())
-                .build();
-        companyLocationRepository.save(location);
-
-        Recruiter recruiter = Recruiter.builder()
-                .user(user)
-                .company(company)
-                .isVerified(false)
-                .isRootCandidate(true)
-                .build();
-        recruiterRepository.save(recruiter);
-    }
 
 }

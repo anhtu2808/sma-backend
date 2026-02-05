@@ -39,6 +39,11 @@ public class CompanySpecification {
                 predicates.add(cb.or(locationPredicates.toArray(new Predicate[0])));
             }
 
+            if (request.getType() != null)
+                predicates.add(root.get("type").in(request.getType()));
+            if (request.getIndustry() != null)
+                predicates.add(root.get("industry").in(request.getIndustry()));
+
             if (!allowedStatus.isEmpty())
                 predicates.add(root.get("status").in(allowedStatus));
 
