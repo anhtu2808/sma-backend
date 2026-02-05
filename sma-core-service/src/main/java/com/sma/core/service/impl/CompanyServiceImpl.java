@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.company.CompanyFilterRequest;
+import com.sma.core.dto.request.company.UpdateCompanyRequest;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.entity.Company;
@@ -49,9 +50,28 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
+    public BaseCompanyResponse updateCompany(Integer id, UpdateCompanyRequest request) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
+        companyMapper.updateToCompany(request, company);
+        companyRepository.save(company);
+        return companyMapper.toBaseCompanyResponse(company);
+    }
+
+    @Override
     public Page<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+        Role role = JwtTokenProvider.getCurrentRole();
+        EnumSet<CompanyStatus> allowedStatus = null;
+        if (role == null || role.equals(Role.CANDIDATE)) {
+            allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+        } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
+            if (!request.getStatus().isEmpty())
+                allowedStatus = EnumSet.noneOf(CompanyStatus.class);
+            else
+                allowedStatus = request.getStatus();
+        }
+
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
                 .map(companyMapper::toBaseCompanyResponse);
     }

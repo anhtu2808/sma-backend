@@ -3,7 +3,7 @@
 -- ==============================================
 -- Init Company
 INSERT INTO companies (name, country, company_industry, size, description, status, email, phone)
-VALUES ('Tech Innovations', 'Vietnam', 'Information Technology', '50-100', 'Leading tech solution provider', 'ACTIVE', 'contact@techinnovations.com', '0123456789');
+VALUES ('Tech Innovations', 'Vietnam', 'Information Technology', '50-1`00', 'Leading tech solution provider', 'ACTIVE', 'contact@techinnovations.com', '0123456789');
 
 -- Init Company Location
 INSERT INTO company_locations (company_id, name, address, district, city, country, description)

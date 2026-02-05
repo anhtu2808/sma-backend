@@ -1,11 +1,13 @@
 package com.sma.core.mapper.company;
 
+import com.sma.core.dto.request.company.UpdateCompanyRequest;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.entity.Company;
 import com.sma.core.mapper.job.JobMapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring",
@@ -28,4 +30,5 @@ public interface CompanyMapper {
     @Named("fullCompanyDetail")
     CompanyDetailResponse toInternalCompanyResponse(Company company);
 
+    Company updateToCompany(UpdateCompanyRequest request, @MappingTarget Company company);
 }
