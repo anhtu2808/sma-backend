@@ -15,10 +15,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateCompanyRequest {
 
-    String companyName;
+    String name;
     String description;
-    CompanyIndustry industry;
-    CompanyType type;
+    CompanyIndustry companyindustry;
+    CompanyType companyType;
     Integer minSize;
     Integer maxSize;
     @Email

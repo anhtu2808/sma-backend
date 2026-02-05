@@ -36,10 +36,11 @@ import org.springframework.data.domain.PageRequest;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequiredArgsConstructor
 @Transactional
 public class CompanyServiceImpl implements CompanyService {
@@ -55,23 +56,7 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
-        CompanyStatus currentStatus = company.getStatus();
-        CompanyStatus nextStatus = request.getStatus();
-
-        if (currentStatus == CompanyStatus.APPROVED || currentStatus == CompanyStatus.REJECTED) {
-            throw new AppException(ErrorCode.STATUS_ALREADY_FINALIZED);
-        }
-
-        if (currentStatus == CompanyStatus.PENDING_VERIFICATION && nextStatus != CompanyStatus.UNDER_REVIEW) {
-            throw new AppException(ErrorCode.MUST_BE_UNDER_REVIEW_FIRST);
-        }
-
-        if (currentStatus == CompanyStatus.UNDER_REVIEW) {
-            if (nextStatus != CompanyStatus.APPROVED && nextStatus != CompanyStatus.REJECTED) {
-                throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
-            }
-        }
-
+        CompanyStatus nextStatus = getCompanyStatus(request, company);
         company.setStatus(nextStatus);
 
         if (nextStatus == CompanyStatus.REJECTED) {
@@ -94,16 +79,40 @@ public class CompanyServiceImpl implements CompanyService {
         }
     }
 
+    private CompanyStatus getCompanyStatus(CompanyVerificationRequest request, Company company) {
+        CompanyStatus currentStatus = company.getStatus();
+        CompanyStatus nextStatus = request.getStatus();
+
+        if (currentStatus == CompanyStatus.APPROVED || currentStatus == CompanyStatus.REJECTED) {
+            throw new AppException(ErrorCode.STATUS_ALREADY_FINALIZED);
+        }
+
+        if (currentStatus == CompanyStatus.PENDING_VERIFICATION && nextStatus != CompanyStatus.UNDER_REVIEW) {
+            throw new AppException(ErrorCode.MUST_BE_UNDER_REVIEW_FIRST);
+        }
+
+        if (currentStatus == CompanyStatus.UNDER_REVIEW) {
+            if (nextStatus != CompanyStatus.APPROVED && nextStatus != CompanyStatus.REJECTED) {
+                throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
+            }
+        }
+        return nextStatus;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public CompanyDetailResponse getCompanyById(Integer id) {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
-        Role role = JwtTokenProvider.getCurrentRole();
 
-        // internal users (Admin, Recruiter) or Owner can see more details or restricted
-        // companies
-        boolean isInternal = role != null && (role.equals(Role.ADMIN) || role.equals(Role.RECRUITER));
+        Role role = JwtTokenProvider.getCurrentRole();
+        boolean isInternal = role != null && role.equals(Role.ADMIN);
+
+        if (role != null && role.equals(Role.RECRUITER)) {
+            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+            isInternal = recruiter.getCompany().getId().equals(id);
+        }
 
         if (!isInternal) {
             EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
@@ -121,12 +130,18 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public BaseCompanyResponse updateCompany(Integer id, UpdateCompanyRequest request) {
+    public CompanyDetailResponse updateCompany(Integer id, UpdateCompanyRequest request) {
+        if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.RECRUITER)) {
+            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+            if (!recruiter.getCompany().getId().equals(id) || !recruiter.getIsRootRecruiter())
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
-        companyMapper.updateToCompany(request, company);
+        company = companyMapper.updateToCompany(request, company);
         companyRepository.save(company);
-        return companyMapper.toBaseCompanyResponse(company);
+        return companyMapper.toInternalCompanyResponse(company);
     }
 
     @Override

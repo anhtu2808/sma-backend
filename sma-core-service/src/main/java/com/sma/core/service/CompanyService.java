@@ -16,5 +16,5 @@ public interface CompanyService {
 
     CompanyDetailResponse getCompanyById(Integer id);
 
-    BaseCompanyResponse updateCompany(Integer id, UpdateCompanyRequest request);
+    CompanyDetailResponse updateCompany(Integer id, UpdateCompanyRequest request);
 }

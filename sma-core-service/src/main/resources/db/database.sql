@@ -110,7 +110,7 @@ CREATE TABLE recruiters (
   user_id int UNIQUE NOT NULL,
   company_id int NOT NULL,
   is_verified boolean DEFAULT false,
-  is_root_candidate boolean DEFAULT false,
+  is_root_recruiter boolean DEFAULT false,
   verified_at TIMESTAMP
 );
 

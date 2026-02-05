@@ -64,8 +64,53 @@ public class AuthServiceImpl implements AuthService {
     final PasswordEncoder passwordEncoder;
     final UserTokenRepository userTokenRepository;
 
+
+
+
     @Override
-    public GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString) {
+    public AuthenticationResponse registerAsCandidate(RegisterRequest request) {
+        log.info("Email: {}, password: {}", request.getEmail(), request.getPassword());
+        User oldUser = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (oldUser != null)
+            throw new AppException(ErrorCode.USER_EXISTS);
+        User user = User.builder()
+                .email(request.getEmail())
+                .fullName(request.getFullName())
+                .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
+                .avatar(request.getAvatar() != null ? request.getAvatar() : "DEFAULT AVATAR")
+                .status(UserStatus.ACTIVE)
+                .role(Role.CANDIDATE)
+                .build();
+        Candidate candidate = Candidate.builder()
+                .user(user)
+                .build();
+        user.setCandidate(candidate);
+        userRepository.save(user);
+        return AuthenticationResponse.builder()
+                .accessToken(generateToken(user))
+                .refreshToken(generateRefreshToken(user))
+                .build();
+    }
+
+    @Override
+    public AuthenticationResponse registerOrLogin(String idTokenString) {
+        var googlePayload = verifyGoogleIdToken(idTokenString);
+        var email = googlePayload.getEmail();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null)
+            return registerAsCandidate(
+                    RegisterRequest.builder()
+                            .email(email)
+                            .fullName(googlePayload.get("name").toString())
+                            .avatar(googlePayload.get("picture").toString())
+                            .build());
+        return AuthenticationResponse.builder()
+                .accessToken(generateToken(user))
+                .refreshToken(generateRefreshToken(user))
+                .build();
+    }
+
+    private GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString) {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
                     new GsonFactory())
@@ -85,44 +130,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthenticationResponse registerAsCandidate(RegisterRequest request) {
-        log.info("Email: {}, password: {}", request.getEmail(), request.getPassword());
-        User oldUser = userRepository.findByEmail(request.getEmail()).orElse(null);
-        if (oldUser != null)
-            throw new AppException(ErrorCode.USER_EXISTS);
-        User user = User.builder()
-                .email(request.getEmail())
-                .fullName(request.getFullName())
-                .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
-                .status(UserStatus.ACTIVE)
-                .role(Role.CANDIDATE)
-                .build();
-        Candidate candidate = Candidate.builder()
-                .user(user)
-                .build();
-        user.setCandidate(candidate);
-        userRepository.save(user);
-        return AuthenticationResponse.builder()
-                .accessToken(generateToken(user))
-                .refreshToken(generateRefreshToken(user))
-                .build();
-    }
-
-    @Override
-    public AuthenticationResponse registerOrLogin(String email) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null)
-            return registerAsCandidate(
-                    RegisterRequest.builder()
-                            .email(email)
-                            .build());
-        return AuthenticationResponse.builder()
-                .accessToken(generateToken(user))
-                .refreshToken(generateRefreshToken(user))
-                .build();
-    }
-
-    @Override
     public Boolean logout(LogoutRequest request) {
         var token = userTokenRepository.findByToken(request.getRefreshToken())
                 .orElseThrow(() -> new AppException(ErrorCode.TOKEN_NOT_EXISTED));
@@ -136,10 +143,14 @@ public class AuthServiceImpl implements AuthService {
     public AuthenticationResponse login(LoginRequest request) {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_EXISTED));
+        if (!user.getStatus().equals(UserStatus.ACTIVE))
+            throw new AppException(ErrorCode.ACCOUNT_INACTIVE);
+
         boolean authenticated = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
         if (!authenticated) {
             throw new AppException(ErrorCode.PASSWORD_INCORRECT);
         }
+
         var token = generateToken(user);
         var refreshToken = generateRefreshToken(user);
         return AuthenticationResponse.builder()

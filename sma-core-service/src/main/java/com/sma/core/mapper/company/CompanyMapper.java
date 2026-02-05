@@ -10,10 +10,7 @@ import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.CompanyLocation;
 import com.sma.core.entity.Recruiter;
 import com.sma.core.mapper.job.JobMapper;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
+import org.mapstruct.*;
 
 import java.util.List;
 import java.util.Set;
@@ -30,6 +27,11 @@ public interface CompanyMapper {
         BaseCompanyResponse toBaseCompanyResponse(Company company);
 
         @Mapping(target = "companyStatus", source = "status")
+        @Mapping(target = "taxIdentificationNumber", ignore = true)
+        @Mapping(target = "signCommitment", ignore = true)
+        @Mapping(target = "erc", ignore = true)
+        @Mapping(target = "recruiterCount", ignore = true)
+        @Mapping(target = "totalJobs", ignore = true)
         @Named("clientCompanyDetail")
         CompanyDetailResponse toCompanyDetailResponse(Company company);
 
@@ -39,6 +41,7 @@ public interface CompanyMapper {
         @Named("fullCompanyDetail")
         CompanyDetailResponse toInternalCompanyResponse(Company company);
 
+        @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
         Company updateToCompany(UpdateCompanyRequest request, @MappingTarget Company company);
 
         default List<String> mapImagesToUrls(Set<CompanyImage> images) {

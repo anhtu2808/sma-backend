@@ -29,7 +29,7 @@ public class Company {
     private String country;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "industry", columnDefinition = "company_industry")
+    @Column(name = "company_industry", columnDefinition = "company_industry")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private CompanyIndustry companyIndustry;
 
