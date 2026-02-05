@@ -1,5 +1,6 @@
 package com.sma.core.dto.request.auth;
 
+import com.sma.core.enums.CompanyIndustry;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -27,11 +28,11 @@ public class RecruiterRegisterRequest {
     @NotBlank
     private String description;
     @NotBlank
-    private String companyIndustry;
+    private CompanyIndustry companyIndustry;
     @NotBlank
-    private String minSize;
+    private Integer minSize;
     @NotBlank
-    private String maxSize;
+    private Integer maxSize;
     @NotBlank
     @Email
     private String companyEmail;
