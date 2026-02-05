@@ -52,6 +52,7 @@ public interface CompanyMapper {
 
     @Mapping(target = "fullName", source = "user.fullName")
     @Mapping(target = "email", source = "user.email")
+    @Mapping(target = "avatar", source = "user.avatar")
     RecruiterShortResponse toRecruiterShortResponse(Recruiter recruiter);
 
     LocationShortResponse toLocationShortResponse(CompanyLocation location);

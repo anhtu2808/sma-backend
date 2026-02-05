@@ -125,6 +125,7 @@ public class CompanyServiceImpl implements CompanyService {
         response.setRecruiters(company.getRecruiters().stream()
                 .map(r -> RecruiterShortResponse.builder()
                         .id(r.getId())
+                        .avatar(r.getUser().getAvatar())
                         .fullName(r.getUser().getFullName())
                         .email(r.getUser().getEmail())
                         .isRootCandidate(r.getIsRootCandidate())

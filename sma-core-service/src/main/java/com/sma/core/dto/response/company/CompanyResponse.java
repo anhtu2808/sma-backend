@@ -28,7 +28,8 @@ public class CompanyResponse {
     String name;
     String country;
     String companyIndustry;
-    String size;
+    String minSize;
+    String maxSize;
     String description;
     String link;
     Integer followerNumber;

@@ -23,44 +23,44 @@ import org.springframework.web.bind.annotation.*;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AdminCompanyController {
 
-    CompanyService companyService;
-
-    @PatchMapping("/{companyId}/status")
-    public ApiResponse<Void> updateStatus(
-            @PathVariable Integer companyId,
-            @RequestBody @Valid CompanyVerificationRequest request) {
-
-        companyService.updateRegistrationStatus(companyId, request);
-        return ApiResponse.<Void>builder()
-                .message("Company status update successfully: " + request.getStatus())
-                .build();
-    }
-
-    @GetMapping
-    public ApiResponse<Page<AdminCompanyResponse>> getAllCompanies(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) CompanyStatus status,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String direction) {
-
-        Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<AdminCompanyResponse> companies = companyService.getAllCompaniesForAdmin(name, status, pageable);
-
-        return ApiResponse.<Page<AdminCompanyResponse>>builder()
-                .data(companies)
-                .build();
-    }
-
-    @GetMapping("/{companyId}")
-    public ApiResponse<CompanyResponse> getCompanyDetail(@PathVariable Integer companyId) {
-        CompanyResponse companyDetail = companyService.getCompanyDetailForAdmin(companyId);
-
-        return ApiResponse.<CompanyResponse>builder()
-                .data(companyDetail)
-                .build();
-    }
+//    CompanyService companyService;
+//
+//    @PatchMapping("/{companyId}/status")
+//    public ApiResponse<Void> updateStatus(
+//            @PathVariable Integer companyId,
+//            @RequestBody @Valid CompanyVerificationRequest request) {
+//
+//        companyService.updateRegistrationStatus(companyId, request);
+//        return ApiResponse.<Void>builder()
+//                .message("Company status update successfully: " + request.getStatus())
+//                .build();
+//    }
+//
+//    @GetMapping
+//    public ApiResponse<Page<AdminCompanyResponse>> getAllCompanies(
+//            @RequestParam(required = false) String name,
+//            @RequestParam(required = false) CompanyStatus status,
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size,
+//            @RequestParam(defaultValue = "id") String sortBy,
+//            @RequestParam(defaultValue = "desc") String direction) {
+//
+//        Sort sort = direction.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+//        Pageable pageable = PageRequest.of(page, size, sort);
+//
+//        Page<AdminCompanyResponse> companies = companyService.getAllCompaniesForAdmin(name, status, pageable);
+//
+//        return ApiResponse.<Page<AdminCompanyResponse>>builder()
+//                .data(companies)
+//                .build();
+//    }
+//
+//    @GetMapping("/{companyId}")
+//    public ApiResponse<CompanyResponse> getCompanyDetail(@PathVariable Integer companyId) {
+//        CompanyResponse companyDetail = companyService.getCompanyDetailForAdmin(companyId);
+//
+//        return ApiResponse.<CompanyResponse>builder()
+//                .data(companyDetail)
+//                .build();
+//    }
 }

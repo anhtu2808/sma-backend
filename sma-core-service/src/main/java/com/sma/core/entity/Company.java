@@ -29,7 +29,10 @@ public class Company {
     @Column(name = "company_industry")
     private String companyIndustry;
 
-    private String size;
+    @Column(name = "min_size")
+    private String minSize;
+    @Column(name= "max_size")
+    private String maxSize;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -44,7 +47,7 @@ public class Company {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private CompanyStatus status;
 
-    @Column(name = "company_type")
+    @Column(name = "type")
     private String companyType;
 
     private String logo;
