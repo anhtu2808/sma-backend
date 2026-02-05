@@ -29,7 +29,9 @@ public class RecruiterRegisterRequest {
     @NotBlank
     private String companyIndustry;
     @NotBlank
-    private String size;
+    private String minSize;
+    @NotBlank
+    private String maxSize;
     @NotBlank
     @Email
     private String companyEmail;

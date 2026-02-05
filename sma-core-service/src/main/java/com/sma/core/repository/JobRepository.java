@@ -11,7 +11,6 @@ import java.util.List;
 
 @Repository
 public interface JobRepository extends JpaRepository<Job, Integer>, JpaSpecificationExecutor<Job> {
-
+    long countByCompanyId(Integer companyId);
     List<Job> findByExpDateBeforeAndStatus(LocalDateTime date, JobStatus status);
-
 }

@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
+import com.sma.core.dto.request.company.CompanyVerificationRequest;
 import com.sma.core.entity.Company;
 import com.sma.core.entity.CompanyLocation;
 import com.sma.core.entity.Recruiter;
@@ -22,7 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.time.LocalDateTime;
+import java.util.Set;
 @Service
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -59,7 +61,8 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .name(request.getCompanyName())
                 .description(request.getDescription())
                 .companyIndustry(request.getCompanyIndustry())
-                .size(request.getSize())
+                .minSize(request.getMinSize())
+                .maxSize(request.getMaxSize())
                 .email(request.getCompanyEmail())
                 .phone(request.getPhone())
                 .country(request.getCountry())
@@ -85,4 +88,5 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .build();
         recruiterRepository.save(recruiter);
     }
+
 }

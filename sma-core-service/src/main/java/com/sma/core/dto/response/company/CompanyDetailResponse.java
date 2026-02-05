@@ -16,7 +16,8 @@ import java.util.Set;
 @SuperBuilder
 public class CompanyDetailResponse extends BaseCompanyResponse {
 
-    String size;
+    String minSize;
+    String maxSize;
     String description;
     String link;
     Integer followerNumber;
