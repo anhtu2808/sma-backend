@@ -160,7 +160,7 @@ public class CompanyServiceImpl implements CompanyService {
         Role role = JwtTokenProvider.getCurrentRole();
         // handle restrict candidate access to INACTIVE, SUSPENDED, PENDING_VERIFICATION company
         if (role == null || role.equals(Role.CANDIDATE)) {
-            EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+            EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
             if(!allowedStatus.contains(company.getStatus()))
                 throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
             return companyMapper.toCompanyDetailResponse(company);
@@ -171,7 +171,7 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     public Page<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
-        EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.ACTIVE);
+        EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
                 .map(companyMapper::toBaseCompanyResponse);
     }
