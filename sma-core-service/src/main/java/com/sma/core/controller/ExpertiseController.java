@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +31,7 @@ public class ExpertiseController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<ExpertiseResponse> create(@RequestBody @Valid ExpertiseRequest request) {
         return ApiResponse.<ExpertiseResponse>builder().data(service.create(request)).build();
     }
@@ -40,11 +42,13 @@ public class ExpertiseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<ExpertiseResponse> update(@PathVariable Integer id, @RequestBody @Valid ExpertiseRequest request) {
         return ApiResponse.<ExpertiseResponse>builder().data(service.update(id, request)).build();
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         service.delete(id);
         return ApiResponse.<Void>builder().message("Expertise deleted successfully").build();

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,7 @@ public class SkillController {
     SkillService skillService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<SkillCateResponse> create(@RequestBody @Valid SkillRequest request) {
         return ApiResponse.<SkillCateResponse>builder()
                 .data(skillService.create(request))
@@ -45,6 +47,7 @@ public class SkillController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<SkillCateResponse> update(
             @PathVariable Integer id,
             @RequestBody @Valid SkillRequest request) {
@@ -54,6 +57,7 @@ public class SkillController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         skillService.delete(id);
         return ApiResponse.<Void>builder()

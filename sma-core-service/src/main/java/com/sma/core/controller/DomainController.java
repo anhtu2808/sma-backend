@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,6 +22,7 @@ public class DomainController {
     DomainService domainService;
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<DomainResponse> create(@RequestBody @Valid DomainRequest request) {
         return ApiResponse.<DomainResponse>builder()
                 .data(domainService.createDomain(request))
@@ -44,6 +46,7 @@ public class DomainController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<DomainResponse> update(
             @PathVariable Integer id,
             @RequestBody @Valid DomainRequest request) {
@@ -53,6 +56,7 @@ public class DomainController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<Void> delete(@PathVariable Integer id) {
         domainService.deleteDomain(id);
         return ApiResponse.<Void>builder()

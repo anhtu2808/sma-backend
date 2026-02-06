@@ -54,11 +54,6 @@ public class SecurityConfig {
             "v1/jobs/**",
             "/files/**",
             "/v1/heathcheck/**",
-            "/v1/domains/**",
-            "/v1/skill-categories/**",
-            "/v1/skills/**",
-            "/v1/expertise-groups/**",
-            "/v1/expertises/**",
             "/v1/healthcheck/**"
     };
 
