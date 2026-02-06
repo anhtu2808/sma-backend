@@ -124,6 +124,10 @@ public class CompanyServiceImpl implements CompanyService {
                 ? companyMapper.toInternalCompanyResponse(company)
                 : companyMapper.toCompanyDetailResponse(company);
 
+        if (!isInternal) {
+            response.setRecruiters(null);
+        }
+
         response.setTotalJobs(jobRepository.countByCompanyId(id));
 
         return response;
@@ -158,7 +162,14 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
-                .map(companyMapper::toBaseCompanyResponse);
+                .map(company -> {
+                    BaseCompanyResponse response = companyMapper.toBaseCompanyResponse(company);
+                    if (role == null || !role.equals(Role.ADMIN)) {
+                        response.setRecruiterCount(null);
+                    }
+
+                    return response;
+                });
     }
 
 }

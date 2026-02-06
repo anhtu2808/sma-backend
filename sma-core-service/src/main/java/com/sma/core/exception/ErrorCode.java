@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.NotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ErrorCode {
@@ -44,8 +45,20 @@ public enum ErrorCode {
     RESUME_NOT_EXISTED(HttpStatus.NOT_FOUND, "Resume does not exist"),
     CANDIDATE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Candidate does not exist"),
     RECRUITER_NOT_EXISTED(HttpStatus.NOT_FOUND, "Recruiter does not exist"),
+    DOMAIN_ALREADY_EXISTED(HttpStatus.NOT_FOUND, "Domain already existed"),
+    DOMAIN_NOT_FOUND(HttpStatus.NOT_FOUND, "Domain not found"),
+    CANT_DELETE_DOMAIN_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete domain that is in use"),
+    CATEGORY_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Category already existed"),
+    CANT_DELETE_CATEGORY_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete category that is in use"),
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "Category not found"),
+    SKILL_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Skill already existed"),
+    CANT_DELETE_SKILL_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete skill that is in use"),
+    GROUP_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise group already existed"),
+    EXPERTISE_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Expertise group not found"),
+    CANT_DELETE_EXPERTISE_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise that is in use"),
+    EXPERTISE_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise already existed"),
+    EXPERTISE_GROUP_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise group that is in use"),
     CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
-
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

@@ -344,12 +344,21 @@ Table Skills {
   name varchar
   description varchar
   category_id int
+
+  indexes {
+    (`lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`) [unique, name: 'uq_skills_name_normalized']
+  }
 }
 
 Table Skill_Categories {
   id int [pk, increment]
   name varchar
 
+  indexes {
+    (`lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`) [unique, name: 'uq_skill_categories_name_normalized']
+  }
+
+  Note: 'Canonical singular names: Programming Language, Framework, Tool, Database, Frontend, Backend, DevOps, Soft Skill, Methodology, Cloud, Other. DB trigger normalizes plural/variant input to singular.'
 }
 
 Table Resume_skills {

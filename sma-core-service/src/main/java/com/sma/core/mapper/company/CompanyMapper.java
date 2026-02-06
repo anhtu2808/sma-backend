@@ -24,6 +24,7 @@ public interface CompanyMapper {
 
         @Mapping(target = "companyStatus", source = "status")
         @Named("baseCompany")
+        @Mapping(target = "recruiterCount", expression = "java(company.getRecruiters() != null ? Integer.valueOf(company.getRecruiters().size()) : null)")
         BaseCompanyResponse toBaseCompanyResponse(Company company);
 
         @Mapping(target = "companyStatus", source = "status")
@@ -32,6 +33,7 @@ public interface CompanyMapper {
         @Mapping(target = "erc", ignore = true)
         @Mapping(target = "recruiterCount", ignore = true)
         @Mapping(target = "totalJobs", ignore = true)
+        @Mapping(target = "recruiters", ignore = true)
         @Named("clientCompanyDetail")
         CompanyDetailResponse toCompanyDetailResponse(Company company);
 

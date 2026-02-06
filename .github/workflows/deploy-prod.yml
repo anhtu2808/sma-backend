@@ -6,59 +6,123 @@ on:
       - main
     paths:
       - 'sma-core-service/**'
+      - 'sma-ai-service/**'
       - '.github/workflows/deploy-prod.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: sma-backend-prod
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-core:
     runs-on: ubuntu-latest
     environment: PROD
+    env:
+      IMAGE_NAME_CORE: ${{ vars.DOCKER_USERNAME }}/sma-core-service
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "17"
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
+          cache: maven
 
       - name: Build with Maven
         run: mvn -B clean package -DskipTests
         working-directory: sma-core-service
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Docker login
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ vars.DOCKER_USERNAME }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build Docker image
-        run: docker build -t ${{ vars.DOCKER_USERNAME }}/sma-core-service:latest ./sma-core-service
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./sma-core-service
+          file: ./sma-core-service/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_CORE }}:latest
+            ${{ env.IMAGE_NAME_CORE }}:${{ github.sha }}
 
-      - name: Push Docker image
-        run: docker push ${{ vars.DOCKER_USERNAME }}/sma-core-service:latest
+  build-ai:
+    runs-on: ubuntu-latest
+    environment: PROD
+    env:
+      IMAGE_NAME_AI: ${{ vars.DOCKER_USERNAME }}/sma-ai-service
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./sma-ai-service
+          file: ./sma-ai-service/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME_AI }}:latest
+            ${{ env.IMAGE_NAME_AI }}:${{ github.sha }}
 
   deploy:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build-core, build-ai]
     environment: PROD
     steps:
-      - name: SSH to server and deploy Java service
-        uses: appleboy/ssh-action@master
+      - name: SSH to server and deploy services
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ vars.HOST_IP }}
           username: root
           key: ${{ secrets.SECRET_KEY }}
           script: |
             cd /var/docker/sma
-            echo "Deploying Java Core Service..."
-            docker compose pull sma-core-service
-            docker compose up -d sma-core-service
+            echo "Prepare AI compose override..."
+            cat > docker-compose.ai.yml <<'EOF'
+            services:
+              sma-ai-service:
+                image: ${{ vars.DOCKER_USERNAME }}/sma-ai-service:latest
+                container_name: sma-ai-service
+                restart: unless-stopped
+                env_file:
+                  - .env
+                ports:
+                  - "8000:8000"
+                networks:
+                  - sma-network
+                healthcheck:
+                  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+                  interval: 30s
+                  timeout: 10s
+                  retries: 3
+                  start_period: 60s
+                security_opt:
+                  - no-new-privileges:true
+            EOF
+            echo "Deploying sma-core-service and sma-ai-service..."
+            docker compose -f docker-compose.yml -f docker-compose.ai.yml pull sma-core-service sma-ai-service || true
+            docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d sma-core-service sma-ai-service
             docker image prune -f
             echo "Deployment completed!"
-            docker ps | grep sma-core-service
+            docker ps | grep -E "sma-core-service|sma-ai-service"

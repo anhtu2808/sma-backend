@@ -77,43 +77,53 @@ PostgreSQL Database
 sma-ai-service/
 │
 ├── app/
+│   ├── __init__.py
 │   ├── main.py                 # FastAPI application entry point
 │   │
 │   ├── api/                    # API endpoints
+│   │   ├── __init__.py
 │   │   └── v1/
+│   │       ├── __init__.py
+│   │       ├── router.py       # API router configuration
 │   │       └── endpoints/
-│   │           ├── cv_parser.py      # CV parsing endpoints
-│   │           ├── matching.py       # CV-JD matching endpoints
-│   │           └── health.py         # Health check endpoints
+│   │           ├── __init__.py
+│   │           └── resume.py   # Resume/CV parsing endpoints
 │   │
 │   ├── core/                   # Core configurations
-│   │   ├── config.py           # Settings & environment variables
-│   │   ├── security.py         # JWT validation
-│   │   └── logging.py          # Logging configuration
+│   │   ├── __init__.py
+│   │   └── config.py           # Settings & environment variables
 │   │
-│   ├── models/                 # Pydantic models
-│   │   ├── cv.py               # CV-related schemas
-│   │   ├── jd.py               # Job Description schemas
-│   │   └── matching.py         # Matching result schemas
+│   ├── schemas/                # Pydantic schemas (response/request contracts)
+│   │   ├── __init__.py
+│   │   └── resume.py           # Resume/CV schema models
 │   │
-│   ├── services/               # Business logic
-│   │   ├── cv_parser.py        # CV parsing service
-│   │   ├── llm_service.py      # LLM API integration
-│   │   ├── matching_engine.py  # Matching algorithm
-│   │   └── vector_store.py     # Qdrant integration
+│   ├── models/                 # Backward compatibility exports
+│   │   ├── __init__.py
+│   │   └── resume.py           # Re-export from app.schemas.resume
+│   │
+│   ├── prompts/                # Prompt templates/builders
+│   │   ├── __init__.py
+│   │   └── resume_parsing.py   # CV parsing system/user prompts
+│   │
+│   ├── clients/                # External integrations
+│   │   ├── __init__.py
+│   │   └── openai_client.py    # Shared OpenAI call wrappers
+│   │
+│   ├── services/               # Business orchestration layer
+│   │   ├── __init__.py
+│   │   ├── gpt_client.py       # Resume parsing use-case via prompt + OpenAI client
+│   │   └── resume_service.py   # Resume parsing service
 │   │
 │   └── utils/                  # Utilities
-│       ├── pdf_extractor.py    # PDF text extraction
-│       ├── text_processing.py  # Text preprocessing
-│       └── validators.py       # Custom validators
+│       ├── __init__.py
+│       └── pdf_extractor.py    # PDF text extraction
 │
-├── tests/                      # Test suite
-│   ├── test_cv_parser.py
-│   ├── test_matching.py
-│   └── test_integration.py
+├── .venv/                      # Virtual environment (gitignored)
+├── .idea/                      # IDE configuration (gitignored)
 │
 ├── requirements.txt            # Python dependencies
 ├── .env.example               # Environment variables template
+├── .env                       # Local environment config (gitignored)
 ├── .gitignore
 └── README.md                  # This file
 ```
@@ -361,7 +371,7 @@ GET /
 
 #### 2. Parse CV from File Upload
 ```bash
-POST /api/v1/cv/parse
+POST /api/v1/resume/parse
 Content-Type: multipart/form-data
 
 # Form data:
@@ -387,36 +397,8 @@ file: <CV.pdf>
 }
 ```
 
-#### 3. Parse CV from S3 URL
-```bash
-POST /api/v1/cv/parse-url
-Content-Type: application/json
+> **Note**: Currently, the service focuses on resume/CV parsing. Additional endpoints for JD matching and S3 URL parsing are planned for future releases.
 
-# Request body:
-{
-  "s3_url": "https://s3.amazonaws.com/bucket/cv.pdf"
-}
-```
-
-#### 4. Match CV against JD
-```bash
-POST /api/v1/matching/score
-Content-Type: application/json
-
-# Request body:
-{
-  "cv_data": {...},
-  "jd_requirements": {...}
-}
-
-# Response:
-{
-  "match_score": 85.5,
-  "matched_skills": [...],
-  "missing_skills": [...],
-  "recommendations": [...]
-}
-```
 
 ---
 
@@ -431,58 +413,97 @@ sma-ai-service/
 │   │
 │   ├── api/
 │   │   ├── __init__.py
-│   │   ├── dependencies.py              # Shared dependencies
 │   │   └── v1/
 │   │       ├── __init__.py
+│   │       ├── router.py                # Main API router
 │   │       └── endpoints/
 │   │           ├── __init__.py
-│   │           ├── cv_parser.py         # CV parsing routes
-│   │           ├── matching.py          # Matching routes
-│   │           └── health.py            # Health check routes
+│   │           └── resume.py            # Resume/CV parsing routes
 │   │
 │   ├── core/
 │   │   ├── __init__.py
-│   │   ├── config.py                    # Settings class
-│   │   ├── security.py                  # JWT utilities
-│   │   └── logging.py                   # Logger setup
+│   │   └── config.py                    # Settings class with environment variables
+│   │
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   └── resume.py                    # Resume Pydantic schemas
 │   │
 │   ├── models/
 │   │   ├── __init__.py
-│   │   ├── cv.py                        # CV Pydantic models
-│   │   ├── jd.py                        # JD Pydantic models
-│   │   └── matching.py                  # Matching models
+│   │   └── resume.py                    # Compatibility exports from schemas
 │   │
-│   ├── services/
+│   ├── prompts/
 │   │   ├── __init__.py
-│   │   ├── cv_parser.py                 # CV parsing logic
-│   │   ├── llm_service.py               # OpenAI API calls
-│   │   ├── matching_engine.py           # Scoring algorithm
-│   │   ├── vector_store.py              # Qdrant operations
-│   │   └── skill_extractor.py           # NLP skill extraction
+│   │   └── resume_parsing.py            # Prompt templates for CV parsing
+│   │
+│   ├── clients/
+│   │   ├── __init__.py
+│   │   └── openai_client.py             # Shared OpenAI API wrapper
+│   │
+│   ├── service/
+│   │   ├── __init__.py
+│   │   ├── gpt_client.py                # Resume AI parsing use-case
+│   │   └── resume_parser.py             # Resume parsing logic
 │   │
 │   └── utils/
 │       ├── __init__.py
-│       ├── pdf_extractor.py             # PDF → text
-│       ├── text_processing.py           # Text cleaning
-│       └── validators.py                # Custom validators
+│       └── pdf_extractor.py             # PDF → text extraction
 │
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py                      # Pytest fixtures
-│   ├── test_cv_parser.py
-│   ├── test_matching.py
-│   ├── test_llm_service.py
-│   └── test_integration.py
+├── .venv/                               # Virtual environment (gitignored)
+├── .idea/                               # IDE configuration (gitignored)
 │
 ├── .env.example                         # Environment template
 ├── .env                                 # Your local config (gitignored)
 ├── .gitignore
 ├── requirements.txt                     # Dependencies
-├── Dockerfile                           # Docker configuration
-├── pytest.ini                           # Pytest configuration
-├── pyproject.toml                       # Ruff/Black config
 └── README.md                            # This file
 ```
+
+### 📝 Key Files Description
+
+#### `app/main.py`
+- FastAPI application entry point
+- CORS middleware configuration
+- Health check endpoints
+- API router inclusion
+
+#### `app/core/config.py`
+- Pydantic Settings for environment variables
+- Configuration for OpenAI, Qdrant, AWS S3
+- CORS origins management
+- JWT settings
+
+#### `app/services/gpt_client.py`
+- Resume parsing AI use-case
+- Uses prompt builder from `app/prompts`
+- Uses OpenAI wrapper from `app/clients`
+
+#### `app/prompts/resume_parsing.py`
+- Dedicated system prompt + message builder for CV parsing
+- Keeps prompt definitions out of client/integration layer
+
+#### `app/clients/openai_client.py`
+- Shared OpenAI integration wrapper
+- Reusable for future AI features (e.g., CV-JD matching)
+
+#### `app/services/resume_service.py`
+- Resume parsing orchestration
+- PDF text extraction integration
+- Data validation and formatting
+
+#### `app/utils/pdf_extractor.py`
+- PDF text extraction using PyMuPDF
+- Text cleaning and preprocessing
+
+#### `app/models/resume.py`
+- Pydantic models for resume data
+- Request/response schemas
+- Data validation rules
+
+#### `app/api/v1/endpoints/resume.py`
+- POST `/api/v1/resume/parse` - Parse resume from file upload
+- Resume parsing endpoint handlers
+
 
 ---
 
