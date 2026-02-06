@@ -128,7 +128,7 @@ public class CompanyServiceImpl implements CompanyService {
                         .avatar(r.getUser().getAvatar())
                         .fullName(r.getUser().getFullName())
                         .email(r.getUser().getEmail())
-                        .isRootCandidate(r.getIsRootCandidate())
+                        .isRootRecruiter(r.getIsRootRecruiter())
                         .isVerified(r.getIsVerified())
                         .build())
                 .toList());

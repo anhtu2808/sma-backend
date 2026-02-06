@@ -84,7 +84,7 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .user(user)
                 .company(company)
                 .isVerified(false)
-                .isRootCandidate(true)
+                .isRootRecruiter(true)
                 .build();
         recruiterRepository.save(recruiter);
     }
