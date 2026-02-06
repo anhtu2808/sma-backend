@@ -70,32 +70,39 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public JobDetailResponse publishJob(PublishJobRequest request) {
-        Job job = populateJobRelations(
-                jobMapper.toJob(request),
-                request.getExpertiseId(),
-                request.getSkillIds(),
-                request.getDomainIds(),
-                request.getBenefitIds(),
-                request.getQuestionIds(),
-                request.getScoringCriterias());
-
-        job.setStatus(JobStatus.PENDING_REVIEW);
-        jobRepository.save(job);
-        return jobMapper.toJobInternalResponse(job);
-    }
-
-    @Override
     public JobDetailResponse draftJob(DraftJobRequest request) {
-        Job job = populateJobRelations(
-                jobMapper.toJob(request),
-                request.getExpertiseId(),
-                request.getSkillIds(),
-                request.getDomainIds(),
-                request.getBenefitIds(),
-                request.getQuestionIds(),
-                request.getScoringCriteriaIds());
+        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        Job job = jobMapper.toJob(request);
 
+        if (request.getExpertiseId() != null) {
+            job.setExpertise(jobExpertiseRepository.getReferenceById(request.getExpertiseId()));
+        }
+        if (request.getSkillIds() != null && !request.getSkillIds().isEmpty()) {
+            List<Skill> skillSet = skillRepository.findAllById(request.getSkillIds());
+            job.setSkills(Set.copyOf(skillSet));
+        }
+        if (request.getDomainIds() != null && !request.getDomainIds().isEmpty()) {
+            List<Domain> domains = domainRepository.findAllById(request.getDomainIds());
+            job.setDomains(Set.copyOf(domains));
+        }
+        if (request.getBenefitIds() != null && !request.getBenefitIds().isEmpty()) {
+            List<Benefit> benefits = benefitRepository.findAllById(request.getBenefitIds());
+            job.setBenefits(Set.copyOf(benefits));
+        }
+        if (request.getQuestionIds() != null && !request.getQuestionIds().isEmpty()) {
+            List<JobQuestion> jobQuestions = jobQuestionRepository.findAllById(request.getQuestionIds());
+            job.setQuestions(Set.copyOf(jobQuestions));
+        }
+        if (request.getScoringCriteriaIds() != null && !request.getScoringCriteriaIds().isEmpty()) {
+            Set<ScoringCriteria> scoringCriterias = scoringCriteriaService
+                    .saveJobScoringCriteria(request.getScoringCriteriaIds());
+            scoringCriterias
+                    .forEach(scoringCriteria -> scoringCriteria.setJob(job));
+            job.setScoringCriterias(scoringCriterias);
+        }
+        job.setUploadTime(LocalDateTime.now());
+        job.setCompany(recruiter.getCompany());
         job.setStatus(JobStatus.DRAFT);
         jobRepository.save(job);
         return jobMapper.toJobInternalResponse(job);
@@ -163,6 +170,55 @@ public class JobServiceImpl implements JobService {
         return jobMapper.toJobInternalResponse(job);
     }
 
+    @Override
+    public JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request) {
+        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        Job job = jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        boolean sameCompany =
+                recruiter.getCompany().getId().equals(job.getCompany().getId());
+        boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
+        if (!sameCompany || !isRoot) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+        Role role = JwtTokenProvider.getCurrentRole();
+        if (role == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        JobStatus currentStatus = job.getStatus();
+        JobStatus targetStatus = request.getJobStatus();
+        if (role != Role.ADMIN) {
+            if (targetStatus == JobStatus.PUBLISHED
+                    || targetStatus == JobStatus.SUSPENDED) {
+                throw new AppException(ErrorCode.UNAUTHORIZED);
+            }
+        }
+        switch (targetStatus) {
+            case CLOSED -> {
+                if (currentStatus != JobStatus.PUBLISHED) {
+                    throw new AppException(ErrorCode.CAN_NOT_CLOSED);
+                }
+                job.setStatus(JobStatus.CLOSED);
+            }
+            case DRAFT -> {
+                if (currentStatus != JobStatus.PENDING_REVIEW
+                        && currentStatus != JobStatus.CLOSED) {
+                    throw new AppException(ErrorCode.CAN_NOT_DRAFTED);
+                }
+                job.setStatus(JobStatus.DRAFT);
+            }
+            case PUBLISHED, SUSPENDED -> {
+                    job.setStatus(targetStatus);
+            }
+            case PENDING_REVIEW -> {
+                throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
+            }
+            default -> throw new AppException(ErrorCode.INVALID_JOB_STATUS);
+        }
+        jobRepository.save(job);
+        return jobMapper.toJobDetailResponse(job);
+    }
+
     /**
      * Get all job on job board page
      */
@@ -196,46 +252,6 @@ public class JobServiceImpl implements JobService {
     @Override
     public PagingResponse<BaseJobResponse> getAllMySavedJob() {
         return null;
-    }
-
-    private Job populateJobRelations(Job job,
-            Integer expertiseId,
-            List<Integer> skillIds,
-            List<Integer> domainIds,
-            List<Integer> benefitIds,
-            List<Integer> questionIds,
-            Set<AddJobScoringCriteriaRequest> scoringCriteriaRequests) {
-        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
-                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-        if (expertiseId != null) {
-            job.setExpertise(jobExpertiseRepository.getReferenceById(expertiseId));
-        }
-        if (skillIds != null && !skillIds.isEmpty()) {
-            List<Skill> skillSet = skillRepository.findAllById(skillIds);
-            job.setSkills(Set.copyOf(skillSet));
-        }
-        if (domainIds != null && !domainIds.isEmpty()) {
-            List<Domain> domains = domainRepository.findAllById(domainIds);
-            job.setDomains(Set.copyOf(domains));
-        }
-        if (benefitIds != null && !benefitIds.isEmpty()) {
-            List<Benefit> benefits = benefitRepository.findAllById(benefitIds);
-            job.setBenefits(Set.copyOf(benefits));
-        }
-        if (questionIds != null && !questionIds.isEmpty()) {
-            List<JobQuestion> jobQuestions = jobQuestionRepository.findAllById(questionIds);
-            job.setQuestions(Set.copyOf(jobQuestions));
-        }
-        if (scoringCriteriaRequests != null && !scoringCriteriaRequests.isEmpty()) {
-            Set<ScoringCriteria> scoringCriterias = scoringCriteriaService
-                    .saveJobScoringCriteria(scoringCriteriaRequests);
-            scoringCriterias
-                    .forEach(scoringCriteria -> scoringCriteria.setJob(job));
-            job.setScoringCriterias(scoringCriterias);
-        }
-        job.setUploadTime(LocalDateTime.now());
-        job.setCompany(recruiter.getCompany());
-        return job;
     }
 
     public <E, ID> Set<ID> syncAndFilterNewIds(

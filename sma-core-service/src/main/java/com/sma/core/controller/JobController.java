@@ -3,6 +3,7 @@ package com.sma.core.controller;
 import com.sma.core.dto.request.job.DraftJobRequest;
 import com.sma.core.dto.request.job.PublishJobRequest;
 import com.sma.core.dto.request.job.JobFilterRequest;
+import com.sma.core.dto.request.job.UpdateJobStatusRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
@@ -43,15 +44,6 @@ public class JobController {
 
     @PostMapping
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> publishJob(@RequestBody PublishJobRequest request) {
-        return ApiResponse.<JobDetailResponse>builder()
-                .message("Publish job successfully")
-                .data(jobService.publishJob(request))
-                .build();
-    }
-
-    @PostMapping("/draft")
-    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobDetailResponse> draftJob(@RequestBody DraftJobRequest request) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Draft job successfully")
@@ -66,6 +58,16 @@ public class JobController {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Publish job successfully")
                 .data(jobService.publishExistingJob(id, request))
+                .build();
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
+    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody UpdateJobStatusRequest request,
+                                                          @PathVariable Integer id) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Update job status successfully")
+                .data(jobService.updateJobStatus(id, request))
                 .build();
     }
 }
