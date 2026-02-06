@@ -39,3 +39,4 @@ build/
 
 ### ===== Git =====
 *.orig
+RABBITMQ_SETUP.md
