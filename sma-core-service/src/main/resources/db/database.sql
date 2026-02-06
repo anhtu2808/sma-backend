@@ -18,7 +18,7 @@ CREATE TYPE currency AS ENUM ('VND', 'USD');
 CREATE TYPE application_status AS ENUM ('APPLIED', 'VIEWED', 'SHORTLISTED', 'AUTO_REJECTED', 'NOT_SUITABLE');
 
 -- Candidates
-CREATE TYPE job_search_status AS ENUM ('ACTIVELY_LOOKING', 'OPEN_TO_OFFERS', 'NOT_LOOKING');
+CREATE TYPE candidate_show_as AS ENUM ('PROFILE', 'RESUME');
 
 -- Criteria
 CREATE TYPE criteria_type AS ENUM ('HARD_SKILLS', 'SOFT_SKILLS', 'EXPERIENCE', 'EDUCATION', 'JOB_TITLE', 'JOB_LEVEL');
@@ -102,9 +102,9 @@ CREATE TABLE candidates (
   website_url varchar(500),
   expected_salary_min decimal(15,2),
   expected_salary_max decimal(15,2),
-  job_search_status job_search_status DEFAULT 'OPEN_TO_OFFERS',
   availability_date date,
   is_profile_public boolean DEFAULT true,
+  show_as candidate_show_as DEFAULT 'RESUME',
   profile_completeness int DEFAULT 0
 );
 
