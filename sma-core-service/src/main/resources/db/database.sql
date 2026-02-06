@@ -600,10 +600,51 @@ CREATE TABLE export_records (
 );
 
 -- ==============================================
+-- TRIGGERS
+-- ==============================================
+
+CREATE OR REPLACE FUNCTION normalize_skill_category_name_trigger()
+RETURNS trigger AS
+$$
+DECLARE
+    normalized text;
+BEGIN
+    IF NEW.name IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    normalized := LOWER(REGEXP_REPLACE(TRIM(NEW.name), '\s+', ' ', 'g'));
+
+    NEW.name := CASE
+        WHEN normalized IN ('programming languages', 'programming language') THEN 'Programming Language'
+        WHEN normalized IN ('frameworks', 'framework') THEN 'Framework'
+        WHEN normalized IN ('tools', 'tool', 'tools & technologies') THEN 'Tool'
+        WHEN normalized IN ('databases', 'database') THEN 'Database'
+        WHEN normalized IN ('frontends', 'frontend') THEN 'Frontend'
+        WHEN normalized IN ('backends', 'backend') THEN 'Backend'
+        WHEN normalized IN ('soft skills', 'soft skill') THEN 'Soft Skill'
+        WHEN normalized IN ('methodologies', 'methodology') THEN 'Methodology'
+        WHEN normalized IN ('clouds', 'cloud') THEN 'Cloud'
+        ELSE REGEXP_REPLACE(TRIM(NEW.name), '\s+', ' ', 'g')
+    END;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_normalize_skill_category_name ON skill_categories;
+CREATE TRIGGER trg_normalize_skill_category_name
+BEFORE INSERT OR UPDATE ON skill_categories
+FOR EACH ROW
+EXECUTE FUNCTION normalize_skill_category_name_trigger();
+
+-- ==============================================
 -- INDEXES
 -- ==============================================
 
 CREATE UNIQUE INDEX ON notification_settings (user_id, notification_type);
+CREATE UNIQUE INDEX uq_skill_categories_name_normalized ON skill_categories ((LOWER(REGEXP_REPLACE(TRIM(name), '\s+', ' ', 'g'))));
+CREATE UNIQUE INDEX uq_skills_name_normalized ON skills ((LOWER(REGEXP_REPLACE(TRIM(name), '\s+', ' ', 'g'))));
 
 -- ==============================================
 -- FOREIGN KEYS
@@ -731,6 +772,3 @@ ALTER TABLE evaluation_experience_details ADD FOREIGN KEY (evaluation_criteria_s
 ALTER TABLE evaluation_gaps ADD FOREIGN KEY (evaluation_id) REFERENCES resume_evaluations (id);
 
 ALTER TABLE evaluation_criteria_scores ADD FOREIGN KEY (scoring_criteria_id) REFERENCES scoring_criterias (id);
-
-
-

@@ -16,6 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Locale;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -26,10 +29,16 @@ public class SkillCategoryServiceImpl implements SkillCategoryService {
 
     @Override
     public SkillCategoryResponse create(SkillCategoryRequest request) {
-        if (categoryRepository.existsByName(request.getName())) {
-            throw new AppException(ErrorCode.CATEGORY_ALREADY_EXITED);
+        String normalizedName = normalizeCategoryName(request.getName());
+        SkillCategory category = categoryRepository.findAllByNormalizedName(normalizedName).stream()
+                .findFirst()
+                .orElse(null);
+        // If the category already exists, return it
+        if (category != null) {
+            return skillMapper.toCategoryResponse(category);
         }
-        SkillCategory category = skillMapper.toCategoryEntity(request);
+        category = skillMapper.toCategoryEntity(request);
+        category.setName(normalizedName);
         return skillMapper.toCategoryResponse(categoryRepository.save(category));
     }
 
@@ -67,11 +76,63 @@ public class SkillCategoryServiceImpl implements SkillCategoryService {
     public SkillCategoryResponse update(Integer id, SkillCategoryRequest request) {
         SkillCategory category = categoryRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-        if (categoryRepository.existsByName(request.getName()) &&
-                !category.getName().equals(request.getName())) {
+        String normalizedName = normalizeCategoryName(request.getName());
+        List<SkillCategory> duplicatedCategories = categoryRepository.findAllByNormalizedName(normalizedName);
+        boolean hasDuplicatedName = duplicatedCategories.stream()
+                .anyMatch(existing -> !existing.getId().equals(id));
+        if (hasDuplicatedName) {
             throw new AppException(ErrorCode.CATEGORY_ALREADY_EXITED);
         }
-        skillMapper.updateCategory(category, request);
+        category.setName(normalizedName);
         return skillMapper.toCategoryResponse(categoryRepository.save(category));
+    }
+
+    private String normalizeCategoryName(String rawName) {
+        if (rawName == null) {
+            return "";
+        }
+
+        String normalized = rawName.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+        if (normalized.isEmpty()) {
+            return "";
+        }
+
+        if (normalized.contains("programming") || normalized.contains("language")) {
+            return "Programming Language";
+        }
+        if (normalized.contains("framework")) {
+            return "Framework";
+        }
+        if (normalized.contains("tool")) {
+            return "Tool";
+        }
+        if (normalized.contains("database") || normalized.contains("sql")) {
+            return "Database";
+        }
+        if (normalized.contains("front")) {
+            return "Frontend";
+        }
+        if (normalized.contains("back")) {
+            return "Backend";
+        }
+        if (normalized.contains("devops") || normalized.contains("ci/cd")) {
+            return "DevOps";
+        }
+        if (normalized.contains("soft")) {
+            return "Soft Skill";
+        }
+        if (normalized.contains("methodolog") || normalized.contains("agile")
+                || normalized.contains("scrum") || normalized.contains("sdlc")) {
+            return "Methodology";
+        }
+        if (normalized.contains("cloud") || normalized.contains("aws")
+                || normalized.contains("azure") || normalized.contains("gcp")) {
+            return "Cloud";
+        }
+        if ("other".equals(normalized)) {
+            return "Other";
+        }
+
+        return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
     }
 }
