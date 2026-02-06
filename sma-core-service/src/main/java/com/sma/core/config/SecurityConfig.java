@@ -58,7 +58,7 @@ public class SecurityConfig {
             "/v1/skill-categories/**",
             "/v1/skills/**",
             "/v1/expertise-groups/**",
-            "/v1/expertises/**"
+            "/v1/expertises/**",
             "/v1/healthcheck/**"
     };
 

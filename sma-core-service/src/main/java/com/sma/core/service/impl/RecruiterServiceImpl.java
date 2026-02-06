@@ -89,5 +89,5 @@ public class RecruiterServiceImpl implements RecruiterService {
                                 .build();
                 recruiterRepository.save(recruiter);
         }
-        
+
 }
