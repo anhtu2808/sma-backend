@@ -30,9 +30,9 @@ public class Recruiter {
     @Builder.Default
     private Boolean isVerified = false;
 
-    @Column(name = "is_root_candidate")
+    @Column(name = "is_root_recruiter")
     @Builder.Default
-    private Boolean isRootCandidate = false;
+    private Boolean isRootRecruiter = false;
 
     @Column(name = "verified_at")
     private LocalDateTime verifiedAt;

@@ -21,5 +21,6 @@ public class BaseCompanyResponse {
     Integer followerNumber;
     CompanyStatus companyStatus;
     String logo;
+    Integer recruiterCount;
 
 }

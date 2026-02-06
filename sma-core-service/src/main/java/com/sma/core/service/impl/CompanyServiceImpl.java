@@ -1,9 +1,10 @@
 package com.sma.core.service.impl;
+
+import com.sma.core.dto.request.company.CompanyFilterRequest;
+import com.sma.core.dto.request.company.UpdateCompanyRequest;
+import com.sma.core.dto.response.company.BaseCompanyResponse;
+import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.dto.request.company.CompanyVerificationRequest;
-import com.sma.core.dto.response.company.AdminCompanyResponse;
-import com.sma.core.dto.response.company.CompanyResponse;
-import com.sma.core.dto.response.company.LocationShortResponse;
-import com.sma.core.dto.response.recruiter.RecruiterShortResponse;
 import com.sma.core.entity.Company;
 import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.Recruiter;
@@ -32,10 +33,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
 
-
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -50,49 +51,12 @@ public class CompanyServiceImpl implements CompanyService {
     JobRepository jobRepository;
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<AdminCompanyResponse> getAllCompaniesForAdmin(String name, CompanyStatus status, Pageable pageable) {
-        Page<Company> companies;
-        if (name != null && status != null) {
-            companies = companyRepository.findByNameContainingIgnoreCaseAndStatus(name, status, pageable);
-        } else if (name != null) {
-            companies = companyRepository.findByNameContainingIgnoreCase(name, pageable);
-        } else if (status != null) {
-            companies = companyRepository.findByStatus(status, pageable);
-        } else {
-            companies = companyRepository.findAll(pageable);
-        }
-
-        return companies.map(company -> {
-            AdminCompanyResponse response = companyMapper.toAdminResponse(company);
-            response.setRecruiterCount(recruiterRepository.countByCompanyId(company.getId()));
-            return response;
-        });
-    }
-
-    @Override
     @Transactional
     public void updateRegistrationStatus(Integer companyId, CompanyVerificationRequest request) {
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
 
-        CompanyStatus currentStatus = company.getStatus();
-        CompanyStatus nextStatus = request.getStatus();
-
-        if (currentStatus == CompanyStatus.APPROVED || currentStatus == CompanyStatus.REJECTED) {
-            throw new AppException(ErrorCode.STATUS_ALREADY_FINALIZED);
-        }
-
-        if (currentStatus == CompanyStatus.PENDING_VERIFICATION && nextStatus != CompanyStatus.UNDER_REVIEW) {
-            throw new AppException(ErrorCode.MUST_BE_UNDER_REVIEW_FIRST);
-        }
-
-        if (currentStatus == CompanyStatus.UNDER_REVIEW) {
-            if (nextStatus != CompanyStatus.APPROVED && nextStatus != CompanyStatus.REJECTED) {
-                throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
-            }
-        }
-
+        CompanyStatus nextStatus = getCompanyStatus(request, company);
         company.setStatus(nextStatus);
 
         if (nextStatus == CompanyStatus.REJECTED) {
@@ -115,57 +79,72 @@ public class CompanyServiceImpl implements CompanyService {
         }
     }
 
+    private CompanyStatus getCompanyStatus(CompanyVerificationRequest request, Company company) {
+        CompanyStatus currentStatus = company.getStatus();
+        CompanyStatus nextStatus = request.getStatus();
+
+        if (currentStatus == CompanyStatus.APPROVED || currentStatus == CompanyStatus.REJECTED) {
+            throw new AppException(ErrorCode.STATUS_ALREADY_FINALIZED);
+        }
+
+        if (currentStatus == CompanyStatus.PENDING_VERIFICATION && nextStatus != CompanyStatus.UNDER_REVIEW) {
+            throw new AppException(ErrorCode.MUST_BE_UNDER_REVIEW_FIRST);
+        }
+
+        if (currentStatus == CompanyStatus.UNDER_REVIEW) {
+            if (nextStatus != CompanyStatus.APPROVED && nextStatus != CompanyStatus.REJECTED) {
+                throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
+            }
+        }
+        return nextStatus;
+    }
+
     @Override
-    public CompanyResponse getCompanyDetailForAdmin(Integer companyId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+    @Transactional(readOnly = true)
+    public CompanyDetailResponse getCompanyById(Integer id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
 
-        CompanyResponse response = companyMapper.toDetailResponse(company);
+        Role role = JwtTokenProvider.getCurrentRole();
+        boolean isInternal = role != null && role.equals(Role.ADMIN);
 
-        response.setRecruiters(company.getRecruiters().stream()
-                .map(r -> RecruiterShortResponse.builder()
-                        .id(r.getId())
-                        .avatar(r.getUser().getAvatar())
-                        .fullName(r.getUser().getFullName())
-                        .email(r.getUser().getEmail())
-                        .isRootCandidate(r.getIsRootCandidate())
-                        .isVerified(r.getIsVerified())
-                        .build())
-                .toList());
+        if (role != null && role.equals(Role.RECRUITER)) {
+            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+            isInternal = recruiter.getCompany().getId().equals(id);
+        }
 
-        response.setLocations(company.getLocations().stream()
-                .map(l -> LocationShortResponse.builder()
-                        .name(l.getName())
-                        .address(l.getAddress())
-                        .district(l.getDistrict())
-                        .city(l.getCity())
-                        .country(l.getCountry())
-                        .googleMapLink(l.getGoogleMapLink())
-                        .build())
-                .toList());
+        if (!isInternal) {
+            EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
+            if (!allowedStatus.contains(company.getStatus()))
+                throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
+        }
 
-        List<String> imageUrls = company.getImages().stream()
-                .map((CompanyImage img) -> img.getUrl())
-                .toList();
-        response.setImages(imageUrls);
+        CompanyDetailResponse response = isInternal
+                ? companyMapper.toInternalCompanyResponse(company)
+                : companyMapper.toCompanyDetailResponse(company);
 
-        response.setTotalJobs(jobRepository.countByCompanyId(companyId));
+        if (!isInternal) {
+            response.setRecruiters(null);
+        }
+
+        response.setTotalJobs(jobRepository.countByCompanyId(id));
 
         return response;
     }
 
     @Override
-    public CompanyDetailResponse getCompanyById(Integer id) {
+    public CompanyDetailResponse updateCompany(Integer id, UpdateCompanyRequest request) {
+        if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.RECRUITER)) {
+            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+            if (!recruiter.getCompany().getId().equals(id) || !recruiter.getIsRootRecruiter())
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
-        Role role = JwtTokenProvider.getCurrentRole();
-        // handle restrict candidate access to INACTIVE, SUSPENDED, PENDING_VERIFICATION company
-        if (role == null || role.equals(Role.CANDIDATE)) {
-            EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
-            if(!allowedStatus.contains(company.getStatus()))
-                throw new AppException(ErrorCode.COMPANY_NOT_AVAILABLE);
-            return companyMapper.toCompanyDetailResponse(company);
-        }
+        company = companyMapper.updateToCompany(request, company);
+        companyRepository.save(company);
         return companyMapper.toInternalCompanyResponse(company);
     }
 
@@ -173,8 +152,24 @@ public class CompanyServiceImpl implements CompanyService {
     public Page<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
+        Role role = JwtTokenProvider.getCurrentRole();
+        if (role != null && role.equals(Role.ADMIN)) {
+            if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+                allowedStatus = request.getStatus();
+            } else {
+                allowedStatus = EnumSet.allOf(CompanyStatus.class);
+            }
+        }
+
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
-                .map(companyMapper::toBaseCompanyResponse);
+                .map(company -> {
+                    BaseCompanyResponse response = companyMapper.toBaseCompanyResponse(company);
+                    if (role == null || !role.equals(Role.ADMIN)) {
+                        response.setRecruiterCount(null);
+                    }
+
+                    return response;
+                });
     }
 
 }

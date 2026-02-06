@@ -1,0 +1,19 @@
+package com.sma.core.enums;
+
+public enum CompanyIndustry {
+    INFORMATION_TECHNOLOGY,
+    FINTECH,
+    ECOMMERCE,
+    HEALTHCARE,
+    EDUCATION,
+    LOGISTICS,
+    MANUFACTURING,
+    REAL_ESTATE,
+    GAMING,
+    TELECOMMUNICATION,
+    ARTIFICIAL_INTELLIGENCE,
+    CYBER_SECURITY,
+    BLOCKCHAIN,
+    IOT
+}
+

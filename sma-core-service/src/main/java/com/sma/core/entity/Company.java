@@ -1,6 +1,8 @@
 package com.sma.core.entity;
 
+import com.sma.core.enums.CompanyIndustry;
 import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.CompanyType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -26,12 +28,15 @@ public class Company {
 
     private String country;
 
-    @Column(name = "company_industry")
-    private String companyIndustry;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "company_industry", columnDefinition = "company_industry")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private CompanyIndustry companyIndustry;
 
     @Column(name = "min_size")
     private Integer minSize;
-    @Column(name= "max_size")
+
+    @Column(name = "max_size")
     private Integer maxSize;
 
     @Column(columnDefinition = "TEXT")
@@ -47,8 +52,10 @@ public class Company {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private CompanyStatus status;
 
-    @Column(name = "type")
-    private String companyType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", columnDefinition = "company_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private CompanyType companyType;
 
     private String logo;
 
