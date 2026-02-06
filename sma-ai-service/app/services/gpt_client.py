@@ -1,6 +1,4 @@
-"""
-OpenAI GPT client for CV parsing.
-"""
+"""OpenAI GPT client for resume parsing."""
 
 import json
 import time
@@ -10,7 +8,7 @@ from loguru import logger
 
 from app.clients.openai_client import create_json_chat_completion
 from app.core.config import settings
-from app.prompts.resume_parsing import build_cv_parsing_prompt
+from app.prompts.resume_parsing import build_resume_parsing_prompt
 
 
 # Pricing per 1M tokens (approximate)
@@ -44,16 +42,16 @@ def calculate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> fl
     return round(input_cost + output_cost, 6)
 
 
-def parse_cv_with_gpt(cv_text: str, timeout: int = 60) -> dict:
+def parse_resume_with_gpt(resume_text: str, timeout: int = 60) -> dict:
     """
-    Call GPT API to parse CV text into structured data.
+    Call GPT API to parse resume text into structured data.
     
     Args:
-        cv_text: Cleaned CV text content
+        resume_text: Cleaned resume text content
         timeout: Request timeout in seconds
         
     Returns:
-        Parsed CV data as dictionary
+        Parsed resume data as dictionary
         
     Raises:
         TimeoutError: If GPT API times out
@@ -62,11 +60,11 @@ def parse_cv_with_gpt(cv_text: str, timeout: int = 60) -> dict:
     if not settings.OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is not configured")
 
-    messages = build_cv_parsing_prompt(cv_text)
+    messages = build_resume_parsing_prompt(resume_text)
     model = getattr(settings, "OPENAI_RESUME_MODEL", settings.OPENAI_MODEL)
 
-    logger.info(f"Calling GPT model '{model}' for CV parsing")
-    logger.debug(f"CV text length sent to GPT: {len(cv_text)} characters")
+    logger.info(f"Calling GPT model '{model}' for resume parsing")
+    logger.debug(f"Resume text length sent to GPT: {len(resume_text)} characters")
     start_call = time.perf_counter()
 
     try:
@@ -117,12 +115,12 @@ def parse_cv_with_gpt(cv_text: str, timeout: int = 60) -> dict:
         }
         parsed_data["metadata"]["costUsd"] = cost
 
-        logger.info("CV parsing completed successfully")
+        logger.info("Resume parsing completed successfully")
         return parsed_data
 
     except APITimeoutError:
         logger.error("GPT API request timed out")
-        raise TimeoutError("CV parsing request timed out")
+        raise TimeoutError("Resume parsing request timed out")
 
     except APIError as e:
         logger.error(f"GPT API error: {e}")

@@ -15,6 +15,7 @@ from app.schemas.resume import (  # noqa: F401
     ResumeLanguage,
     ResumeProject,
     ResumeSkill,
+    ResumeSkillGroup,
     ResumeStatus,
     Skill,
     SkillCategory,

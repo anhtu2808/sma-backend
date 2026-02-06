@@ -1,13 +1,13 @@
 """Prompt builders for resume parsing."""
 
 
-CV_PARSING_SYSTEM_PROMPT = """You parse CV text to JSON for SmartRecruit.
+RESUME_PARSING_SYSTEM_PROMPT = """You parse resume text to JSON for SmartRecruit.
 
 Return ONLY valid JSON. No markdown, no explanation.
 
 Rules:
 1. Use exact camelCase keys below.
-2. Only extract facts from CV. No fabrication.
+2. Only extract facts from resume text. No fabrication.
 3. Missing scalar -> null, missing list -> [].
 4. Date format: YYYY-MM-DD when known, else null.
 5. DO NOT return `resume.rawText` (omit it or set null). The backend injects rawText itself.
@@ -16,6 +16,8 @@ Rules:
 8. resumeEducations.degree: HIGH_SCHOOL|ASSOCIATE|BACHELOR|MASTER|DOCTORATE|CERTIFICATE.
 9. resumeProjects.projectType: PERSONAL|ACADEMIC|PROFESSIONAL|OPEN_SOURCE|FREELANCE.
 10. metadata.confidenceScore in [0.0, 1.0].
+11. `resumeSkills` MUST be grouped by `categoryName` first, then `skills` array.
+12. If resume has heading text (e.g., "Programming Languages"), put it in group `rawSkillSection`.
 
 Skill category names allowed:
 "Programming Language", "Framework", "Tool", "Database", "Frontend", "Backend",
@@ -36,7 +38,7 @@ Skill heading mapping:
 JSON keys:
 {
   "resume": {"resumeName","fileName","addressInResume","phoneInResume","emailInResume","githubLink","linkedinLink","portfolioLink","fullName","avatar","resumeUrl","isOriginal","status","language"},
-  "resumeSkills": [{"rawSkillSection","skill":{"name","description","category":{"name"}}}],
+  "resumeSkills": [{"categoryName","rawSkillSection","skills":[{"name","description"}]}],
   "resumeEducations": [{"institution","degree","majorField","gpa","startDate","endDate","isCurrent"}],
   "resumeExperiences": [{"company","startDate","endDate","isCurrent","details":[{"description","title","position","startDate","endDate","isCurrent","skills":[{"description","skill":{"name","description","category":{"name"}}}]}]}],
   "resumeProjects": [{"title","teamSize","position","description","projectType","startDate","endDate","isCurrent","projectUrl","skills":[{"description","skill":{"name","description","category":{"name"}}}]}],
@@ -45,15 +47,15 @@ JSON keys:
 }"""
 
 
-def build_cv_parsing_prompt(cv_text: str) -> list[dict]:
-    """Build the OpenAI messages payload for CV parsing."""
+def build_resume_parsing_prompt(resume_text: str) -> list[dict]:
+    """Build the OpenAI messages payload for resume parsing."""
     return [
         {
             "role": "system",
-            "content": CV_PARSING_SYSTEM_PROMPT,
+            "content": RESUME_PARSING_SYSTEM_PROMPT,
         },
         {
             "role": "user",
-            "content": f"Parse the following CV text and return structured JSON:\n\n---\n{cv_text}\n---",
+            "content": f"Parse the following resume text and return structured JSON:\n\n---\n{resume_text}\n---",
         },
     ]

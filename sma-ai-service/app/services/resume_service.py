@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.schemas.resume import ParsedCV
 from app.utils.pdf_extractor import extract_text_from_pdf, clean_text, is_valid_pdf
-from app.services.gpt_client import parse_cv_with_gpt
+from app.services.gpt_client import parse_resume_with_gpt
 from app.core.config import settings
 
 
@@ -65,7 +65,7 @@ async def parse_resume(file_bytes: bytes) -> ParsedCV:
     logger.info("Parsing resume with GPT")
     start_gpt = time.perf_counter()
     timeout = getattr(settings, "OPENAI_REQUEST_TIMEOUT", 60)
-    parsed_data = parse_cv_with_gpt(cleaned_text, timeout=timeout)
+    parsed_data = parse_resume_with_gpt(cleaned_text, timeout=timeout)
     gpt_ms = (time.perf_counter() - start_gpt) * 1000
     logger.info(f"GPT parsing completed in {gpt_ms:.2f}ms")
 

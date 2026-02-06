@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 DegreeType = Literal["HIGH_SCHOOL", "ASSOCIATE", "BACHELOR", "MASTER", "DOCTORATE", "CERTIFICATE"]
 ProjectType = Literal["PERSONAL", "ACADEMIC", "PROFESSIONAL", "OPEN_SOURCE", "FREELANCE"]
@@ -59,10 +59,18 @@ class Resume(BaseModel):
 
 
 class ResumeSkill(BaseModel):
-    """Maps to resume_skills entity."""
+    """Grouped resume skills by category."""
 
+    name: str
+    description: Optional[str] = None
+
+
+class ResumeSkillGroup(BaseModel):
+    """Grouped skill payload: category first, then skill list."""
+
+    categoryName: SkillCategoryName
     rawSkillSection: Optional[str] = None
-    skill: Skill
+    skills: List[ResumeSkill] = Field(default_factory=list)
 
 
 class ResumeEducation(BaseModel):
@@ -127,6 +135,19 @@ class ResumeProject(BaseModel):
     projectUrl: Optional[str] = None
     skills: List[ProjectSkill] = Field(default_factory=list)
 
+    @field_validator("projectUrl", mode="before")
+    @classmethod
+    def normalize_project_url(cls, value):
+        """
+        LLM may return projectUrl as a list; normalize it to a single string.
+        """
+        if isinstance(value, list):
+            normalized = [str(item).strip() for item in value if item is not None and str(item).strip()]
+            if not normalized:
+                return None
+            return ", ".join(normalized)
+        return value
+
 
 class ResumeCertification(BaseModel):
     """Maps to resume_certifications entity."""
@@ -162,7 +183,7 @@ class ParsedCV(BaseModel):
     """Root response model aligned with resume-related entities."""
 
     resume: Resume
-    resumeSkills: List[ResumeSkill] = Field(default_factory=list)
+    resumeSkills: List[ResumeSkillGroup] = Field(default_factory=list)
     resumeEducations: List[ResumeEducation] = Field(default_factory=list)
     resumeExperiences: List[ResumeExperience] = Field(default_factory=list)
     resumeProjects: List[ResumeProject] = Field(default_factory=list)

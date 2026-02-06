@@ -1,13 +1,24 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.router import api_router
+from app.services.resume_parsing_queue_worker import resume_parsing_queue_worker
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    resume_parsing_queue_worker.start()
+    yield
+    resume_parsing_queue_worker.stop()
 
 # Initialize FastAPI
 app = FastAPI(
     title=settings.APP_NAME,
     version="1.0.0",
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
+    lifespan=lifespan,
 )
 
 # CORS Middleware

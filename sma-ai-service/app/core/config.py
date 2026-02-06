@@ -26,6 +26,18 @@ class Settings(BaseSettings):
 
     # Java Service
     JAVA_SERVICE_URL: str = "http://localhost:8080"
+    
+    # RabbitMQ
+    RABBITMQ_ENABLED: bool = True
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "guest"
+    RABBITMQ_PASSWORD: str = "guest"
+    RABBITMQ_VHOST: str = "/"
+    RABBITMQ_RESUME_PARSING_REQUEST_QUEUE: str = "resume.parsing.request"
+    RABBITMQ_RESUME_PARSING_RESULT_QUEUE: str = "resume.parsing.result"
+    RABBITMQ_RECONNECT_DELAY_SECONDS: int = 5
+
 
     # LLM
     OPENAI_API_KEY: str = ""

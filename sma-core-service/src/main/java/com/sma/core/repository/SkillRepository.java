@@ -6,6 +6,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface SkillRepository extends JpaRepository<Skill, Integer> {
     boolean existsByNameAndCategoryId(String name, Integer categoryId);
@@ -17,4 +19,5 @@ public interface SkillRepository extends JpaRepository<Skill, Integer> {
     );
     Page<Skill> findByNameContainingIgnoreCaseAndCategory_Id(String name, Integer categoryId, Pageable pageable);
     Page<Skill> findByCategory_Id(Integer categoryId, Pageable pageable);
+    Optional<Skill> findByNameIgnoreCaseAndCategory_Id(String name, Integer categoryId);
 }
