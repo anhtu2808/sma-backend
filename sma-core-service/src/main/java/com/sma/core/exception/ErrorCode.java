@@ -48,6 +48,7 @@ public enum ErrorCode {
     CATEGORY_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Category already existed"),
     CANT_DELETE_CATEGORY_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete category that is in use"),
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "Category not found"),
+    SKILL_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Skill already existed"),
     CANT_DELETE_SKILL_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete skill that is in use"),
     GROUP_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise group already existed"),
     EXPERTISE_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Expertise group not found"),

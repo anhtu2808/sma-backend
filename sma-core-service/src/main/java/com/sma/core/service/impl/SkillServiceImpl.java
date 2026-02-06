@@ -19,6 +19,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -30,10 +32,17 @@ public class SkillServiceImpl implements SkillService {
 
     @Override
     public SkillCateResponse create(SkillRequest request) {
+        String normalizedSkillName = normalizeSkillName(request.getName());
+        List<Skill> duplicatedSkills = skillRepository.findAllByNormalizedName(normalizedSkillName);
+        if (!duplicatedSkills.isEmpty()) {
+            throw new AppException(ErrorCode.SKILL_ALREADY_EXITED);
+        }
+
         SkillCategory category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
 
         Skill skill = skillMapper.toEntity(request);
+        skill.setName(normalizedSkillName);
         skill.setCategory(category);
 
         return skillMapper.toCateResponse(skillRepository.save(skill));
@@ -71,6 +80,14 @@ public class SkillServiceImpl implements SkillService {
     public SkillCateResponse update(Integer id, SkillRequest request) {
         Skill skill = skillRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+        String normalizedSkillName = normalizeSkillName(request.getName());
+
+        List<Skill> duplicatedSkills = skillRepository.findAllByNormalizedName(normalizedSkillName);
+        boolean hasDuplicatedName = duplicatedSkills.stream()
+                .anyMatch(existing -> !existing.getId().equals(id));
+        if (hasDuplicatedName) {
+            throw new AppException(ErrorCode.SKILL_ALREADY_EXITED);
+        }
 
         if (!skill.getCategory().getId().equals(request.getCategoryId())) {
             SkillCategory newCategory = categoryRepository.findById(request.getCategoryId())
@@ -79,6 +96,7 @@ public class SkillServiceImpl implements SkillService {
         }
 
         skillMapper.updateSkill(skill, request);
+        skill.setName(normalizedSkillName);
         return skillMapper.toCateResponse(skillRepository.save(skill));
     }
 
@@ -90,5 +108,16 @@ public class SkillServiceImpl implements SkillService {
             throw new AppException(ErrorCode.CANT_DELETE_SKILL_IN_USE);
         }
         skillRepository.delete(skill);
+    }
+
+    private String normalizeSkillName(String rawName) {
+        if (rawName == null) {
+            return "";
+        }
+        String normalized = rawName.trim().replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) {
+            return "";
+        }
+        return Character.toUpperCase(normalized.charAt(0)) + normalized.substring(1);
     }
 }

@@ -20,9 +20,11 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 @Slf4j
@@ -41,6 +43,8 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     ResumeProjectRepository resumeProjectRepository;
     ProjectSkillRepository projectSkillRepository;
     ResumeCertificationRepository resumeCertificationRepository;
+    ConcurrentMap<String, Object> categoryUpsertLocks = new ConcurrentHashMap<>();
+    ConcurrentMap<String, Object> skillUpsertLocks = new ConcurrentHashMap<>();
 
     @Override
     public void processParsingResult(ResumeParsingResultMessage message) {
@@ -348,58 +352,109 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             Map<String, SkillCategory> categoryCache,
             Map<String, Skill> skillCache
     ) {
-        if (rawSkillName == null || rawSkillName.isBlank()) {
+        String skillName = normalizeFreeText(rawSkillName);
+        if (skillName == null) {
             return null;
         }
 
-        String skillName = rawSkillName.trim();
         SkillCategory category = upsertSkillCategory(rawCategoryName, categoryCache);
-        String key = skillName.toLowerCase(Locale.ROOT) + "::" + category.getId();
+        String key = normalizeLookupKey(skillName);
 
         Skill cached = skillCache.get(key);
         if (cached != null) {
             return cached;
         }
 
-        Optional<Skill> foundSkill = skillRepository.findByNameIgnoreCaseAndCategory_Id(skillName, category.getId());
-        Skill skill = foundSkill.orElseGet(() -> skillRepository.save(
-                Skill.builder()
-                        .name(skillName)
-                        .description(skillDescription)
-                        .category(category)
-                        .build()
-        ));
+        Object lock = skillUpsertLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            cached = skillCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
 
-        if (foundSkill.isPresent()
-                && (skill.getDescription() == null || skill.getDescription().isBlank())
-                && skillDescription != null
-                && !skillDescription.isBlank()) {
-            skill.setDescription(skillDescription);
+            List<Skill> existingSkills = skillRepository.findAllByNormalizedName(skillName);
+            Skill skill;
+            if (!existingSkills.isEmpty()) {
+                skill = existingSkills.get(0);
+                if (existingSkills.size() > 1) {
+                    log.warn(
+                            "Detected duplicate skills for normalized key '{}', using skillId={}",
+                            key,
+                            skill.getId()
+                    );
+                }
+            } else {
+                skill = skillRepository.save(
+                        Skill.builder()
+                                .name(skillName)
+                                .description(skillDescription)
+                                .category(category)
+                                .build()
+                );
+            }
+
+            // Keep one global skill per normalized name.
+            // If existing category is missing or too generic ("Other"), upgrade it using current parsed category.
+            if (category != null && category.getName() != null) {
+                SkillCategory currentCategory = skill.getCategory();
+                boolean shouldUpdateCategory = currentCategory == null
+                        || currentCategory.getName() == null
+                        || "Other".equalsIgnoreCase(currentCategory.getName());
+                if (shouldUpdateCategory && !category.getId().equals(currentCategory != null ? currentCategory.getId() : null)) {
+                    skill.setCategory(category);
+                }
+            }
+
+            if ((skill.getDescription() == null || skill.getDescription().isBlank())
+                    && skillDescription != null
+                    && !skillDescription.isBlank()) {
+                skill.setDescription(skillDescription);
+            }
             skill = skillRepository.save(skill);
-        }
 
-        skillCache.put(key, skill);
-        return skill;
+            skillCache.put(key, skill);
+            return skill;
+        }
     }
 
     private SkillCategory upsertSkillCategory(String rawCategoryName, Map<String, SkillCategory> categoryCache) {
         String categoryName = normalizeCategoryName(rawCategoryName);
-        String key = categoryName.toLowerCase(Locale.ROOT);
+        String key = normalizeLookupKey(categoryName);
 
         SkillCategory cached = categoryCache.get(key);
         if (cached != null) {
             return cached;
         }
 
-        SkillCategory category = skillCategoryRepository.findByNameIgnoreCase(categoryName)
-                .orElseGet(() -> skillCategoryRepository.save(
+        Object lock = categoryUpsertLocks.computeIfAbsent(key, ignored -> new Object());
+        synchronized (lock) {
+            cached = categoryCache.get(key);
+            if (cached != null) {
+                return cached;
+            }
+
+            List<SkillCategory> existingCategories = skillCategoryRepository.findAllByNormalizedName(categoryName);
+            SkillCategory category;
+            if (!existingCategories.isEmpty()) {
+                category = existingCategories.get(0);
+                if (existingCategories.size() > 1) {
+                    log.warn(
+                            "Detected duplicate skill categories for normalized name '{}', using categoryId={}",
+                            categoryName,
+                            category.getId()
+                    );
+                }
+            } else {
+                category = skillCategoryRepository.save(
                         SkillCategory.builder()
                                 .name(categoryName)
                                 .build()
-                ));
+                );
+            }
 
-        categoryCache.put(key, category);
-        return category;
+            categoryCache.put(key, category);
+            return category;
+        }
     }
 
     private String normalizeCategoryName(String rawCategoryName) {
@@ -431,7 +486,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return "DevOps";
         }
         if (normalized.contains("soft")) {
-            return "Soft Skills";
+            return "Soft Skill";
         }
         if (normalized.contains("methodolog") || normalized.contains("agile") || normalized.contains("scrum")
                 || normalized.contains("sdlc")) {
@@ -452,9 +507,22 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     private String toTitleCase(String value) {
         return switch (value) {
             case "programming language" -> "Programming Language";
-            case "soft skills" -> "Soft Skills";
+            case "soft skill", "soft skills" -> "Soft Skill";
             default -> Character.toUpperCase(value.charAt(0)) + value.substring(1);
         };
+    }
+
+    private String normalizeFreeText(String rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        String normalized = rawValue.trim().replaceAll("\\s+", " ");
+        return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String normalizeLookupKey(String rawValue) {
+        String normalized = normalizeFreeText(rawValue);
+        return normalized == null ? "" : normalized.toLowerCase(Locale.ROOT);
     }
 
     private String text(JsonNode node, String fieldName) {

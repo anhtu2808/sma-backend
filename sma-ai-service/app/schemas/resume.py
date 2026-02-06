@@ -17,7 +17,7 @@ SkillCategoryName = Literal[
     "Frontend",
     "Backend",
     "DevOps",
-    "Soft Skills",
+    "Soft Skill",
     "Methodology",
     "Cloud",
     "Other",

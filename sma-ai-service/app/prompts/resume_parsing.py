@@ -21,7 +21,7 @@ Rules:
 
 Skill category names allowed:
 "Programming Language", "Framework", "Tool", "Database", "Frontend", "Backend",
-"DevOps", "Soft Skills", "Methodology", "Cloud", "Other".
+"DevOps", "Soft Skill", "Methodology", "Cloud", "Other".
 
 Skill heading mapping:
 - Programming Languages -> Programming Language
@@ -29,7 +29,7 @@ Skill heading mapping:
 - Frontend Development -> Frontend
 - Databases -> Database
 - Tools & Technologies -> Tool
-- Soft Skills -> Soft Skills
+- Soft Skills -> Soft Skill
 - DevOps -> DevOps
 - SDLC/Agile/Scrum -> Methodology
 - AWS/Azure/GCP -> Cloud
