@@ -124,6 +124,10 @@ public class CompanyServiceImpl implements CompanyService {
                 ? companyMapper.toInternalCompanyResponse(company)
                 : companyMapper.toCompanyDetailResponse(company);
 
+        if (!isInternal) {
+            response.setRecruiters(null);
+        }
+
         response.setTotalJobs(jobRepository.countByCompanyId(id));
 
         return response;
@@ -149,8 +153,8 @@ public class CompanyServiceImpl implements CompanyService {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
         Role role = JwtTokenProvider.getCurrentRole();
-        if (role != null && (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN))) {
-            if (!request.getStatus().isEmpty()) {
+        if (role != null && role.equals(Role.ADMIN)) {
+            if (request.getStatus() != null && !request.getStatus().isEmpty()) {
                 allowedStatus = request.getStatus();
             } else {
                 allowedStatus = EnumSet.allOf(CompanyStatus.class);
@@ -158,7 +162,14 @@ public class CompanyServiceImpl implements CompanyService {
         }
 
         return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
-                .map(companyMapper::toBaseCompanyResponse);
+                .map(company -> {
+                    BaseCompanyResponse response = companyMapper.toBaseCompanyResponse(company);
+                    if (role == null || !role.equals(Role.ADMIN)) {
+                        response.setRecruiterCount(null);
+                    }
+
+                    return response;
+                });
     }
 
 }
