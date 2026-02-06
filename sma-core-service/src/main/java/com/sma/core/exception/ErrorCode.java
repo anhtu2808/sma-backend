@@ -15,6 +15,8 @@ public enum ErrorCode {
     USER_EXISTS(HttpStatus.BAD_REQUEST, "User already exists"),
     JOB_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Job not available"),
     COMPANY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Company not available"),
+    INVALID_TOTAL_WEIGHT(HttpStatus.BAD_REQUEST, "Total weight must be equal 100"),
+    CAN_NOT_PUBLISH(HttpStatus.BAD_REQUEST, "Current job can not be published, please check job status"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
@@ -42,6 +44,7 @@ public enum ErrorCode {
     RESUME_NOT_EXISTED(HttpStatus.NOT_FOUND, "Resume does not exist"),
     CANDIDATE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Candidate does not exist"),
     RECRUITER_NOT_EXISTED(HttpStatus.NOT_FOUND, "Recruiter does not exist"),
+    CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

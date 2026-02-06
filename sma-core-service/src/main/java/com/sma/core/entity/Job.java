@@ -1,5 +1,6 @@
 package com.sma.core.entity;
 
+import com.sma.core.enums.Currency;
 import com.sma.core.enums.JobLevel;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.WorkingModel;
@@ -55,9 +56,10 @@ public class Job {
     @Column(name = "salary_end", precision = 15, scale = 2)
     private BigDecimal salaryEnd;
 
-    @Column(length = 3)
-    @Builder.Default
-    private String currency = "VND";
+    @Enumerated(EnumType.STRING)
+    @Column(name = "currency", columnDefinition = "currency")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private Currency currency;
 
     @Column(name = "experience_time")
     private Integer experienceTime;
