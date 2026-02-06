@@ -1,7 +1,9 @@
 package com.sma.core.dto.response.resume;
 
 import com.sma.core.enums.ResumeLanguage;
+import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
+import com.sma.core.enums.ResumeType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -39,9 +41,17 @@ public class ResumeResponse {
 
      String resumeUrl;
 
-     Boolean isOriginal;
+     ResumeType type;
+
+     Integer rootResumeId;
 
      ResumeStatus status;
 
+     ResumeParseStatus parseStatus;
+
      ResumeLanguage language;
+
+     Boolean isDefault;
+
+     Boolean isOverrided;
 }
