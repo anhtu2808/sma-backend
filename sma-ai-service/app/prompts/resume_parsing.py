@@ -37,7 +37,7 @@ Skill heading mapping:
 
 JSON keys:
 {
-  "resume": {"resumeName","fileName","addressInResume","phoneInResume","emailInResume","githubLink","linkedinLink","portfolioLink","fullName","avatar","resumeUrl","isOriginal","status","language"},
+  "resume": {"resumeName","fileName","addressInResume","phoneInResume","emailInResume","githubLink","linkedinLink","portfolioLink","fullName","avatar","resumeUrl","language"},
   "resumeSkills": [{"categoryName","rawSkillSection","skills":[{"name","description"}]}],
   "resumeEducations": [{"institution","degree","majorField","gpa","startDate","endDate","isCurrent"}],
   "resumeExperiences": [{"company","startDate","endDate","isCurrent","details":[{"description","title","position","startDate","endDate","isCurrent","skills":[{"description","skill":{"name","description","category":{"name"}}}]}]}],

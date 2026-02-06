@@ -6,7 +6,9 @@ import com.sma.core.entity.*;
 import com.sma.core.enums.DegreeType;
 import com.sma.core.enums.ProjectType;
 import com.sma.core.enums.ResumeLanguage;
+import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
+import com.sma.core.enums.ResumeType;
 import com.sma.core.repository.*;
 import com.sma.core.service.ResumeParsingResultService;
 import lombok.AccessLevel;
@@ -60,13 +62,26 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return;
         }
 
-        if (!message.isSuccess()) {
+        ResumeParseStatus messageStatus = message.getStatus();
+        if (messageStatus == null) {
+            log.warn("Ignore resume parsing result with null status for resumeId={}", resumeId);
+            resume.setParseStatus(ResumeParseStatus.FAIL);
+            resume.setStatus(ResumeStatus.DRAFT);
+            resumeRepository.save(resume);
+            return;
+        }
+
+        if (messageStatus != ResumeParseStatus.FINISH) {
             log.warn(
-                    "Resume parsing failed for resumeId={}, error={}",
+                    "Resume parsing not finished for resumeId={}, status={}, error={}",
                     resumeId,
+                    messageStatus,
                     message.getErrorMessage()
             );
-            resume.setStatus(ResumeStatus.DRAFT);
+            resume.setParseStatus(messageStatus);
+            if (messageStatus == ResumeParseStatus.FAIL) {
+                resume.setStatus(ResumeStatus.DRAFT);
+            }
             resumeRepository.save(resume);
             return;
         }
@@ -75,6 +90,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         if (parsedData == null || parsedData.isNull()) {
             log.warn("Ignore success result with empty parsedData for resumeId={}", resumeId);
             resume.setStatus(ResumeStatus.DRAFT);
+            resume.setParseStatus(ResumeParseStatus.FAIL);
             resumeRepository.save(resume);
             return;
         }
@@ -82,18 +98,29 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         Map<String, SkillCategory> categoryCache = new HashMap<>();
         Map<String, Skill> skillCache = new HashMap<>();
 
-        clearExistingParsedData(resumeId);
-        applyResumeFields(resume, parsedData.path("resume"), parsedData.path("metadata"));
-        persistResumeSkills(resume, parsedData.path("resumeSkills"), categoryCache, skillCache);
-        persistResumeEducations(resume, parsedData.path("resumeEducations"));
-        persistResumeExperiences(resume, parsedData.path("resumeExperiences"), categoryCache, skillCache);
-        persistResumeProjects(resume, parsedData.path("resumeProjects"), categoryCache, skillCache);
-        persistResumeCertifications(resume, parsedData.path("resumeCertifications"));
+        try {
+            resume.setParseStatus(ResumeParseStatus.PARTIAL);
+            resumeRepository.save(resume);
 
-        resume.setStatus(ResumeStatus.ACTIVE);
-        resumeRepository.save(resume);
+            clearExistingParsedData(resumeId);
+            applyResumeFields(resume, parsedData.path("resume"), parsedData.path("metadata"));
+            persistResumeSkills(resume, parsedData.path("resumeSkills"), categoryCache, skillCache);
+            persistResumeEducations(resume, parsedData.path("resumeEducations"));
+            persistResumeExperiences(resume, parsedData.path("resumeExperiences"), categoryCache, skillCache);
+            persistResumeProjects(resume, parsedData.path("resumeProjects"), categoryCache, skillCache);
+            persistResumeCertifications(resume, parsedData.path("resumeCertifications"));
 
-        log.info("Applied resume parsing result successfully for resumeId={}", resumeId);
+            resume.setStatus(ResumeStatus.ACTIVE);
+            resume.setParseStatus(ResumeParseStatus.FINISH);
+            resumeRepository.save(resume);
+
+            log.info("Applied resume parsing result successfully for resumeId={}", resumeId);
+        } catch (Exception e) {
+            resume.setStatus(ResumeStatus.DRAFT);
+            resume.setParseStatus(ResumeParseStatus.FAIL);
+            resumeRepository.save(resume);
+            throw e;
+        }
     }
 
     private void clearExistingParsedData(Integer resumeId) {
@@ -125,9 +152,23 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         setIfPresentText(resume::setAvatar, text(resumeNode, "avatar"));
         setIfPresentText(resume::setResumeUrl, text(resumeNode, "resumeUrl"));
 
-        Boolean isOriginal = booleanValue(resumeNode.get("isOriginal"));
-        if (isOriginal != null) {
-            resume.setIsOriginal(isOriginal);
+        ResumeType resumeType = parseEnum(ResumeType.class, text(resumeNode, "type"));
+        if (resumeType == null) {
+            Boolean isOriginal = booleanValue(resumeNode.get("isOriginal"));
+            if (isOriginal != null) {
+                resumeType = isOriginal ? ResumeType.ORIGINAL : ResumeType.TEMPLATE;
+            }
+        }
+        if (resumeType == null && resume.getType() == null) {
+            resumeType = ResumeType.ORIGINAL;
+        }
+        if (resumeType != null) {
+            resume.setType(resumeType);
+        }
+
+        Integer rootResumeId = integerValue(resumeNode.get("rootResumeId"));
+        if (rootResumeId != null && !rootResumeId.equals(resume.getId())) {
+            resumeRepository.findById(rootResumeId).ifPresent(resume::setRootResume);
         }
 
         ResumeStatus resumeStatus = parseEnum(ResumeStatus.class, text(resumeNode, "status"));
@@ -141,6 +182,16 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         }
         if (language != null) {
             resume.setLanguage(language);
+        }
+
+        Boolean isDefault = booleanValue(resumeNode.get("isDefault"));
+        if (isDefault != null) {
+            resume.setIsDefault(isDefault);
+        }
+
+        Boolean isOverrided = booleanValue(resumeNode.get("isOverrided"));
+        if (isOverrided != null) {
+            resume.setIsOverrided(isOverrided);
         }
     }
 

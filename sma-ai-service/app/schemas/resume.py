@@ -9,6 +9,7 @@ DegreeType = Literal["HIGH_SCHOOL", "ASSOCIATE", "BACHELOR", "MASTER", "DOCTORAT
 ProjectType = Literal["PERSONAL", "ACADEMIC", "PROFESSIONAL", "OPEN_SOURCE", "FREELANCE"]
 ResumeStatus = Literal["DRAFT", "ACTIVE", "ARCHIVED"]
 ResumeLanguage = Literal["VI", "EN"]
+ResumeType = Literal["ORIGINAL", "TEMPLATE", "PROFILE"]
 SkillCategoryName = Literal[
     "Programming Language",
     "Framework",
@@ -53,9 +54,12 @@ class Resume(BaseModel):
     fullName: str
     avatar: Optional[str] = None
     resumeUrl: Optional[str] = None
-    isOriginal: Optional[bool] = True
+    type: Optional[ResumeType] = "ORIGINAL"
+    rootResumeId: Optional[int] = None
     status: Optional[ResumeStatus] = "ACTIVE"
     language: Optional[ResumeLanguage] = None
+    isDefault: Optional[bool] = False
+    isOverrided: Optional[bool] = False
 
 
 class ResumeSkill(BaseModel):

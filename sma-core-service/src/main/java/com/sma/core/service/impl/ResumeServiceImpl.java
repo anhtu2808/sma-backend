@@ -4,7 +4,9 @@ import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.Resume;
+import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
+import com.sma.core.enums.ResumeType;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.resume.ResumeMapper;
@@ -36,9 +38,15 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = resumeMapper.toEntity(request);
         Candidate candidate = getCurrentCandidate();
 
+        resume.setType(ResumeType.ORIGINAL);
+        resume.setRootResume(null);
         resume.setStatus(ResumeStatus.DRAFT);
-        if (resume.getIsOriginal() == null) {
-            resume.setIsOriginal(Boolean.TRUE);
+        resume.setParseStatus(ResumeParseStatus.WAITING);
+        if (resume.getIsDefault() == null) {
+            resume.setIsDefault(Boolean.FALSE);
+        }
+        if (resume.getIsOverrided() == null) {
+            resume.setIsOverrided(Boolean.FALSE);
         }
 
         resume.setCandidate(candidate);
@@ -51,8 +59,12 @@ public class ResumeServiceImpl implements ResumeService {
                     resume.getFileName(),
                     resume.getResumeName()
             );
+            resume.setParseStatus(ResumeParseStatus.PARTIAL);
+            resumeRepository.save(resume);
         } catch (Exception e) {
             log.error("Failed to enqueue resume parsing request for resumeId={}", resume.getId(), e);
+            resume.setParseStatus(ResumeParseStatus.FAIL);
+            resumeRepository.save(resume);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
@@ -63,6 +75,7 @@ public class ResumeServiceImpl implements ResumeService {
     public ResumeResponse reparseResume(Integer resumeId) {
         Resume resume = getOwnedResume(resumeId);
         resume.setStatus(ResumeStatus.DRAFT);
+        resume.setParseStatus(ResumeParseStatus.WAITING);
         resume = resumeRepository.save(resume);
 
         try {
@@ -72,8 +85,12 @@ public class ResumeServiceImpl implements ResumeService {
                     resume.getFileName(),
                     resume.getResumeName()
             );
+            resume.setParseStatus(ResumeParseStatus.PARTIAL);
+            resumeRepository.save(resume);
         } catch (Exception e) {
             log.error("Failed to re-enqueue resume parsing request for resumeId={}", resumeId, e);
+            resume.setParseStatus(ResumeParseStatus.FAIL);
+            resumeRepository.save(resume);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
@@ -87,6 +104,15 @@ public class ResumeServiceImpl implements ResumeService {
             return ResumeStatus.DRAFT.name();
         }
         return resume.getStatus().name();
+    }
+
+    @Override
+    public String getResumeParseStatus(Integer resumeId) {
+        Resume resume = getOwnedResume(resumeId);
+        if (resume.getParseStatus() == null) {
+            return ResumeParseStatus.WAITING.name();
+        }
+        return resume.getParseStatus().name();
     }
 
     private Candidate getCurrentCandidate() {

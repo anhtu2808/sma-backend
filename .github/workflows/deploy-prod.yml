@@ -97,32 +97,19 @@ jobs:
           username: root
           key: ${{ secrets.SECRET_KEY }}
           script: |
+            set -euo pipefail
             cd /var/docker/sma
             echo "Prepare AI compose override..."
             cat > docker-compose.ai.yml <<'EOF'
             services:
+              sma-core-service:
+                image: ${{ vars.DOCKER_USERNAME }}/sma-core-service:latest
               sma-ai-service:
                 image: ${{ vars.DOCKER_USERNAME }}/sma-ai-service:latest
-                container_name: sma-ai-service
-                restart: unless-stopped
-                env_file:
-                  - .env
-                ports:
-                  - "8000:8000"
-                networks:
-                  - sma-network
-                healthcheck:
-                  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
-                  interval: 30s
-                  timeout: 10s
-                  retries: 3
-                  start_period: 60s
-                security_opt:
-                  - no-new-privileges:true
             EOF
             echo "Deploying sma-core-service and sma-ai-service..."
-            docker compose -f docker-compose.yml -f docker-compose.ai.yml pull sma-core-service sma-ai-service || true
-            docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d sma-core-service sma-ai-service
+            docker compose -f docker-compose.yml -f docker-compose.ai.yml pull sma-core-service sma-ai-service
+            docker compose -f docker-compose.yml -f docker-compose.ai.yml up -d --pull always --force-recreate --no-deps sma-core-service sma-ai-service
             docker image prune -f
             echo "Deployment completed!"
             docker ps | grep -E "sma-core-service|sma-ai-service"

@@ -50,4 +50,13 @@ public class ResumeController {
                 .data(resumeService.getResumeStatus(resumeId))
                 .build();
     }
+
+    @GetMapping("/{resumeId}/parse-status")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<String> getResumeParseStatus(@PathVariable Integer resumeId) {
+        return ApiResponse.<String>builder()
+                .message("Get resume parse status successfully")
+                .data(resumeService.getResumeParseStatus(resumeId))
+                .build();
+    }
 }
