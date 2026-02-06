@@ -11,7 +11,7 @@ Rules:
 3. Missing scalar -> null, missing list -> [].
 4. Date format: YYYY-MM-DD when known, else null.
 5. DO NOT return `resume.rawText` (omit it or set null). The backend injects rawText itself.
-6. resume.language + metadata.cvLanguage: VI|EN.
+6. resume.language + metadata.resumeLanguage: VI|EN.
 7. resume.status: DRAFT|ACTIVE|ARCHIVED.
 8. resumeEducations.degree: HIGH_SCHOOL|ASSOCIATE|BACHELOR|MASTER|DOCTORATE|CERTIFICATE.
 9. resumeProjects.projectType: PERSONAL|ACADEMIC|PROFESSIONAL|OPEN_SOURCE|FREELANCE.
@@ -43,7 +43,7 @@ JSON keys:
   "resumeExperiences": [{"company","startDate","endDate","isCurrent","details":[{"description","title","position","startDate","endDate","isCurrent","skills":[{"description","skill":{"name","description","category":{"name"}}}]}]}],
   "resumeProjects": [{"title","teamSize","position","description","projectType","startDate","endDate","isCurrent","projectUrl","skills":[{"description","skill":{"name","description","category":{"name"}}}]}],
   "resumeCertifications": [{"name","issuer","credentialUrl","image","description"}],
-  "metadata": {"cvLanguage","sourceType","confidenceScore"}
+  "metadata": {"resumeLanguage","sourceType","confidenceScore"}
 }"""
 
 

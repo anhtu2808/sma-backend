@@ -7,13 +7,13 @@ import time
 from loguru import logger
 from pydantic import ValidationError
 
-from app.schemas.resume import ParsedCV
+from app.schemas.resume import ParsedResume
 from app.utils.pdf_extractor import extract_text_from_pdf, clean_text, is_valid_pdf
 from app.services.gpt_client import parse_resume_with_gpt
 from app.core.config import settings
 
 
-async def parse_resume(file_bytes: bytes) -> ParsedCV:
+async def parse_resume(file_bytes: bytes) -> ParsedResume:
     """
     Parse a resume PDF file and return structured data.
     
@@ -28,7 +28,7 @@ async def parse_resume(file_bytes: bytes) -> ParsedCV:
         file_bytes: PDF file content as bytes
         
     Returns:
-        ParsedCV model with structured resume data
+        ParsedResume model with structured resume data
         
     Raises:
         ValueError: If PDF is invalid or parsing fails
@@ -78,7 +78,7 @@ async def parse_resume(file_bytes: bytes) -> ParsedCV:
     logger.info("Validating parsed data against schema")
     start_validate = time.perf_counter()
     try:
-        parsed_cv = ParsedCV(**parsed_data)
+        parsed_resume = ParsedResume(**parsed_data)
     except ValidationError as e:
         logger.error(f"Schema validation failed: {e}")
         raise ValueError(f"Parsed data does not match expected schema: {str(e)}")
@@ -87,5 +87,5 @@ async def parse_resume(file_bytes: bytes) -> ParsedCV:
     logger.info(f"Schema validation completed in {validate_ms:.2f}ms")
     logger.info(f"Total resume parsing time: {total_ms:.2f}ms")
 
-    logger.info(f"Resume parsed successfully: {parsed_cv.resume.fullName}")
-    return parsed_cv
+    logger.info(f"Resume parsed successfully: {parsed_resume.resume.fullName}")
+    return parsed_resume

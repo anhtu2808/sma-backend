@@ -48,13 +48,13 @@ class Settings(BaseSettings):
     # Qdrant
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
-    QDRANT_COLLECTION_NAME: str = "cv_embeddings"
+    QDRANT_COLLECTION_NAME: str = "resume_embeddings"
 
     # AWS S3
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "ap-southeast-1"
-    S3_BUCKET_NAME: str = "sma-cv-storage"
+    S3_BUCKET_NAME: str = "sma-resume-storage"
 
     # JWT (to verify tokens from Java service)
     JWT_SECRET: str = ""

@@ -133,7 +133,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
 
         ResumeLanguage language = parseEnum(ResumeLanguage.class, text(resumeNode, "language"));
         if (language == null) {
-            language = parseEnum(ResumeLanguage.class, text(metadataNode, "cvLanguage"));
+            language = parseEnum(ResumeLanguage.class, text(metadataNode, "resumeLanguage"));
         }
         if (language != null) {
             resume.setLanguage(language);
