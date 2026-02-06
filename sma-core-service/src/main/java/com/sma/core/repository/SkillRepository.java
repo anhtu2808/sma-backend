@@ -15,4 +15,6 @@ public interface SkillRepository extends JpaRepository<Skill, Integer> {
             String categoryName,
             Pageable pageable
     );
+    Page<Skill> findByNameContainingIgnoreCaseAndCategory_Id(String name, Integer categoryId, Pageable pageable);
+    Page<Skill> findByCategory_Id(Integer categoryId, Pageable pageable);
 }

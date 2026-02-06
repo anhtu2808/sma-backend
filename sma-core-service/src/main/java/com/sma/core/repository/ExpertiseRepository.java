@@ -11,4 +11,6 @@ public interface ExpertiseRepository extends JpaRepository<JobExpertise, Integer
     Page<JobExpertise> findByExpertiseGroup_NameContainingIgnoreCase(String groupName, Pageable pageable);
     Page<JobExpertise> findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(
             String name, String groupName, Pageable pageable);
+    Page<JobExpertise> findByNameContainingIgnoreCaseAndExpertiseGroup_Id(String name, Integer groupId, Pageable pageable);
+    Page<JobExpertise> findByExpertiseGroup_Id(Integer groupId, Pageable pageable);
 }

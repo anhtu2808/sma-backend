@@ -10,5 +10,5 @@ public interface ExpertiseService {
     ExpertiseResponse update(Integer id, ExpertiseRequest request);
     void delete(Integer id);
     ExpertiseResponse getById(Integer id);
-    Page<ExpertiseResponse> getAll(String name, Pageable pageable);
+    Page<ExpertiseResponse> getAll(String name, Integer groupId, Pageable pageable);
 }

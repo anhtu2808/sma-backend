@@ -40,15 +40,22 @@ public class SkillServiceImpl implements SkillService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public Page<SkillCateResponse> getAll(String name, Pageable pageable) {
+    public Page<SkillCateResponse> getAll(String name, Integer categoryId, Pageable pageable) {
+        boolean hasName = name != null && !name.trim().isEmpty();
+        boolean hasCategoryId = categoryId != null;
+
         Page<Skill> skills;
-        if (name != null && !name.trim().isEmpty()) {
-            skills = skillRepository.findByNameContainingIgnoreCaseOrCategory_NameContainingIgnoreCase(
-                    name, name, pageable);
+
+        if (hasName && hasCategoryId) {
+            skills = skillRepository.findByNameContainingIgnoreCaseAndCategory_Id(name, categoryId, pageable);
+        } else if (hasCategoryId) {
+            skills = skillRepository.findByCategory_Id(categoryId, pageable);
+        } else if (hasName) {
+            skills = skillRepository.findByNameContainingIgnoreCase(name, pageable);
         } else {
             skills = skillRepository.findAll(pageable);
         }
+
         return skills.map(skillMapper::toCateResponse);
     }
 

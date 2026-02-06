@@ -22,9 +22,10 @@ public class ExpertiseController {
     @GetMapping
     public ApiResponse<Page<ExpertiseResponse>> getAll(
             @RequestParam(required = false) String name,
+            @RequestParam(required = false) Integer groupId,
             Pageable pageable) {
         return ApiResponse.<Page<ExpertiseResponse>>builder()
-                .data(service.getAll(name, pageable))
+                .data(service.getAll(name, groupId, pageable))
                 .build();
     }
 

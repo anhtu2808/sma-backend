@@ -29,10 +29,11 @@ public class SkillController {
     @GetMapping
     public ApiResponse<Page<SkillCateResponse>> getAll(
             @RequestParam(required = false) String name,
+            @RequestParam(required = false) Integer categoryId,
             Pageable pageable) {
         return ApiResponse.<Page<SkillCateResponse>>builder()
                 .message("Request successfully")
-                .data(skillService.getAll(name, pageable))
+                .data(skillService.getAll(name, categoryId, pageable))
                 .build();
     }
 

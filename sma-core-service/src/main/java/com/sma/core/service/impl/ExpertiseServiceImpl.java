@@ -40,14 +40,21 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     }
 
     @Override
-    public Page<ExpertiseResponse> getAll(String name, Pageable pageable) {
+    public Page<ExpertiseResponse> getAll(String name, Integer groupId, Pageable pageable) {
         Page<JobExpertise> expertises;
-        if (name != null && !name.trim().isEmpty()) {
-            expertises = repository.findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(
-                    name, name, pageable);
+        boolean hasName = name != null && !name.trim().isEmpty();
+        boolean hasGroupId = groupId != null;
+
+        if (hasName && hasGroupId) {
+            expertises = repository.findByNameContainingIgnoreCaseAndExpertiseGroup_Id(name, groupId, pageable);
+        } else if (hasName) {
+            expertises = repository.findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(name, name, pageable);
+        } else if (hasGroupId) {
+            expertises = repository.findByExpertiseGroup_Id(groupId, pageable);
         } else {
             expertises = repository.findAll(pageable);
         }
+
         return expertises.map(mapper::toResponse);
     }
 
