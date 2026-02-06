@@ -1,7 +1,9 @@
 package com.sma.core.entity;
 
 import com.sma.core.enums.ResumeLanguage;
+import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
+import com.sma.core.enums.ResumeType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -58,18 +60,35 @@ public class Resume {
     @Column(name = "resume_url")
     private String resumeUrl;
 
-    @Column(name = "is_original")
-    private Boolean isOriginal;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", columnDefinition = "resume_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private ResumeType type;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "root_resume_id")
+    private Resume rootResume;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", columnDefinition = "resume_status_type")
+    @Column(name = "status", columnDefinition = "resume_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ResumeStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "language", columnDefinition = "resume_language_type")
+    @Column(name = "parse_status", columnDefinition = "parse_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private ResumeParseStatus parseStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "language", columnDefinition = "resume_language")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ResumeLanguage language;
+
+    @Column(name = "is_default")
+    private Boolean isDefault;
+
+    @Column(name = "is_overrided")
+    private Boolean isOverrided;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id")

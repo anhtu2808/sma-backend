@@ -5,6 +5,7 @@ import json
 import threading
 import time
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any
 
 import pika
@@ -13,6 +14,13 @@ from loguru import logger
 
 from app.core.config import settings
 from app.services.resume_service import parse_resume
+
+
+class ParseStatus(str, Enum):
+    WAITING = "WAITING"
+    PARTIAL = "PARTIAL"
+    FINISH = "FINISH"
+    FAIL = "FAIL"
 
 
 class ResumeParsingQueueWorker:
@@ -146,7 +154,7 @@ class ResumeParsingQueueWorker:
             parsed_resume = asyncio.run(parse_resume(file_bytes))
 
             self._publish_result(
-                status="SUCCESS",
+                status=ParseStatus.FINISH,
                 resume_id=resume_id,
                 parsed_data=parsed_resume.model_dump(mode="json"),
                 error_message=None,
@@ -164,7 +172,7 @@ class ResumeParsingQueueWorker:
 
             try:
                 self._publish_result(
-                    status="FAILED",
+                    status=ParseStatus.FAIL,
                     resume_id=resume_id,
                     parsed_data=None,
                     error_message=str(parsing_error)[:1000],
@@ -187,7 +195,7 @@ class ResumeParsingQueueWorker:
     def _publish_result(
         self,
         *,
-        status: str,
+        status: ParseStatus,
         resume_id: int | None,
         parsed_data: dict[str, Any] | None,
         error_message: str | None,
@@ -197,7 +205,7 @@ class ResumeParsingQueueWorker:
 
         message = {
             "resumeId": resume_id,
-            "status": status,
+            "status": status.value,
             "errorMessage": error_message,
             "processedAt": datetime.now(timezone.utc).isoformat(),
             "parsedData": parsed_data,

@@ -7,4 +7,5 @@ public interface ResumeService {
     ResumeResponse uploadResume(UploadResumeRequest request);
     ResumeResponse reparseResume(Integer resumeId);
     String getResumeStatus(Integer resumeId);
+    String getResumeParseStatus(Integer resumeId);
 }
