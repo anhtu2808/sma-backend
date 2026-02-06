@@ -2,6 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.expertise.ExpertiseGroupRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.expertise.ExpertiseGroupResponse;
 import com.sma.core.service.ExpertiseGroupService;
 import jakarta.validation.Valid;
@@ -27,10 +28,10 @@ public class ExpertiseGroupController {
     }
 
     @GetMapping
-    public ApiResponse<Page<ExpertiseGroupResponse>> getAll(
+    public ApiResponse<PagingResponse<ExpertiseGroupResponse>> getAll(
             @RequestParam(required = false) String name,
             Pageable pageable) {
-        return ApiResponse.<Page<ExpertiseGroupResponse>>builder()
+        return ApiResponse.<PagingResponse<ExpertiseGroupResponse>>builder()
                 .data(service.getAll(name, pageable))
                 .build();
     }

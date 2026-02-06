@@ -19,7 +19,7 @@ public class JobQuestion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String name;
+    private String question;
 
     @Column(name = "is_required")
     private Boolean isRequired;

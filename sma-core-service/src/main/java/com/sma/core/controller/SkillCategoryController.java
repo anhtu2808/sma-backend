@@ -2,6 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.skill.SkillCategoryRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.skill.SkillCategoryResponse;
 import com.sma.core.service.SkillCategoryService;
 import jakarta.validation.Valid;
@@ -30,10 +31,10 @@ public class SkillCategoryController {
     }
 
     @GetMapping
-    public ApiResponse<Page<SkillCategoryResponse>> getAll(
+    public ApiResponse<PagingResponse<SkillCategoryResponse>> getAll(
             @RequestParam(required = false) String name,
             Pageable pageable) {
-        return ApiResponse.<Page<SkillCategoryResponse>>builder()
+        return ApiResponse.<PagingResponse<SkillCategoryResponse>>builder()
                 .data(skillCategoryService.getAll(name, pageable))
                 .build();
     }

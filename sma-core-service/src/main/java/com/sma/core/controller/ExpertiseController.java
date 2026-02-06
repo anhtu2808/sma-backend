@@ -2,6 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.expertise.ExpertiseRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.expertise.ExpertiseResponse;
 import com.sma.core.service.ExpertiseService;
 import jakarta.validation.Valid;
@@ -21,11 +22,11 @@ public class ExpertiseController {
     ExpertiseService service;
 
     @GetMapping
-    public ApiResponse<Page<ExpertiseResponse>> getAll(
+    public ApiResponse<PagingResponse<ExpertiseResponse>> getAll(
             @RequestParam(required = false) String name,
             @RequestParam(required = false) Integer groupId,
             Pageable pageable) {
-        return ApiResponse.<Page<ExpertiseResponse>>builder()
+        return ApiResponse.<PagingResponse<ExpertiseResponse>>builder()
                 .data(service.getAll(name, groupId, pageable))
                 .build();
     }
@@ -43,7 +44,8 @@ public class ExpertiseController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public ApiResponse<ExpertiseResponse> update(@PathVariable Integer id, @RequestBody @Valid ExpertiseRequest request) {
+    public ApiResponse<ExpertiseResponse> update(@PathVariable Integer id,
+            @RequestBody @Valid ExpertiseRequest request) {
         return ApiResponse.<ExpertiseResponse>builder().data(service.update(id, request)).build();
     }
 

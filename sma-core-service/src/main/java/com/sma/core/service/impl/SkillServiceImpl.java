@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.skill.SkillRequest;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.skill.SkillCateResponse;
 import com.sma.core.entity.Skill;
 import com.sma.core.entity.SkillCategory;
@@ -49,7 +50,7 @@ public class SkillServiceImpl implements SkillService {
     }
 
     @Override
-    public Page<SkillCateResponse> getAll(String name, Integer categoryId, Pageable pageable) {
+    public PagingResponse<SkillCateResponse> getAll(String name, Integer categoryId, Pageable pageable) {
         boolean hasName = name != null && !name.trim().isEmpty();
         boolean hasCategoryId = categoryId != null;
 
@@ -65,7 +66,7 @@ public class SkillServiceImpl implements SkillService {
             skills = skillRepository.findAll(pageable);
         }
 
-        return skills.map(skillMapper::toCateResponse);
+        return PagingResponse.fromPage(skills.map(skillMapper::toCateResponse));
     }
 
     @Override

@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.NotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ErrorCode {
@@ -15,6 +16,8 @@ public enum ErrorCode {
     USER_EXISTS(HttpStatus.BAD_REQUEST, "User already exists"),
     JOB_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Job not available"),
     COMPANY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Company not available"),
+    INVALID_TOTAL_WEIGHT(HttpStatus.BAD_REQUEST, "Total weight must be equal 100"),
+    CAN_NOT_PUBLISH(HttpStatus.BAD_REQUEST, "Current job can not be published, please check job status"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
@@ -55,7 +58,7 @@ public enum ErrorCode {
     CANT_DELETE_EXPERTISE_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise that is in use"),
     EXPERTISE_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise already existed"),
     EXPERTISE_GROUP_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise group that is in use"),
-
+    CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

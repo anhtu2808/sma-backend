@@ -2,6 +2,7 @@ package com.sma.core.dto.response.job;
 
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.skill.SkillResponse;
+import com.sma.core.entity.JobExpertise;
 import com.sma.core.enums.JobLevel;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.WorkingModel;
@@ -31,8 +32,10 @@ public class BaseJobResponse {
     JobStatus status;
     JobLevel jobLevel;
     WorkingModel workingModel;
+    JobExpertiseResponse expertise;
     BaseCompanyResponse company;
     Set<SkillResponse> skills;
     Set<DomainResponse> domains;
     Set<BenefitResponse> benefits;
+    Set<JobQuestionResponse> questions;
 }

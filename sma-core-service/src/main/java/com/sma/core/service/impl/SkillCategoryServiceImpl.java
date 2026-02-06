@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.skill.SkillCategoryRequest;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.skill.SkillCategoryResponse;
 import com.sma.core.entity.SkillCategory;
 import com.sma.core.exception.AppException;
@@ -44,14 +45,14 @@ public class SkillCategoryServiceImpl implements SkillCategoryService {
 
     @Transactional(readOnly = true)
     @Override
-    public Page<SkillCategoryResponse> getAll(String name, Pageable pageable) {
+    public PagingResponse<SkillCategoryResponse> getAll(String name, Pageable pageable) {
         Page<SkillCategory> categories;
         if (name != null && !name.trim().isEmpty()) {
             categories = categoryRepository.findByNameContainingIgnoreCase(name, pageable);
         } else {
             categories = categoryRepository.findAll(pageable);
         }
-        return categories.map(skillMapper::toCategoryResponse);
+        return PagingResponse.fromPage(categories.map(skillMapper::toCategoryResponse));
     }
 
     @Override
