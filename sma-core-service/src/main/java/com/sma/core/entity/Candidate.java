@@ -46,12 +46,6 @@ public class Candidate {
     @Column(name = "expected_salary_max", precision = 15, scale = 2)
     private BigDecimal expectedSalaryMax;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "job_search_status", columnDefinition = "job_search_status")
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Builder.Default
-    private JobSearchStatus jobSearchStatus = JobSearchStatus.OPEN_TO_OFFERS;
-
     @Column(name = "availability_date")
     private LocalDate availabilityDate;
 

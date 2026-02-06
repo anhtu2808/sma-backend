@@ -18,8 +18,8 @@ public interface JobService {
 
     void closeExpiredJob();
 
-    JobDetailResponse draftJob(DraftJobRequest request);
-
+    JobDetailResponse saveJob(DraftJobRequest request);
+    JobDetailResponse saveExistingJob(Integer id, DraftJobRequest request);
     JobDetailResponse publishExistingJob(Integer id, PublishJobRequest request);
     JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request);
 }

@@ -9,6 +9,7 @@ import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.service.JobService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,16 +45,25 @@ public class JobController {
 
     @PostMapping
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> draftJob(@RequestBody DraftJobRequest request) {
+    public ApiResponse<JobDetailResponse> saveJob(@RequestBody DraftJobRequest request) {
         return ApiResponse.<JobDetailResponse>builder()
-                .message("Draft job successfully")
-                .data(jobService.draftJob(request))
+                .message("Save job successfully")
+                .data(jobService.saveJob(request))
+                .build();
+    }
+
+    @PutMapping("/{id}/save")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<JobDetailResponse> saveExistingJob(@RequestBody DraftJobRequest request, @PathVariable Integer id) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Save job successfully")
+                .data(jobService.saveExistingJob(id ,request))
                 .build();
     }
 
     @PutMapping("/{id}/publish")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody PublishJobRequest request,
+    public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody @Valid PublishJobRequest request,
             @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Publish job successfully")
