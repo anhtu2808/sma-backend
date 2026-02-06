@@ -5,7 +5,7 @@ Resume parsing API endpoints.
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from loguru import logger
 
-from app.schemas.resume import ParsedCV
+from app.schemas.resume import ParsedResume
 from app.services.resume_service import parse_resume
 
 router = APIRouter(prefix="/resume", tags=["Resume"])
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/resume", tags=["Resume"])
 
 @router.post(
     "/parse",
-    response_model=ParsedCV,
+    response_model=ParsedResume,
     summary="Parse a resume PDF",
     description="Upload a PDF resume file and receive structured JSON data extracted using AI.",
     responses={
@@ -69,9 +69,9 @@ async def parse_resume_endpoint(
         logger.info(f"Received resume file: {file.filename}, size: {len(file_bytes)} bytes")
         
         # Parse resume
-        parsed_cv = await parse_resume(file_bytes)
+        parsed_resume = await parse_resume(file_bytes)
         
-        return parsed_cv
+        return parsed_resume
         
     except ValueError as e:
         logger.error(f"Parsing error: {e}")

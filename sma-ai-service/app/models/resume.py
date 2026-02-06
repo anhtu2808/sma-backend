@@ -3,8 +3,8 @@
 from app.schemas.resume import (  # noqa: F401
     DegreeType,
     ExperienceSkill,
-    ParsedCV,
-    ParsedCVMetadata,
+    ParsedResume,
+    ParsedResumeMetadata,
     ProjectSkill,
     ProjectType,
     Resume,

@@ -107,7 +107,7 @@ class ResumeExperienceDetail(BaseModel):
 class ResumeExperience(BaseModel):
     """Maps to resume_experiences entity."""
 
-    company: str
+    company: Optional[str] = None
     startDate: Optional[str] = None  # YYYY-MM-DD
     endDate: Optional[str] = None  # YYYY-MM-DD
     isCurrent: Optional[bool] = False
@@ -167,10 +167,10 @@ class TokenUsage(BaseModel):
     totalTokens: int
 
 
-class ParsedCVMetadata(BaseModel):
+class ParsedResumeMetadata(BaseModel):
     """Metadata about the parsing process."""
 
-    cvLanguage: Optional[ResumeLanguage] = None
+    resumeLanguage: Optional[ResumeLanguage] = None
     sourceType: str = "pdf"
     confidenceScore: Optional[float] = None
     parsedBy: str = "gpt-4.1"
@@ -179,7 +179,7 @@ class ParsedCVMetadata(BaseModel):
     costUsd: Optional[float] = None
 
 
-class ParsedCV(BaseModel):
+class ParsedResume(BaseModel):
     """Root response model aligned with resume-related entities."""
 
     resume: Resume
@@ -188,4 +188,4 @@ class ParsedCV(BaseModel):
     resumeExperiences: List[ResumeExperience] = Field(default_factory=list)
     resumeProjects: List[ResumeProject] = Field(default_factory=list)
     resumeCertifications: List[ResumeCertification] = Field(default_factory=list)
-    metadata: ParsedCVMetadata
+    metadata: ParsedResumeMetadata

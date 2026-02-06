@@ -76,6 +76,33 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  sma-ai-service:
+    image: anhtu2808/sma-ai-service:latest
+    container_name: sma-ai-service
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - /var/docker/sma/logs/ai-service:/app/logs
+
+    networks:
+      - sma-network
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   postgres_data:
 
