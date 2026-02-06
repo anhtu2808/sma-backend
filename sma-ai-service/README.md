@@ -93,14 +93,26 @@ sma-ai-service/
 │   │   ├── __init__.py
 │   │   └── config.py           # Settings & environment variables
 │   │
-│   ├── models/                 # Pydantic models
+│   ├── schemas/                # Pydantic schemas (response/request contracts)
 │   │   ├── __init__.py
-│   │   └── resume.py           # Resume/CV-related schemas
+│   │   └── resume.py           # Resume/CV schema models
 │   │
-│   ├── service/                # Business logic
+│   ├── models/                 # Backward compatibility exports
 │   │   ├── __init__.py
-│   │   ├── gpt_client.py       # OpenAI GPT API integration
-│   │   └── resume_parser.py    # Resume parsing service
+│   │   └── resume.py           # Re-export from app.schemas.resume
+│   │
+│   ├── prompts/                # Prompt templates/builders
+│   │   ├── __init__.py
+│   │   └── resume_parsing.py   # CV parsing system/user prompts
+│   │
+│   ├── clients/                # External integrations
+│   │   ├── __init__.py
+│   │   └── openai_client.py    # Shared OpenAI call wrappers
+│   │
+│   ├── services/               # Business orchestration layer
+│   │   ├── __init__.py
+│   │   ├── gpt_client.py       # Resume parsing use-case via prompt + OpenAI client
+│   │   └── resume_service.py   # Resume parsing service
 │   │
 │   └── utils/                  # Utilities
 │       ├── __init__.py
@@ -412,13 +424,25 @@ sma-ai-service/
 │   │   ├── __init__.py
 │   │   └── config.py                    # Settings class with environment variables
 │   │
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   └── resume.py                    # Resume Pydantic schemas
+│   │
 │   ├── models/
 │   │   ├── __init__.py
-│   │   └── resume.py                    # Resume Pydantic models
+│   │   └── resume.py                    # Compatibility exports from schemas
+│   │
+│   ├── prompts/
+│   │   ├── __init__.py
+│   │   └── resume_parsing.py            # Prompt templates for CV parsing
+│   │
+│   ├── clients/
+│   │   ├── __init__.py
+│   │   └── openai_client.py             # Shared OpenAI API wrapper
 │   │
 │   ├── service/
 │   │   ├── __init__.py
-│   │   ├── gpt_client.py                # OpenAI GPT API integration
+│   │   ├── gpt_client.py                # Resume AI parsing use-case
 │   │   └── resume_parser.py             # Resume parsing logic
 │   │
 │   └── utils/
@@ -449,12 +473,20 @@ sma-ai-service/
 - CORS origins management
 - JWT settings
 
-#### `app/service/gpt_client.py`
-- OpenAI GPT API client
-- Resume parsing with GPT-4o-mini
-- Structured output extraction
+#### `app/services/gpt_client.py`
+- Resume parsing AI use-case
+- Uses prompt builder from `app/prompts`
+- Uses OpenAI wrapper from `app/clients`
 
-#### `app/service/resume_parser.py`
+#### `app/prompts/resume_parsing.py`
+- Dedicated system prompt + message builder for CV parsing
+- Keeps prompt definitions out of client/integration layer
+
+#### `app/clients/openai_client.py`
+- Shared OpenAI integration wrapper
+- Reusable for future AI features (e.g., CV-JD matching)
+
+#### `app/services/resume_service.py`
 - Resume parsing orchestration
 - PDF text extraction integration
 - Data validation and formatting

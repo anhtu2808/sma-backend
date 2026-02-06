@@ -5,8 +5,8 @@ Resume parsing API endpoints.
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from loguru import logger
 
-from app.models.resume import ParsedCV
-from app.service.resume_parser import parse_resume
+from app.schemas.resume import ParsedCV
+from app.services.resume_service import parse_resume
 
 router = APIRouter(prefix="/resume", tags=["Resume"])
 
@@ -32,12 +32,12 @@ async def parse_resume_endpoint(
     - **file**: PDF file containing the resume
     
     Returns structured JSON with:
-    - Personal information (name, contact, etc.)
-    - Skills with levels
-    - Education history
-    - Work experience
-    - Projects
-    - Certifications
+    - Resume entity fields (fullName, emailInResume, githubLink, etc.)
+    - resumeSkills with skill + category + rawSkillSection
+    - resumeEducations
+    - resumeExperiences and nested details/skills
+    - resumeProjects and nested skills
+    - resumeCertifications
     - Parsing metadata
     """
     # Validate content type
