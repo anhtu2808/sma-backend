@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.job.*;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.*;
@@ -77,14 +78,12 @@ public class JobServiceImpl implements JobService {
                 request.getDomainIds(),
                 request.getBenefitIds(),
                 request.getQuestionIds(),
-                request.getScoringCriterias()
-        );
+                request.getScoringCriterias());
 
         job.setStatus(JobStatus.PENDING_REVIEW);
         jobRepository.save(job);
         return jobMapper.toJobInternalResponse(job);
     }
-
 
     @Override
     public JobDetailResponse draftJob(DraftJobRequest request) {
@@ -95,8 +94,7 @@ public class JobServiceImpl implements JobService {
                 request.getDomainIds(),
                 request.getBenefitIds(),
                 request.getQuestionIds(),
-                request.getScoringCriteriaIds()
-        );
+                request.getScoringCriteriaIds());
 
         job.setStatus(JobStatus.DRAFT);
         jobRepository.save(job);
@@ -128,8 +126,7 @@ public class JobServiceImpl implements JobService {
             Set<Integer> newIds = syncAndFilterNewIds(
                     job.getDomains(),
                     Set.copyOf(request.getDomainIds()),
-                    Domain::getId
-            );
+                    Domain::getId);
             Set<Domain> newDomains = newIds.stream()
                     .map(domainRepository::getReferenceById)
                     .collect(Collectors.toSet());
@@ -139,8 +136,7 @@ public class JobServiceImpl implements JobService {
             Set<Integer> newIds = syncAndFilterNewIds(
                     job.getBenefits(),
                     Set.copyOf(request.getBenefitIds()),
-                    Benefit::getId
-            );
+                    Benefit::getId);
             Set<Benefit> newBenefits = newIds.stream()
                     .map(benefitRepository::getReferenceById)
                     .collect(Collectors.toSet());
@@ -150,8 +146,7 @@ public class JobServiceImpl implements JobService {
             Set<Integer> newIds = syncAndFilterNewIds(
                     job.getQuestions(),
                     Set.copyOf(request.getQuestionIds()),
-                    JobQuestion::getId
-            );
+                    JobQuestion::getId);
             Set<JobQuestion> newQuestions = newIds.stream()
                     .map(jobQuestionRepository::getReferenceById)
                     .collect(Collectors.toSet());
@@ -172,7 +167,7 @@ public class JobServiceImpl implements JobService {
      * Get all job on job board page
      */
     @Override
-    public Page<BaseJobResponse> getAllJob(JobFilterRequest request) {
+    public PagingResponse<BaseJobResponse> getAllJob(JobFilterRequest request) {
         Role role = JwtTokenProvider.getCurrentRole();
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = null;
@@ -190,26 +185,26 @@ public class JobServiceImpl implements JobService {
                 request.setCompanyId(recruiter.getCompany().getId());
             }
         }
-        return jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable)
-                .map(jobMapper::toBaseJobResponse);
+        return PagingResponse
+                .fromPage(jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable)
+                        .map(jobMapper::toBaseJobResponse));
     }
 
     /**
      * Get all saved job of current user on candidate dashboard
      */
     @Override
-    public Page<BaseJobResponse> getAllMySavedJob() {
+    public PagingResponse<BaseJobResponse> getAllMySavedJob() {
         return null;
     }
 
     private Job populateJobRelations(Job job,
-                                     Integer expertiseId,
-                                     List<Integer> skillIds,
-                                     List<Integer> domainIds,
-                                     List<Integer> benefitIds,
-                                     List<Integer> questionIds,
-                                     Set<AddJobScoringCriteriaRequest> scoringCriteriaRequests
-    ) {
+            Integer expertiseId,
+            List<Integer> skillIds,
+            List<Integer> domainIds,
+            List<Integer> benefitIds,
+            List<Integer> questionIds,
+            Set<AddJobScoringCriteriaRequest> scoringCriteriaRequests) {
         Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
         if (expertiseId != null) {
@@ -246,8 +241,7 @@ public class JobServiceImpl implements JobService {
     public <E, ID> Set<ID> syncAndFilterNewIds(
             Set<E> existingEntities,
             Set<ID> requestIds,
-            Function<E, ID> entityIdExtractor
-    ) {
+            Function<E, ID> entityIdExtractor) {
 
         existingEntities.removeIf(entity -> {
             ID id = entityIdExtractor.apply(entity);
@@ -263,6 +257,5 @@ public class JobServiceImpl implements JobService {
                 .filter(id -> id != null && !remainingIds.contains(id))
                 .collect(Collectors.toSet());
     }
-
 
 }

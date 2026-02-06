@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.expertise.ExpertiseRequest;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.expertise.ExpertiseResponse;
 import com.sma.core.entity.JobExpertise;
 import com.sma.core.entity.JobExpertiseGroup;
@@ -40,7 +41,7 @@ public class ExpertiseServiceImpl implements ExpertiseService {
     }
 
     @Override
-    public Page<ExpertiseResponse> getAll(String name, Integer groupId, Pageable pageable) {
+    public PagingResponse<ExpertiseResponse> getAll(String name, Integer groupId, Pageable pageable) {
         Page<JobExpertise> expertises;
         boolean hasName = name != null && !name.trim().isEmpty();
         boolean hasGroupId = groupId != null;
@@ -48,14 +49,15 @@ public class ExpertiseServiceImpl implements ExpertiseService {
         if (hasName && hasGroupId) {
             expertises = repository.findByNameContainingIgnoreCaseAndExpertiseGroup_Id(name, groupId, pageable);
         } else if (hasName) {
-            expertises = repository.findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(name, name, pageable);
+            expertises = repository.findByNameContainingIgnoreCaseOrExpertiseGroup_NameContainingIgnoreCase(name, name,
+                    pageable);
         } else if (hasGroupId) {
             expertises = repository.findByExpertiseGroup_Id(groupId, pageable);
         } else {
             expertises = repository.findAll(pageable);
         }
 
-        return expertises.map(mapper::toResponse);
+        return PagingResponse.fromPage(expertises.map(mapper::toResponse));
     }
 
     @Override

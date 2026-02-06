@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.domain.DomainRequest;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.DomainResponse;
 import com.sma.core.entity.Domain;
 import com.sma.core.exception.AppException;
@@ -40,11 +41,11 @@ public class DomainServiceImpl implements DomainService {
     // READ (Get All with Pagination & Search)
     @Transactional(readOnly = true)
     @Override
-    public Page<DomainResponse> getAllDomains(String query, Pageable pageable) {
+    public PagingResponse<DomainResponse> getAllDomains(String query, Pageable pageable) {
         Page<Domain> domains = (query != null)
                 ? domainRepository.findByNameContainingIgnoreCase(query, pageable)
                 : domainRepository.findAll(pageable);
-        return domains.map(domainMapper::toResponse);
+        return PagingResponse.fromPage(domains.map(domainMapper::toResponse));
     }
 
     // READ (Get by ID)

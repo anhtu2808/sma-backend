@@ -1,8 +1,8 @@
 package com.sma.core.controller;
 
-
 import com.sma.core.dto.request.domain.DomainRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.DomainResponse;
 import com.sma.core.service.DomainService;
 import jakarta.validation.Valid;
@@ -30,10 +30,10 @@ public class DomainController {
     }
 
     @GetMapping
-    public ApiResponse<Page<DomainResponse>> getAll(
+    public ApiResponse<PagingResponse<DomainResponse>> getAll(
             @RequestParam(required = false) String query,
             Pageable pageable) {
-        return ApiResponse.<Page<DomainResponse>>builder()
+        return ApiResponse.<PagingResponse<DomainResponse>>builder()
                 .data(domainService.getAllDomains(query, pageable))
                 .build();
     }

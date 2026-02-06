@@ -4,6 +4,7 @@ import com.sma.core.dto.request.job.DraftJobRequest;
 import com.sma.core.dto.request.job.PublishJobRequest;
 import com.sma.core.dto.request.job.JobFilterRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.service.JobService;
@@ -25,17 +26,15 @@ public class JobController {
     final JobService jobService;
 
     @GetMapping
-    public ApiResponse<Page<BaseJobResponse>> getAllJob(@ParameterObject JobFilterRequest request)
-    {
-        return ApiResponse.<Page<BaseJobResponse>>builder()
+    public ApiResponse<PagingResponse<BaseJobResponse>> getAllJob(@ParameterObject JobFilterRequest request) {
+        return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
                 .message("Get all job successfully")
                 .data(jobService.getAllJob(request))
                 .build();
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<JobDetailResponse> getJobById(@PathVariable Integer id)
-    {
+    public ApiResponse<JobDetailResponse> getJobById(@PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Get job by id successfully")
                 .data(jobService.getJobById(id))
@@ -44,7 +43,7 @@ public class JobController {
 
     @PostMapping
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> publishJob(@RequestBody PublishJobRequest request){
+    public ApiResponse<JobDetailResponse> publishJob(@RequestBody PublishJobRequest request) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Publish job successfully")
                 .data(jobService.publishJob(request))
@@ -53,7 +52,7 @@ public class JobController {
 
     @PostMapping("/draft")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> draftJob(@RequestBody DraftJobRequest request){
+    public ApiResponse<JobDetailResponse> draftJob(@RequestBody DraftJobRequest request) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Draft job successfully")
                 .data(jobService.draftJob(request))
@@ -63,7 +62,7 @@ public class JobController {
     @PutMapping("/{id}/publish")
     @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody PublishJobRequest request,
-                                                             @PathVariable Integer id){
+            @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Publish job successfully")
                 .data(jobService.publishExistingJob(id, request))
