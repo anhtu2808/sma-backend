@@ -19,10 +19,12 @@ public enum ErrorCode {
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
+    ACCOUNT_INACTIVE(HttpStatus.UNAUTHORIZED, "Your account is inactive"),
 
     //403 - Unauthorized
     UNAUTHORIZED(HttpStatus.FORBIDDEN, "Unauthorized"),
     REFRESH_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, "Refresh token expired"),
+    NOT_HAVE_PERMISSION(HttpStatus.FORBIDDEN, "You do not have permission to access this resource"),
 
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),

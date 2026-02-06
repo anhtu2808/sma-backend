@@ -10,11 +10,18 @@ import org.springframework.security.oauth2.jwt.Jwt;
 public class JwtTokenProvider {
 
     public static Integer getCurrentUserId() {
-        return getIntClaim(getJwt(), "userId");
+        Jwt jwt = getJwt();
+        if (jwt == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        return getIntClaim(jwt, "userId");
     }
 
     public static Role getCurrentRole() {
         Jwt jwt = getJwt();
+        if (jwt == null) {
+            return null;
+        }
         String scope = jwt.getClaim("scope");
         if (scope == null || scope.isBlank()) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
@@ -23,27 +30,20 @@ public class JwtTokenProvider {
         return Role.valueOf(roleName);
     }
 
-    public static Integer getCurrentActorId() {
+    public static Integer getCurrentCandidateId() {
         Jwt jwt = getJwt();
-        String scope = jwt.getClaim("scope");
-        if (scope == null || scope.isBlank()) {
+        if (jwt == null) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
-        String roleName = scope.replace("ROLE_", "");
-        Role role = Role.valueOf(roleName);
-        if (role.equals(Role.CANDIDATE))
-            return getIntClaim(jwt, "candidateId");
-        else if (role.equals(Role.RECRUITER))
-            return getIntClaim(jwt, "recruiterId");
-        return null;
-    }
-
-    public static Integer getCurrentCandidateId() {
-        return getIntClaim(getJwt(), "candidateId");
+        return getIntClaim(jwt, "candidateId");
     }
 
     public static Integer getCurrentRecruiterId() {
-        return getIntClaim(getJwt(), "recruiterId");
+        Jwt jwt = getJwt();
+        if (jwt == null) {
+            throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+        return getIntClaim(jwt, "recruiterId");
     }
 
     private static Integer getIntClaim(Jwt jwt, String claimName) {
@@ -67,7 +67,7 @@ public class JwtTokenProvider {
                 .getAuthentication();
 
         if (authentication == null || !(authentication.getPrincipal() instanceof Jwt jwt)) {
-            throw new AppException(ErrorCode.UNAUTHENTICATED);
+            return null;
         }
 
         return jwt;

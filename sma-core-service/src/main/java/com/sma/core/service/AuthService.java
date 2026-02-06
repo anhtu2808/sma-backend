@@ -9,10 +9,9 @@ import com.sma.core.dto.response.auth.AuthenticationResponse;
 
 public interface AuthService {
 
-    GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString);
     AuthenticationResponse registerAsCandidate(RegisterRequest request);
     AuthenticationResponse login(LoginRequest request);
-    AuthenticationResponse registerOrLogin(String email);
+    AuthenticationResponse registerOrLogin(String idTokenString);
     Boolean logout(LogoutRequest request);
     AuthenticationResponse refreshToken(RefreshTokenRequest refreshToken);
 }

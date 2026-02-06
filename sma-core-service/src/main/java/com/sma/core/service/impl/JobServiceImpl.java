@@ -81,7 +81,7 @@ public class JobServiceImpl implements JobService {
             else
                 allowedStatus = EnumSet.noneOf(JobStatus.class);
             if (role.equals(Role.RECRUITER)) {
-                Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentActorId());
+                Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentRecruiterId());
                 request.setCompanyId(recruiter.getCompany().getId());
             }
         }
