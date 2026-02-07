@@ -54,7 +54,8 @@ public class SecurityConfig {
             "v1/jobs/**",
             "/files/**",
             "/v1/heathcheck/**",
-            "/v1/healthcheck/**"
+            "/v1/healthcheck/**",
+            "/v1/users/**"
     };
 
     @Bean
