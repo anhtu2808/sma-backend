@@ -1,11 +1,13 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.request.user.CreateUserRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.user.UserAdminResponse;
 import com.sma.core.dto.response.user.UserDetailResponse;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.service.UserService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -53,6 +55,15 @@ public class UserController {
         return ApiResponse.<UserDetailResponse>builder()
                 .message("Get user dossier successfully")
                 .data(userService.getUserDetail(id))
+                .build();
+    }
+
+    @PostMapping()
+//    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<UserAdminResponse> createUser(@RequestBody @Valid CreateUserRequest request) {
+        return ApiResponse.<UserAdminResponse>builder()
+                .message("User account has been successfully provisioned.")
+                .data(userService.createUser(request))
                 .build();
     }
 }

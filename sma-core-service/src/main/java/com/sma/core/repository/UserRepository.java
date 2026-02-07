@@ -37,4 +37,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             "WHERE u.id = :id")
     Optional<User> findDetailById(@Param("id") Integer id);
 
+    boolean existsByEmail(String email);
+
 }

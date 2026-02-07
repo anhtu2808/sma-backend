@@ -1,5 +1,6 @@
 package com.sma.core.service;
 
+import com.sma.core.dto.request.user.CreateUserRequest;
 import com.sma.core.dto.response.user.UserAdminResponse;
 import com.sma.core.dto.response.user.UserDetailResponse;
 import com.sma.core.enums.Role;
@@ -11,4 +12,5 @@ public interface UserService {
     Page<UserAdminResponse> getAllUsersForAdmin(String email, Role role, UserStatus status, Pageable pageable);
     void updateUserStatus(Integer userId, UserStatus status);
     UserDetailResponse getUserDetail(Integer userId);
+    UserAdminResponse createUser(CreateUserRequest request);
 }
