@@ -3,11 +3,13 @@ package com.sma.core.controller;
 import com.sma.core.dto.request.job.DraftJobRequest;
 import com.sma.core.dto.request.job.PublishJobRequest;
 import com.sma.core.dto.request.job.JobFilterRequest;
+import com.sma.core.dto.request.job.UpdateJobStatusRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.service.JobService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,29 +45,39 @@ public class JobController {
 
     @PostMapping
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> publishJob(@RequestBody PublishJobRequest request) {
+    public ApiResponse<JobDetailResponse> saveJob(@RequestBody DraftJobRequest request) {
         return ApiResponse.<JobDetailResponse>builder()
-                .message("Publish job successfully")
-                .data(jobService.publishJob(request))
+                .message("Save job successfully")
+                .data(jobService.saveJob(request))
                 .build();
     }
 
-    @PostMapping("/draft")
+    @PutMapping("/{id}/save")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> draftJob(@RequestBody DraftJobRequest request) {
+    public ApiResponse<JobDetailResponse> saveExistingJob(@RequestBody DraftJobRequest request, @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
-                .message("Draft job successfully")
-                .data(jobService.draftJob(request))
+                .message("Save job successfully")
+                .data(jobService.saveExistingJob(id ,request))
                 .build();
     }
 
     @PutMapping("/{id}/publish")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody PublishJobRequest request,
+    public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody @Valid PublishJobRequest request,
             @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Publish job successfully")
                 .data(jobService.publishExistingJob(id, request))
+                .build();
+    }
+
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
+    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody UpdateJobStatusRequest request,
+                                                          @PathVariable Integer id) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Update job status successfully")
+                .data(jobService.updateJobStatus(id, request))
                 .build();
     }
 }

@@ -50,4 +50,7 @@ public interface JobMapper {
     Job toJob(PublishJobRequest request, @MappingTarget Job job);
 
 
+    Job toJob(DraftJobRequest request, @MappingTarget Job job);
+
+
 }

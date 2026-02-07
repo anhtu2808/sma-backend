@@ -4,6 +4,8 @@ import com.sma.core.entity.JobExpertise;
 import com.sma.core.enums.Currency;
 import com.sma.core.enums.JobLevel;
 import com.sma.core.enums.WorkingModel;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -17,7 +19,6 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class DraftJobRequest {
-
     private String name;
     private String about;
     private String responsibilities;
@@ -37,7 +38,7 @@ public class DraftJobRequest {
     private List<Integer> domainIds;
     private List<Integer> benefitIds;
     private List<Integer> questionIds;
-    private Set<AddJobScoringCriteriaRequest> scoringCriteriaIds;
+    private Set<AddJobScoringCriteriaRequest> scoringCriterias;
     private List<Integer> locationIds;
 
 
