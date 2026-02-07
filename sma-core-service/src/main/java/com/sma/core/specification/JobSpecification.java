@@ -32,7 +32,7 @@ public class JobSpecification {
             }
 
             if (date != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("expDate"), date));
+                predicates.add(cb.greaterThanOrEqualTo(root.get("expDate"), date));
             }
 
             // 1. Keyword search (Name, About, Responsibilities, Requirement)

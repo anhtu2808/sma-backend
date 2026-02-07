@@ -4,6 +4,7 @@ import com.sma.core.dto.request.company.CompanyFilterRequest;
 import com.sma.core.dto.request.company.UpdateCompanyRequest;
 import com.sma.core.dto.request.company.CompanyVerificationRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.service.CompanyService;
@@ -27,8 +28,9 @@ public class CompanyController {
     final CompanyService companyService;
 
     @GetMapping
-    public ApiResponse<Page<BaseCompanyResponse>> getAllCompanies(@ParameterObject CompanyFilterRequest request) {
-        return ApiResponse.<Page<BaseCompanyResponse>>builder()
+    public ApiResponse<PagingResponse<BaseCompanyResponse>> getAllCompanies(
+            @ParameterObject CompanyFilterRequest request) {
+        return ApiResponse.<PagingResponse<BaseCompanyResponse>>builder()
                 .message("Get all companies successfully")
                 .data(companyService.getAllCompany(request))
                 .build();

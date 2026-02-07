@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,12 +24,39 @@ import org.springframework.web.bind.annotation.RestController;
 public class ResumeController {
     final ResumeService resumeService;
 
-    @PostMapping
+    @PostMapping({"", "/upload"})
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ResumeResponse> uploadResume(@RequestBody UploadResumeRequest request) {
         return ApiResponse.<ResumeResponse>builder()
                 .message("Upload resume successfully")
                 .data(resumeService.uploadResume(request))
+                .build();
+    }
+
+    @PostMapping("/{resumeId}/re-parse")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<ResumeResponse> reparseResume(@PathVariable Integer resumeId) {
+        return ApiResponse.<ResumeResponse>builder()
+                .message("Re-parse resume enqueued successfully")
+                .data(resumeService.reparseResume(resumeId))
+                .build();
+    }
+
+    @GetMapping("/{resumeId}/status")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<String> getResumeStatus(@PathVariable Integer resumeId) {
+        return ApiResponse.<String>builder()
+                .message("Get resume parsing status successfully")
+                .data(resumeService.getResumeStatus(resumeId))
+                .build();
+    }
+
+    @GetMapping("/{resumeId}/parse-status")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<String> getResumeParseStatus(@PathVariable Integer resumeId) {
+        return ApiResponse.<String>builder()
+                .message("Get resume parse status successfully")
+                .data(resumeService.getResumeParseStatus(resumeId))
                 .build();
     }
 }

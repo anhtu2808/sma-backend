@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.expertise.ExpertiseGroupRequest;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.expertise.ExpertiseGroupResponse;
 import com.sma.core.entity.JobExpertiseGroup;
 import com.sma.core.exception.AppException;
@@ -33,14 +34,14 @@ public class ExpertiseGroupServiceImp implements ExpertiseGroupService {
         return mapper.toResponse(repository.save(group));
     }
 
-    public Page<ExpertiseGroupResponse> getAll(String name, Pageable pageable) {
+    public PagingResponse<ExpertiseGroupResponse> getAll(String name, Pageable pageable) {
         Page<JobExpertiseGroup> groups;
         if (name != null && !name.trim().isEmpty()) {
             groups = repository.findByNameContainingIgnoreCase(name, pageable);
         } else {
             groups = repository.findAll(pageable);
         }
-        return groups.map(mapper::toResponse);
+        return PagingResponse.fromPage(groups.map(mapper::toResponse));
     }
 
     @Override

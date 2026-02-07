@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import org.hibernate.annotations.NotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ErrorCode {
@@ -15,6 +16,11 @@ public enum ErrorCode {
     USER_EXISTS(HttpStatus.BAD_REQUEST, "User already exists"),
     JOB_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Job not available"),
     COMPANY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "Company not available"),
+    INVALID_TOTAL_WEIGHT(HttpStatus.BAD_REQUEST, "Total weight must be equal 100"),
+    CAN_NOT_PUBLISH(HttpStatus.BAD_REQUEST, "Current job can not be published, please check job status"),
+    CAN_NOT_CLOSED(HttpStatus.BAD_REQUEST, "Current job can not be closed, please check job status"),
+    CAN_NOT_DRAFTED(HttpStatus.BAD_REQUEST, "Current job can not be drafted, please check job status"),
+    INVALID_JOB_STATUS(HttpStatus.BAD_REQUEST, "Job status is invalid"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
@@ -25,6 +31,7 @@ public enum ErrorCode {
     UNAUTHORIZED(HttpStatus.FORBIDDEN, "Unauthorized"),
     REFRESH_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, "Refresh token expired"),
     NOT_HAVE_PERMISSION(HttpStatus.FORBIDDEN, "You do not have permission to access this resource"),
+    CAN_NOT_CHANGE_DIRECT_TO_PENDING(HttpStatus.FORBIDDEN, "You do not have permission to change job status to pending review directly"),
 
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
@@ -48,6 +55,7 @@ public enum ErrorCode {
     CATEGORY_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Category already existed"),
     CANT_DELETE_CATEGORY_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete category that is in use"),
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "Category not found"),
+    SKILL_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Skill already existed"),
     CANT_DELETE_SKILL_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete skill that is in use"),
     GROUP_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise group already existed"),
     EXPERTISE_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Expertise group not found"),
@@ -55,6 +63,7 @@ public enum ErrorCode {
     EXPERTISE_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise already existed"),
     EXPERTISE_GROUP_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise group that is in use"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
+    CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

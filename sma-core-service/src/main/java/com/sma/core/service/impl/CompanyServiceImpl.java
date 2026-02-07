@@ -2,6 +2,7 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.company.CompanyFilterRequest;
 import com.sma.core.dto.request.company.UpdateCompanyRequest;
+import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.dto.request.company.CompanyVerificationRequest;
@@ -149,7 +150,7 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     @Override
-    public Page<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
+    public PagingResponse<BaseCompanyResponse> getAllCompany(CompanyFilterRequest request) {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<CompanyStatus> allowedStatus = EnumSet.of(CompanyStatus.APPROVED);
         Role role = JwtTokenProvider.getCurrentRole();
@@ -161,15 +162,16 @@ public class CompanyServiceImpl implements CompanyService {
             }
         }
 
-        return companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
-                .map(company -> {
-                    BaseCompanyResponse response = companyMapper.toBaseCompanyResponse(company);
-                    if (role == null || !role.equals(Role.ADMIN)) {
-                        response.setRecruiterCount(null);
-                    }
+        return PagingResponse
+                .fromPage(companyRepository.findAll(CompanySpecification.withFilter(request, allowedStatus), pageable)
+                        .map(company -> {
+                            BaseCompanyResponse response = companyMapper.toBaseCompanyResponse(company);
+                            if (role == null || !role.equals(Role.ADMIN)) {
+                                response.setRecruiterCount(null);
+                            }
 
-                    return response;
-                });
+                            return response;
+                        }));
     }
 
 }

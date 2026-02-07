@@ -50,9 +50,9 @@ Table Candidates {
   website_url varchar(500)
   expected_salary_min decimal(15,2)
   expected_salary_max decimal(15,2)
-  job_search_status enum('ACTIVELY_LOOKING', 'OPEN_TO_OFFERS', 'NOT_LOOKING') [default: 'OPEN_TO_OFFERS']
   availability_date date
   is_profile_public boolean [default: true]
+  show_as enum('PROFILE', 'RESUME') [default: 'RESUME']
   profile_completeness int [default: 0]
 }
 
@@ -325,6 +325,7 @@ Table Resumes {
   id int [pk, increment]
   resume_name varchar
   file_name varchar
+  resume_url varchar
   raw_text text
   address_in_resume varchar
   phone_in_resume varchar
@@ -334,8 +335,13 @@ Table Resumes {
   portfolio_link varchar
   full_name varchar
   avatar varchar
+  type enum('ORIGINAL', 'TEMPLATE', 'PROFILE') [default: 'ORIGINAL']
+  root_resume_id int
   status enum('DRAFT', 'ACTIVE', 'ARCHIVED')
+  parse_status enum('WAITING', 'PARTIAL', 'FINISH', 'FAIL') [default: 'WAITING']
   language enum('VI', 'EN')
+  is_default boolean [default: false]
+  is_overrided boolean [default: false]
   candidate_id int
 }
 
@@ -344,12 +350,21 @@ Table Skills {
   name varchar
   description varchar
   category_id int
+
+  indexes {
+    (`lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`) [unique, name: 'uq_skills_name_normalized']
+  }
 }
 
 Table Skill_Categories {
   id int [pk, increment]
   name varchar
 
+  indexes {
+    (`lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`) [unique, name: 'uq_skill_categories_name_normalized']
+  }
+
+  Note: 'Canonical singular names: Programming Language, Framework, Tool, Database, Frontend, Backend, DevOps, Soft Skill, Methodology, Cloud, Other. DB trigger normalizes plural/variant input to singular.'
 }
 
 Table Resume_skills {
@@ -549,6 +564,8 @@ TableGroup "Resume & Skill" [color: #e74c3c] {
   Skill_Categories
   Resume_certifications 
 }
+Ref: "Candidates"."id" < "Resumes"."candidate_id"
+Ref: "Resumes"."id" < "Resumes"."root_resume_id"
 Ref: "Resumes"."id" < "Resume_skills"."resume_id"
 Ref: "Resume_skills"."skill_id" > "Skills"."id"
 
