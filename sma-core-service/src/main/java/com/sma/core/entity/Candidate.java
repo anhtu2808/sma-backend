@@ -1,6 +1,6 @@
 package com.sma.core.entity;
 
-import com.sma.core.enums.JobSearchStatus;
+import com.sma.core.enums.CandidateShowAs;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -52,6 +52,12 @@ public class Candidate {
     @Column(name = "is_profile_public")
     @Builder.Default
     private Boolean isProfilePublic = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "show_as", columnDefinition = "candidate_show_as")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default
+    private CandidateShowAs showAs = CandidateShowAs.RESUME;
 
     @Column(name = "profile_completeness")
     @Builder.Default

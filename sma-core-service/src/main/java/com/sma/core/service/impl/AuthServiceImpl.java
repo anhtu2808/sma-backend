@@ -17,6 +17,7 @@ import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.User;
 import com.sma.core.entity.UserToken;
+import com.sma.core.enums.CandidateShowAs;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.TokenType;
 import com.sma.core.enums.UserStatus;
@@ -83,6 +84,9 @@ public class AuthServiceImpl implements AuthService {
                 .build();
         Candidate candidate = Candidate.builder()
                 .user(user)
+                .showAs(CandidateShowAs.RESUME)
+                .isProfilePublic(Boolean.TRUE)
+                .profileCompleteness(0)
                 .build();
         user.setCandidate(candidate);
         userRepository.save(user);

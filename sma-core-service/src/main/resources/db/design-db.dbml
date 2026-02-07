@@ -50,9 +50,9 @@ Table Candidates {
   website_url varchar(500)
   expected_salary_min decimal(15,2)
   expected_salary_max decimal(15,2)
-  job_search_status enum('ACTIVELY_LOOKING', 'OPEN_TO_OFFERS', 'NOT_LOOKING') [default: 'OPEN_TO_OFFERS']
   availability_date date
   is_profile_public boolean [default: true]
+  show_as enum('PROFILE', 'RESUME') [default: 'RESUME']
   profile_completeness int [default: 0]
 }
 
