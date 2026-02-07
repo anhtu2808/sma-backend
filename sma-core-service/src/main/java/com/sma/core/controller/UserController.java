@@ -24,7 +24,7 @@ public class UserController {
     UserService userService;
 
     @GetMapping
-    //    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Page<UserAdminResponse>> getAllUsers(
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Role role,
@@ -39,7 +39,7 @@ public class UserController {
 
 
     @PatchMapping("/{userId}/status")
-    //    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<Void> updateStatus(
             @PathVariable Integer userId,
             @RequestParam UserStatus status) {
@@ -50,7 +50,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<UserDetailResponse> getUserDetail(@PathVariable Integer id) {
         return ApiResponse.<UserDetailResponse>builder()
                 .message("Get user dossier successfully")
@@ -59,7 +59,7 @@ public class UserController {
     }
 
     @PostMapping()
-//    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<UserAdminResponse> createUser(@RequestBody @Valid CreateUserRequest request) {
         return ApiResponse.<UserAdminResponse>builder()
                 .message("User account has been successfully provisioned.")
