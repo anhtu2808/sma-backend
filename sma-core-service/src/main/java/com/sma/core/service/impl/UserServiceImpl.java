@@ -2,6 +2,7 @@ package com.sma.core.service.impl;
 
 
 import com.sma.core.dto.response.user.UserAdminResponse;
+import com.sma.core.dto.response.user.UserDetailResponse;
 import com.sma.core.entity.User;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
@@ -41,4 +42,13 @@ public class UserServiceImpl implements UserService {
         user.setStatus(status);
         userRepository.save(user);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDetailResponse getUserDetail(Integer userId) {
+        User user = userRepository.findDetailById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        return userMapper.toUserDetailResponse(user);
+    }
+
 }

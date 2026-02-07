@@ -28,4 +28,13 @@ public interface UserRepository extends JpaRepository<User, Integer> {
             Pageable pageable
     );
 
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.candidate c " +
+            "LEFT JOIN FETCH c.resumes " +
+            "LEFT JOIN FETCH u.recruiter r " +
+            "LEFT JOIN FETCH r.company com " +
+            "LEFT JOIN FETCH com.jobs " +
+            "WHERE u.id = :id")
+    Optional<User> findDetailById(@Param("id") Integer id);
+
 }
