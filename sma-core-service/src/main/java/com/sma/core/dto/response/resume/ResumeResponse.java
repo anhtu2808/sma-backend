@@ -16,6 +16,8 @@ import lombok.experimental.FieldDefaults;
 public class ResumeResponse {
 
      Integer id;
+
+     String resumeName;
     
      String fileName;
     

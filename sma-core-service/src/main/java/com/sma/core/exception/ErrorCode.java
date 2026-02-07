@@ -21,6 +21,7 @@ public enum ErrorCode {
     CAN_NOT_CLOSED(HttpStatus.BAD_REQUEST, "Current job can not be closed, please check job status"),
     CAN_NOT_DRAFTED(HttpStatus.BAD_REQUEST, "Current job can not be drafted, please check job status"),
     INVALID_JOB_STATUS(HttpStatus.BAD_REQUEST, "Job status is invalid"),
+    CANT_DELETE_RESUME_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete resume that is in use"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
