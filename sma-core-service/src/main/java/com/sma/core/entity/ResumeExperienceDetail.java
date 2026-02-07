@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "resume_experience_details")
@@ -37,4 +39,7 @@ public class ResumeExperienceDetail {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "experience_id")
     private ResumeExperience experience;
+
+    @OneToMany(mappedBy = "detail", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<ExperienceSkill> skills = new HashSet<>();
 }
