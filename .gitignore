@@ -40,3 +40,6 @@ build/
 ### ===== Git =====
 *.orig
 RABBITMQ_SETUP.md
+
+# Internal local scripts (contains secrets)
+/sma-core-service/src/main/resources/internal-scripts/
