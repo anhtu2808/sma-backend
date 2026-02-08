@@ -10,5 +10,7 @@ import java.util.Optional;
 public interface ResumeRepository extends JpaRepository<Resume, Integer>, JpaSpecificationExecutor<Resume> {
     boolean existsByRootResume_Id(Integer rootResumeId);
 
+    Optional<Resume> findByIdAndCandidate_Id(Integer id, Integer candidateId);
+
     Optional<Resume> findFirstByCandidate_IdAndTypeOrderByIdDesc(Integer candidateId, ResumeType type);
 }

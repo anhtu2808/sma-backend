@@ -7,9 +7,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface ResumeProjectRepository extends JpaRepository<ResumeProject, Integer> {
     @Modifying
     @Query("delete from ResumeProject rp where rp.resume.id = :resumeId")
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
+
+    Optional<ResumeProject> findByIdAndResume_IdAndResume_Candidate_Id(Integer id, Integer resumeId, Integer candidateId);
 }
