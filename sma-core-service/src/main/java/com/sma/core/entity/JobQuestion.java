@@ -27,6 +27,9 @@ public class JobQuestion {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Builder.Default
+    private Boolean deleted = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id")
     private Job job;

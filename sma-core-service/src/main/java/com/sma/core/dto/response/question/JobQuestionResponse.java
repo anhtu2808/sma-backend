@@ -1,6 +1,5 @@
-package com.sma.core.dto.response.job;
+package com.sma.core.dto.response.question;
 
-import jakarta.persistence.Column;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
