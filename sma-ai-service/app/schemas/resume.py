@@ -67,13 +67,13 @@ class ResumeSkill(BaseModel):
 
     name: str
     description: Optional[str] = None
+    yearsOfExperience: Optional[int] = Field(default=None, ge=0)
 
 
 class ResumeSkillGroup(BaseModel):
     """Grouped skill payload: category first, then skill list."""
 
     categoryName: SkillCategoryName
-    rawSkillSection: Optional[str] = None
     skills: List[ResumeSkill] = Field(default_factory=list)
 
 

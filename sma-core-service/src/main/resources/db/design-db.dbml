@@ -372,7 +372,7 @@ Table Skill_Categories {
 
 Table Resume_skills {
    id int [pk, increment]
-   raw_skill_section TEXT
+   years_of_experience int
    skill_id int
    resume_id int
 }

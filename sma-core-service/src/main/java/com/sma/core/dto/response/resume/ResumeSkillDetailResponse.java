@@ -14,8 +14,8 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResumeSkillDetailResponse {
     Integer id;
-    String rawSkillSection;
     Integer skillId;
+    Integer yearsOfExperience;
     String skillName;
     String skillDescription;
     Integer skillCategoryId;
