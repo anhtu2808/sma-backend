@@ -54,7 +54,7 @@ public class RecruiterServiceImpl implements RecruiterService {
                 User user = User.builder()
                                 .email(request.getRecruiterEmail())
                                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                                .status(UserStatus.INACTIVE)
+                                .status(UserStatus.PENDING_VERIFICATION)
                                 .role(Role.RECRUITER)
                                 .build();
                 userRepository.save(user);
