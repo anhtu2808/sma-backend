@@ -207,7 +207,6 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
 
         for (JsonNode groupNode : groupedSkillsNode) {
             String rawCategoryName = text(groupNode, "categoryName");
-            String rawSkillSection = text(groupNode, "rawSkillSection");
             JsonNode skillsNode = groupNode.get("skills");
             if (skillsNode == null || !skillsNode.isArray()) {
                 continue;
@@ -216,13 +215,14 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             for (JsonNode skillNode : skillsNode) {
                 String skillName = text(skillNode, "name");
                 String description = text(skillNode, "description");
+                Integer yearsOfExperience = integerValue(skillNode.get("yearsOfExperience"));
                 Skill skill = upsertSkill(skillName, description, rawCategoryName, categoryCache, skillCache);
                 if (skill == null) {
                     continue;
                 }
 
                 ResumeSkill resumeSkill = ResumeSkill.builder()
-                        .rawSkillSection(rawSkillSection)
+                        .yearsOfExperience(yearsOfExperience)
                         .skill(skill)
                         .resume(resume)
                         .build();
