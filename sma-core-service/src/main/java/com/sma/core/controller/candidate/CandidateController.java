@@ -1,6 +1,7 @@
 package com.sma.core.controller.candidate;
 
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.candidate.CandidateProfileResponse;
 import com.sma.core.dto.response.myinfo.CandidateMyInfoResponse;
 import com.sma.core.service.CandidateService;
 import lombok.AccessLevel;
@@ -25,6 +26,15 @@ public class CandidateController {
         return ApiResponse.<CandidateMyInfoResponse>builder()
                 .message("Get candidate my info successfully")
                 .data(candidateService.getMyInfo())
+                .build();
+    }
+
+    @GetMapping("/profile")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<CandidateProfileResponse> getMyProfile() {
+        return ApiResponse.<CandidateProfileResponse>builder()
+                .message("Get candidate profile successfully")
+                .data(candidateService.getMyProfile())
                 .build();
     }
 }

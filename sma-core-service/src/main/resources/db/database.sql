@@ -100,6 +100,7 @@ CREATE TABLE candidates (
   linkedin_url varchar(500),
   github_url varchar(500),
   website_url varchar(500),
+  address varchar(500),
   expected_salary_min decimal(15,2),
   expected_salary_max decimal(15,2),
   availability_date date,
@@ -652,6 +653,7 @@ EXECUTE FUNCTION normalize_skill_category_name_trigger();
 CREATE UNIQUE INDEX ON notification_settings (user_id, notification_type);
 CREATE UNIQUE INDEX uq_skill_categories_name_normalized ON skill_categories ((LOWER(REGEXP_REPLACE(TRIM(name), '\s+', ' ', 'g'))));
 CREATE UNIQUE INDEX uq_skills_name_normalized ON skills ((LOWER(REGEXP_REPLACE(TRIM(name), '\s+', ' ', 'g'))));
+CREATE UNIQUE INDEX uq_resumes_one_profile_per_candidate ON resumes (candidate_id) WHERE type = 'PROFILE';
 
 -- ==============================================
 -- FOREIGN KEYS
