@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.request.candidate.UpdateCandidateProfileRequest;
 import com.sma.core.dto.response.candidate.CandidateProfileResponse;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.myinfo.CandidateMyInfoResponse;
@@ -35,9 +36,7 @@ public class CandidateServiceImpl implements CandidateService {
     @Override
     @Transactional(readOnly = true)
     public CandidateMyInfoResponse getMyInfo() {
-        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
-        Candidate candidate = candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
+        Candidate candidate = getCurrentCandidate();
 
         return candidateMapper.toCandidateMyInfoResponse(candidate);
     }
@@ -45,9 +44,26 @@ public class CandidateServiceImpl implements CandidateService {
     @Override
     @Transactional(readOnly = true)
     public CandidateProfileResponse getMyProfile() {
-        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
-        Candidate candidate = candidateRepository.findById(candidateId)
-                .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
+        Candidate candidate = getCurrentCandidate();
+        return buildCandidateProfile(candidate);
+    }
+
+    @Override
+    @Transactional
+    public CandidateProfileResponse updateMyProfile(UpdateCandidateProfileRequest request) {
+        Candidate candidate = getCurrentCandidate();
+
+        candidateProfileMapper.updateCandidateFromRequest(request, candidate);
+        if (candidate.getUser() != null) {
+            candidateProfileMapper.updateUserFromRequest(request, candidate.getUser());
+        }
+
+        candidateRepository.save(candidate);
+        return buildCandidateProfile(candidate);
+    }
+
+    private CandidateProfileResponse buildCandidateProfile(Candidate candidate) {
+        Integer candidateId = candidate.getId();
 
         Resume profileResume = resumeRepository
                 .findFirstByCandidate_IdAndTypeOrderByIdDesc(candidateId, ResumeType.PROFILE)
@@ -58,5 +74,11 @@ public class CandidateServiceImpl implements CandidateService {
                 : null;
 
         return candidateProfileMapper.mergeWithProfileResume(candidate, profileResumeDetail);
+    }
+
+    private Candidate getCurrentCandidate() {
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        return candidateRepository.findById(candidateId)
+                .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
     }
 }

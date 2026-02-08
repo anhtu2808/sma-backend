@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.resume.ResumeResponse;
@@ -49,7 +50,6 @@ public class ResumeServiceImpl implements ResumeService {
     public List<ResumeResponse> getMyResumes(String keyword, ResumeType type) {
         Candidate candidate = getCurrentCandidate();
         List<Resume> resumes = resumeRepository.findAll(ResumeSpecification.candidateResumeFilter(candidate.getId(), keyword, type), Sort.by(Sort.Direction.DESC, "id"));
-
         return resumes.stream().map(resumeMapper::toResponse).toList();
     }
 
@@ -62,7 +62,7 @@ public class ResumeServiceImpl implements ResumeService {
             resume = getOwnedResume(resumeId);
         } else if (currentRole == Role.RECRUITER || currentRole == Role.ADMIN) {
             resume = resumeRepository.findById(resumeId)
-                                     .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+                    .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         } else {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         }
@@ -99,6 +99,15 @@ public class ResumeServiceImpl implements ResumeService {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
+        return resumeMapper.toResponse(resume);
+    }
+
+    @Override
+    public ResumeResponse updateResume(Integer resumeId, UpdateResumeRequest request) {
+        Resume resume = getOwnedResume(resumeId);
+        resumeMapper.updateFromRequest(request, resume);
+
+        resumeRepository.save(resume);
         return resumeMapper.toResponse(resume);
     }
 
@@ -160,13 +169,13 @@ public class ResumeServiceImpl implements ResumeService {
 
     private Candidate getCurrentCandidate() {
         return candidateRepository.findById(JwtTokenProvider.getCurrentCandidateId())
-                                  .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
     }
 
     private Resume getOwnedResume(Integer resumeId) {
         Candidate candidate = getCurrentCandidate();
         Resume resume = resumeRepository.findById(resumeId)
-                                        .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
 
         if (resume.getCandidate() == null || !resume.getCandidate().getId().equals(candidate.getId())) {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
