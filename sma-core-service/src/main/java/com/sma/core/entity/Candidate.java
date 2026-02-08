@@ -40,6 +40,9 @@ public class Candidate {
     @Column(name = "website_url", length = 500)
     private String websiteUrl;
 
+    @Column(name = "address", length = 500)
+    private String address;
+
     @Column(name = "expected_salary_min", precision = 15, scale = 2)
     private BigDecimal expectedSalaryMin;
 

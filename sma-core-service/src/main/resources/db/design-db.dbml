@@ -48,6 +48,7 @@ Table Candidates {
   linkedin_url varchar(500)
   github_url varchar(500)
   website_url varchar(500)
+  address varchar(500)
   expected_salary_min decimal(15,2)
   expected_salary_max decimal(15,2)
   availability_date date
@@ -343,6 +344,8 @@ Table Resumes {
   is_default boolean [default: false]
   is_overrided boolean [default: false]
   candidate_id int
+
+  Note: 'DB has partial unique index: uq_resumes_one_profile_per_candidate ON (candidate_id) WHERE type = PROFILE'
 }
 
 Table Skills {
