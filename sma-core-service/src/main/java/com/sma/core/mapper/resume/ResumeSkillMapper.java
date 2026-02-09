@@ -14,10 +14,12 @@ public interface ResumeSkillMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "resume", ignore = true)
+    @Mapping(target = "skillGroup", ignore = true)
     @Mapping(target = "skill", ignore = true)
     void updateFromRequest(UpdateResumeSkillRequest request, @MappingTarget ResumeSkill resumeSkill);
 
+    @Mapping(target = "skillGroupId", source = "skillGroup.id")
+    @Mapping(target = "skillGroupName", source = "skillGroup.name")
     @Mapping(target = "skillId", source = "skill.id")
     @Mapping(target = "skillName", source = "skill.name")
     @Mapping(target = "skillDescription", source = "skill.description")

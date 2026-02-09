@@ -41,7 +41,7 @@ public class ResumeDetailResponse {
     ResumeLanguage language;
     Boolean isDefault;
     Boolean isOverrided;
-    List<ResumeSkillDetailResponse> skills;
+    List<ResumeSkillGroupResponse> skillGroups;
     List<ResumeEducationDetailResponse> educations;
     List<ResumeExperienceResponse> experiences;
     List<ResumeProjectResponse> projects;

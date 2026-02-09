@@ -119,6 +119,18 @@ public class ResumeController {
                 .build();
     }
 
+    @DeleteMapping("/{resumeId}/skills/{resumeSkillId}")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<Void> deleteSkill(
+            @PathVariable Integer resumeId,
+            @PathVariable Integer resumeSkillId
+    ) {
+        resumeSkillService.delete(resumeId, resumeSkillId);
+        return ApiResponse.<Void>builder()
+                .message("Delete resume skill successfully")
+                .build();
+    }
+
     @PostMapping("/{resumeId}/educations")
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ResumeEducationDetailResponse> createEducation(

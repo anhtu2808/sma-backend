@@ -55,6 +55,10 @@ public class ResumeExperienceServiceImpl implements ResumeExperienceService {
 
     private ResumeExperienceResponse save(ResumeExperience experience, UpdateResumeExperienceRequest request) {
         resumeExperienceMapper.updateFromRequest(request, experience);
+        if (experience.getOrderIndex() == null) {
+            Integer maxOrderIndex = resumeExperienceRepository.findMaxOrderIndexByResumeId(experience.getResume().getId());
+            experience.setOrderIndex(maxOrderIndex + 1);
+        }
 
         experience = resumeExperienceRepository.save(experience);
         return resumeExperienceMapper.toResponse(experience);

@@ -15,4 +15,5 @@ import lombok.experimental.FieldDefaults;
 public class UpdateResumeSkillRequest {
     Integer skillId;
     Integer yearsOfExperience;
+    String groupName;
 }

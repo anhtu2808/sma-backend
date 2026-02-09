@@ -24,4 +24,5 @@ public class ResumeEducationDetailResponse {
     LocalDate startDate;
     LocalDate endDate;
     Boolean isCurrent;
+    Integer orderIndex;
 }

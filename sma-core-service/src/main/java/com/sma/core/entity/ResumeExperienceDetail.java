@@ -25,8 +25,6 @@ public class ResumeExperienceDetail {
 
     private String title;
 
-    private String position;
-
     @Column(name = "start_date")
     private LocalDate startDate;
 
@@ -35,6 +33,9 @@ public class ResumeExperienceDetail {
 
     @Column(name = "is_current")
     private Boolean isCurrent;
+
+    @Column(name = "order_index")
+    private Integer orderIndex;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "experience_id")

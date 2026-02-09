@@ -55,6 +55,10 @@ public class ResumeProjectServiceImpl implements ResumeProjectService {
 
     private ResumeProjectResponse save(ResumeProject project, UpdateResumeProjectRequest request) {
         resumeProjectMapper.updateFromRequest(request, project);
+        if (project.getOrderIndex() == null) {
+            Integer maxOrderIndex = resumeProjectRepository.findMaxOrderIndexByResumeId(project.getResume().getId());
+            project.setOrderIndex(maxOrderIndex + 1);
+        }
 
         project = resumeProjectRepository.save(project);
         return resumeProjectMapper.toResponse(project);

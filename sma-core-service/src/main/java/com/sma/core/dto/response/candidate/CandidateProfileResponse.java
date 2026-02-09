@@ -5,7 +5,7 @@ import com.sma.core.dto.response.resume.ResumeEducationDetailResponse;
 import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
 import com.sma.core.dto.response.resume.ResumeExperienceResponse;
 import com.sma.core.dto.response.resume.ResumeProjectResponse;
-import com.sma.core.dto.response.resume.ResumeSkillDetailResponse;
+import com.sma.core.dto.response.resume.ResumeSkillGroupResponse;
 import com.sma.core.enums.CandidateShowAs;
 import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
@@ -52,7 +52,7 @@ public class CandidateProfileResponse {
     ResumeType resumeType;
     ResumeParseStatus resumeParseStatus;
 
-    List<ResumeSkillDetailResponse> skills;
+    List<ResumeSkillGroupResponse> skillGroups;
     List<ResumeEducationDetailResponse> educations;
     List<ResumeExperienceResponse> experiences;
     List<ResumeProjectResponse> projects;

@@ -23,4 +23,5 @@ public class UpdateResumeEducationRequest {
     LocalDate startDate;
     LocalDate endDate;
     Boolean isCurrent;
+    Integer orderIndex;
 }

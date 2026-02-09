@@ -16,4 +16,7 @@ public interface ResumeEducationRepository extends JpaRepository<ResumeEducation
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
 
     Optional<ResumeEducation> findByIdAndResume_IdAndResume_Candidate_Id(Integer id, Integer resumeId, Integer candidateId);
+
+    @Query("select coalesce(max(re.orderIndex), 0) from ResumeEducation re where re.resume.id = :resumeId")
+    Integer findMaxOrderIndexByResumeId(@Param("resumeId") Integer resumeId);
 }

@@ -57,7 +57,7 @@ public interface CandidateProfileMapper {
 //            response.setProfileResumeUrl(profileResume.getResumeUrl());
             response.setResumeType(profileResume.getType());
             response.setResumeParseStatus(profileResume.getParseStatus());
-            response.setSkills(profileResume.getSkills());
+            response.setSkillGroups(profileResume.getSkillGroups());
             response.setEducations(profileResume.getEducations());
             response.setExperiences(profileResume.getExperiences());
             response.setProjects(profileResume.getProjects());
