@@ -44,6 +44,8 @@ public class JobServiceImpl implements JobService {
     final BenefitRepository benefitRepository;
     final JobQuestionRepository jobQuestionRepository;
     final ScoringCriteriaService scoringCriteriaService;
+    final UserRepository userRepository;
+    final JobMarkRepository jobMarkRepository;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -197,12 +199,39 @@ public class JobServiceImpl implements JobService {
                         .map(jobMapper::toBaseJobResponse));
     }
 
+    @Override
+    public Boolean markJob(Integer jobId) {
+        Integer userId = JwtTokenProvider.getCurrentUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        JobMark jobMark = jobMarkRepository.findByUser_IdAndJob_Id(userId, jobId)
+                .orElse(null);
+        if (jobMark != null) {
+            jobMarkRepository.delete(jobMark);
+            return false;
+        }
+        jobMarkRepository.save(JobMark.builder()
+                .user(user)
+                .job(job)
+                .build());
+        return true;
+    }
+
     /**
      * Get all saved job of current user on candidate dashboard
      */
     @Override
-    public PagingResponse<BaseJobResponse> getAllMySavedJob() {
-        return null;
+    public PagingResponse<BaseJobResponse> getAllMyFavoriteJob(Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Integer userId = JwtTokenProvider.getCurrentUserId();
+        if (!userRepository.existsById(userId)) {
+            throw new AppException(ErrorCode.USER_NOT_EXISTED);
+        }
+        Page<JobMark> jobMarks = jobMarkRepository.findByUser_Id(userId, pageable);
+        Page<Job> jobs = jobMarks.map(JobMark::getJob);
+        return PagingResponse.fromPage(jobs.map(jobMapper::toBaseJobResponse));
     }
 
     Job bindJobRelations(Job job,
