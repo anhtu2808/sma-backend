@@ -26,7 +26,7 @@ public interface ResumeMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "parseStatus", ignore = true)
     @Mapping(target = "candidate", ignore = true)
-    @Mapping(target = "skills", ignore = true)
+    @Mapping(target = "skillGroups", ignore = true)
     @Mapping(target = "educations", ignore = true)
     @Mapping(target = "experiences", ignore = true)
     @Mapping(target = "projects", ignore = true)

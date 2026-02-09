@@ -42,6 +42,9 @@ public class ResumeEducation {
     @Column(name = "is_current")
     private Boolean isCurrent;
 
+    @Column(name = "order_index")
+    private Integer orderIndex;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resume_id")
     private Resume resume;

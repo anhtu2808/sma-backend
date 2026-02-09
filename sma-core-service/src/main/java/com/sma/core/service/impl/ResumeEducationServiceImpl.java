@@ -55,6 +55,10 @@ public class ResumeEducationServiceImpl implements ResumeEducationService {
 
     private ResumeEducationDetailResponse save(ResumeEducation education, UpdateResumeEducationRequest request) {
         resumeEducationMapper.updateFromRequest(request, education);
+        if (education.getOrderIndex() == null) {
+            Integer maxOrderIndex = resumeEducationRepository.findMaxOrderIndexByResumeId(education.getResume().getId());
+            education.setOrderIndex(maxOrderIndex + 1);
+        }
 
         education = resumeEducationRepository.save(education);
         return resumeEducationMapper.toResponse(education);

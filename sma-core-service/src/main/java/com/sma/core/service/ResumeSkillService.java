@@ -7,4 +7,6 @@ public interface ResumeSkillService {
     ResumeSkillDetailResponse create(Integer resumeId, UpdateResumeSkillRequest request);
 
     ResumeSkillDetailResponse update(Integer resumeId, Integer resumeSkillId, UpdateResumeSkillRequest request);
+
+    void delete(Integer resumeId, Integer resumeSkillId);
 }

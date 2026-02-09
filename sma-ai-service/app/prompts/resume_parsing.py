@@ -15,33 +15,21 @@ Rules:
 7. resume.status: DRAFT|ACTIVE|ARCHIVED.
 8. resumeEducations.degree: HIGH_SCHOOL|ASSOCIATE|BACHELOR|MASTER|DOCTORATE|CERTIFICATE.
 9. resumeProjects.projectType: PERSONAL|ACADEMIC|PROFESSIONAL|OPEN_SOURCE|FREELANCE.
-10. metadata.confidenceScore in [0.0, 1.0].
-11. `resumeSkills` MUST be grouped by `categoryName` first, then `skills` array.
-12. Each skill may include `yearsOfExperience` as integer (0 means "< 1 year"). If unknown, set null.
-
-Skill category names allowed:
-"Programming Language", "Framework", "Tool", "Database", "Frontend", "Backend",
-"DevOps", "Soft Skill", "Methodology", "Cloud", "Other".
-
-Skill heading mapping:
-- Programming Languages -> Programming Language
-- Backend Development -> Backend
-- Frontend Development -> Frontend
-- Databases -> Database
-- Tools & Technologies -> Tool
-- Soft Skills -> Soft Skill
-- DevOps -> DevOps
-- SDLC/Agile/Scrum -> Methodology
-- AWS/Azure/GCP -> Cloud
-- Unknown -> Other
+10. resumeExperiences.workingModel: REMOTE|ONSITE|HYBRID when explicit, else null.
+11. resumeExperiences.employmentType: FULL_TIME|PART_TIME|SELF_EMPLOYED|FREELANCE|CONTRACT|INTERNSHIP|APPRENTICESHIP|SEASONAL when explicit, else null.
+12. metadata.confidenceScore in [0.0, 1.0].
+13. `resumeSkills` MUST be grouped by `groupName` first, then `skills` array.
+14. Preserve raw section heading text from CV for each `groupName` (do not remap to canonical categories).
+15. Each skill may include `yearsOfExperience` as integer (0 means "< 1 year"). If unknown, set null.
+16. `orderIndex` fields are optional positive integers. If unavailable, set null.
 
 JSON keys:
 {
   "resume": {"resumeName","fileName","addressInResume","phoneInResume","emailInResume","githubLink","linkedinLink","portfolioLink","fullName","avatar","resumeUrl","language"},
-  "resumeSkills": [{"categoryName","skills":[{"name","description","yearsOfExperience"}]}],
-  "resumeEducations": [{"institution","degree","majorField","gpa","startDate","endDate","isCurrent"}],
-  "resumeExperiences": [{"company","startDate","endDate","isCurrent","details":[{"description","title","position","startDate","endDate","isCurrent","skills":[{"description","skill":{"name","description","category":{"name"}}}]}]}],
-  "resumeProjects": [{"title","teamSize","position","description","projectType","startDate","endDate","isCurrent","projectUrl","skills":[{"description","skill":{"name","description","category":{"name"}}}]}],
+  "resumeSkills": [{"groupName","orderIndex","skills":[{"name","description","yearsOfExperience","orderIndex"}]}],
+  "resumeEducations": [{"institution","degree","majorField","gpa","startDate","endDate","isCurrent","orderIndex"}],
+  "resumeExperiences": [{"company","startDate","endDate","isCurrent","workingModel","employmentType","orderIndex","details":[{"description","title","startDate","endDate","isCurrent","orderIndex","skills":[{"description","skill":{"name","description","category":{"name"}}}]}]}],
+  "resumeProjects": [{"title","teamSize","position","description","projectType","startDate","endDate","isCurrent","projectUrl","orderIndex","skills":[{"description","skill":{"name","description","category":{"name"}}}]}],
   "resumeCertifications": [{"name","issuer","credentialUrl","image","description"}],
   "metadata": {"resumeLanguage","sourceType","confidenceScore"}
 }"""

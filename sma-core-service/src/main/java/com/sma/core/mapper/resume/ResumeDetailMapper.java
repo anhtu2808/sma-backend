@@ -16,6 +16,7 @@ import com.sma.core.dto.response.resume.ResumeExperienceDetailResponse;
 import com.sma.core.dto.response.resume.ResumeExperienceResponse;
 import com.sma.core.dto.response.resume.ResumeProjectResponse;
 import com.sma.core.dto.response.resume.ResumeSkillDetailResponse;
+import com.sma.core.dto.response.resume.ResumeSkillGroupResponse;
 import com.sma.core.entity.EvaluationCriteriaScore;
 import com.sma.core.entity.EvaluationExperienceDetail;
 import com.sma.core.entity.EvaluationGap;
@@ -32,6 +33,7 @@ import com.sma.core.entity.ResumeExperience;
 import com.sma.core.entity.ResumeExperienceDetail;
 import com.sma.core.entity.ResumeProject;
 import com.sma.core.entity.ResumeSkill;
+import com.sma.core.entity.ResumeSkillGroup;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -50,11 +52,15 @@ public interface ResumeDetailMapper {
     ResumeDetailResponse toDetailResponse(Resume resume);
 
     @Mapping(target = "skillId", source = "skill.id")
+    @Mapping(target = "skillGroupId", source = "skillGroup.id")
+    @Mapping(target = "skillGroupName", source = "skillGroup.name")
     @Mapping(target = "skillName", source = "skill.name")
     @Mapping(target = "skillDescription", source = "skill.description")
     @Mapping(target = "skillCategoryId", source = "skill.category.id")
     @Mapping(target = "skillCategoryName", source = "skill.category.name")
     ResumeSkillDetailResponse toResumeSkillDetailResponse(ResumeSkill item);
+
+    ResumeSkillGroupResponse toResumeSkillGroupResponse(ResumeSkillGroup item);
 
     ResumeEducationDetailResponse toResumeEducationDetailResponse(ResumeEducation item);
 
@@ -98,17 +104,42 @@ public interface ResumeDetailMapper {
 
     @AfterMapping
     default void sortResumeDetailCollections(@MappingTarget ResumeDetailResponse response) {
-        response.setSkills(sortById(response.getSkills(), ResumeSkillDetailResponse::getId));
-        response.setEducations(sortById(response.getEducations(), ResumeEducationDetailResponse::getId));
-        response.setExperiences(sortById(response.getExperiences(), ResumeExperienceResponse::getId));
-        response.setProjects(sortById(response.getProjects(), ResumeProjectResponse::getId));
+        response.setSkillGroups(sortByOrderIndexThenId(
+                response.getSkillGroups(),
+                ResumeSkillGroupResponse::getOrderIndex,
+                ResumeSkillGroupResponse::getId
+        ));
+        response.setEducations(sortByOrderIndexThenId(
+                response.getEducations(),
+                ResumeEducationDetailResponse::getOrderIndex,
+                ResumeEducationDetailResponse::getId
+        ));
+        response.setExperiences(sortByOrderIndexThenId(
+                response.getExperiences(),
+                ResumeExperienceResponse::getOrderIndex,
+                ResumeExperienceResponse::getId
+        ));
+        response.setProjects(sortByOrderIndexThenId(
+                response.getProjects(),
+                ResumeProjectResponse::getOrderIndex,
+                ResumeProjectResponse::getId
+        ));
         response.setCertifications(sortById(response.getCertifications(), ResumeCertificationDetailResponse::getId));
         response.setEvaluations(sortById(response.getEvaluations(), ResumeEvaluationResponse::getId));
     }
 
     @AfterMapping
     default void sortResumeExperienceCollections(@MappingTarget ResumeExperienceResponse response) {
-        response.setDetails(sortById(response.getDetails(), ResumeExperienceDetailResponse::getId));
+        response.setDetails(sortByOrderIndexThenId(
+                response.getDetails(),
+                ResumeExperienceDetailResponse::getOrderIndex,
+                ResumeExperienceDetailResponse::getId
+        ));
+    }
+
+    @AfterMapping
+    default void sortResumeSkillGroupCollections(@MappingTarget ResumeSkillGroupResponse response) {
+        response.setSkills(sortById(response.getSkills(), ResumeSkillDetailResponse::getId));
     }
 
     @AfterMapping
@@ -141,6 +172,22 @@ public interface ResumeDetailMapper {
         }
         return values.stream()
                 .sorted(Comparator.comparing(idExtractor, Comparator.nullsLast(Integer::compareTo)))
+                .toList();
+    }
+
+    private <T> List<T> sortByOrderIndexThenId(
+            List<T> values,
+            Function<T, Integer> orderIndexExtractor,
+            Function<T, Integer> idExtractor
+    ) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+        return values.stream()
+                .sorted(
+                        Comparator.comparing(orderIndexExtractor, Comparator.nullsLast(Integer::compareTo))
+                                .thenComparing(idExtractor, Comparator.nullsLast(Integer::compareTo))
+                )
                 .toList();
     }
 }

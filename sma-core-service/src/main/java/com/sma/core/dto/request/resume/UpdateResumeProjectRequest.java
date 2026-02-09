@@ -25,4 +25,5 @@ public class UpdateResumeProjectRequest {
     LocalDate endDate;
     Boolean isCurrent;
     String projectUrl;
+    Integer orderIndex;
 }

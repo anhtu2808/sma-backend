@@ -19,6 +19,5 @@ from app.schemas.resume import (  # noqa: F401
     ResumeStatus,
     Skill,
     SkillCategory,
-    SkillCategoryName,
     TokenUsage,
 )

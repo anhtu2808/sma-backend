@@ -17,8 +17,8 @@ import java.time.LocalDate;
 public class UpdateResumeExperienceDetailRequest {
     String description;
     String title;
-    String position;
     LocalDate startDate;
     LocalDate endDate;
     Boolean isCurrent;
+    Integer orderIndex;
 }

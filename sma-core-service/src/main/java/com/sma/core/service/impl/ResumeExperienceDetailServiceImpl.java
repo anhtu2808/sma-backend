@@ -52,6 +52,10 @@ public class ResumeExperienceDetailServiceImpl implements ResumeExperienceDetail
 
     private ResumeExperienceDetailResponse save(ResumeExperienceDetail detail, UpdateResumeExperienceDetailRequest request) {
         resumeExperienceDetailMapper.updateFromRequest(request, detail);
+        if (detail.getOrderIndex() == null) {
+            Integer maxOrderIndex = resumeExperienceDetailRepository.findMaxOrderIndexByExperienceId(detail.getExperience().getId());
+            detail.setOrderIndex(maxOrderIndex + 1);
+        }
 
         detail = resumeExperienceDetailRepository.save(detail);
         return resumeExperienceDetailMapper.toResponse(detail);

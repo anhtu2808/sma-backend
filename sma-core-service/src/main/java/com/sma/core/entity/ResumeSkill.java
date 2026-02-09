@@ -24,6 +24,6 @@ public class ResumeSkill {
     private Skill skill;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resume_id")
-    private Resume resume;
+    @JoinColumn(name = "skill_group_id")
+    private ResumeSkillGroup skillGroup;
 }
