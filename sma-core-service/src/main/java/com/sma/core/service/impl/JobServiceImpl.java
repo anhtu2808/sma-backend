@@ -80,6 +80,7 @@ public class JobServiceImpl implements JobService {
                 request.getQuestionIds(),
                 request.getScoringCriterias(),
                 null,
+                request.getRootId(),
                 true));
     }
 
@@ -96,6 +97,7 @@ public class JobServiceImpl implements JobService {
                 request.getQuestionIds(),
                 request.getScoringCriterias(),
                 id,
+                request.getRootId(),
                 true));
     }
 
@@ -115,6 +117,7 @@ public class JobServiceImpl implements JobService {
                 request.getQuestionIds(),
                 request.getScoringCriterias(),
                 id,
+                request.getRootId(),
                 false));
     }
 
@@ -210,6 +213,7 @@ public class JobServiceImpl implements JobService {
                          List<Integer> questionIds,
                          Set<AddJobScoringCriteriaRequest> scoringCriteriaRequests,
                          Integer jobId,
+                         Integer rootId,
                          boolean isSaved) {
         Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
@@ -244,6 +248,13 @@ public class JobServiceImpl implements JobService {
         if (scoringCriteriaRequests != null && !scoringCriteriaRequests.isEmpty()) {
             job.setScoringCriterias(scoringCriteriaService
                     .saveJobScoringCriteria(job, scoringCriteriaRequests));
+        }
+        if (rootId != null) {
+            Job rootJob = jobRepository.findById(rootId)
+                    .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+            rootJob.setStatus(JobStatus.CLOSED);
+            jobRepository.save(rootJob);
+            job.setRootJob(rootJob);
         }
         if (isSaved){
             job.setStatus(JobStatus.DRAFT);

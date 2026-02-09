@@ -90,4 +90,6 @@ public class PublishJobRequest {
     @NotEmpty(message = "At least one location is required")
     List<Integer> locationIds;
 
+    Integer rootId;
+
 }
