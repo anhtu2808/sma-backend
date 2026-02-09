@@ -27,5 +27,6 @@ public class ResumeProjectResponse {
     LocalDate endDate;
     Boolean isCurrent;
     String projectUrl;
+    Integer orderIndex;
     List<ProjectSkillResponse> skills;
 }

@@ -10,25 +10,23 @@ ProjectType = Literal["PERSONAL", "ACADEMIC", "PROFESSIONAL", "OPEN_SOURCE", "FR
 ResumeStatus = Literal["DRAFT", "ACTIVE", "ARCHIVED"]
 ResumeLanguage = Literal["VI", "EN"]
 ResumeType = Literal["ORIGINAL", "TEMPLATE", "PROFILE"]
-SkillCategoryName = Literal[
-    "Programming Language",
-    "Framework",
-    "Tool",
-    "Database",
-    "Frontend",
-    "Backend",
-    "DevOps",
-    "Soft Skill",
-    "Methodology",
-    "Cloud",
-    "Other",
+WorkingModel = Literal["REMOTE", "ONSITE", "HYBRID"]
+EmploymentType = Literal[
+    "FULL_TIME",
+    "PART_TIME",
+    "SELF_EMPLOYED",
+    "FREELANCE",
+    "CONTRACT",
+    "INTERNSHIP",
+    "APPRENTICESHIP",
+    "SEASONAL",
 ]
 
 
 class SkillCategory(BaseModel):
     """Maps to skill_categories entity."""
 
-    name: SkillCategoryName
+    name: str
 
 
 class Skill(BaseModel):
@@ -63,17 +61,19 @@ class Resume(BaseModel):
 
 
 class ResumeSkill(BaseModel):
-    """Grouped resume skills by category."""
+    """Resume skill item inside a skill group."""
 
     name: str
     description: Optional[str] = None
+    yearsOfExperience: Optional[int] = Field(default=None, ge=0)
+    orderIndex: Optional[int] = Field(default=None, ge=1)
 
 
 class ResumeSkillGroup(BaseModel):
-    """Grouped skill payload: category first, then skill list."""
+    """Grouped skill payload: group heading first, then skill list."""
 
-    categoryName: SkillCategoryName
-    rawSkillSection: Optional[str] = None
+    groupName: str
+    orderIndex: Optional[int] = Field(default=None, ge=1)
     skills: List[ResumeSkill] = Field(default_factory=list)
 
 
@@ -87,6 +87,7 @@ class ResumeEducation(BaseModel):
     startDate: Optional[str] = None  # YYYY-MM-DD
     endDate: Optional[str] = None  # YYYY-MM-DD
     isCurrent: Optional[bool] = False
+    orderIndex: Optional[int] = Field(default=None, ge=1)
 
 
 class ExperienceSkill(BaseModel):
@@ -101,10 +102,10 @@ class ResumeExperienceDetail(BaseModel):
 
     description: Optional[str] = None
     title: Optional[str] = None
-    position: Optional[str] = None
     startDate: Optional[str] = None  # YYYY-MM-DD
     endDate: Optional[str] = None  # YYYY-MM-DD
     isCurrent: Optional[bool] = False
+    orderIndex: Optional[int] = Field(default=None, ge=1)
     skills: List[ExperienceSkill] = Field(default_factory=list)
 
 
@@ -115,6 +116,9 @@ class ResumeExperience(BaseModel):
     startDate: Optional[str] = None  # YYYY-MM-DD
     endDate: Optional[str] = None  # YYYY-MM-DD
     isCurrent: Optional[bool] = False
+    workingModel: Optional[WorkingModel] = None
+    employmentType: Optional[EmploymentType] = None
+    orderIndex: Optional[int] = Field(default=None, ge=1)
     details: List[ResumeExperienceDetail] = Field(default_factory=list)
 
 
@@ -137,6 +141,7 @@ class ResumeProject(BaseModel):
     endDate: Optional[str] = None  # YYYY-MM-DD
     isCurrent: Optional[bool] = False
     projectUrl: Optional[str] = None
+    orderIndex: Optional[int] = Field(default=None, ge=1)
     skills: List[ProjectSkill] = Field(default_factory=list)
 
     @field_validator("projectUrl", mode="before")

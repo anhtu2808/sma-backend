@@ -95,7 +95,7 @@ public class Resume {
     private Candidate candidate;
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<ResumeSkill> skills = new HashSet<>();
+    private Set<ResumeSkillGroup> skillGroups = new HashSet<>();
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ResumeEducation> educations = new HashSet<>();

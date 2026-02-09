@@ -50,6 +50,9 @@ public class ResumeProject {
     @Column(name = "project_url")
     private String projectUrl;
 
+    @Column(name = "order_index")
+    private Integer orderIndex;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "resume_id")
     private Resume resume;

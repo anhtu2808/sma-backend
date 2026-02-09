@@ -48,6 +48,7 @@ Table Candidates {
   linkedin_url varchar(500)
   github_url varchar(500)
   website_url varchar(500)
+  address varchar(500)
   expected_salary_min decimal(15,2)
   expected_salary_max decimal(15,2)
   availability_date date
@@ -343,6 +344,8 @@ Table Resumes {
   is_default boolean [default: false]
   is_overrided boolean [default: false]
   candidate_id int
+
+  Note: 'DB has partial unique index: uq_resumes_one_profile_per_candidate ON (candidate_id) WHERE type = PROFILE'
 }
 
 Table Skills {
@@ -369,9 +372,20 @@ Table Skill_Categories {
 
 Table Resume_skills {
    id int [pk, increment]
-   raw_skill_section TEXT
-   skill_id int
-   resume_id int
+   years_of_experience int
+   skill_group_id int [not null]
+   skill_id int [not null]
+}
+
+Table Resume_skill_groups {
+   id int [pk, increment]
+   name varchar [not null]
+   order_index int [not null]
+   resume_id int [not null]
+
+   indexes {
+     (resume_id, `lower(regexp_replace(trim(name), '\\s+', ' ', 'g'))`) [unique, name: 'uq_resume_skill_groups_name_per_resume']
+   }
 }
 
 Table Resume_educations {
@@ -383,6 +397,7 @@ Table Resume_educations {
    start_date date
    end_date date
    is_current bool
+   order_index int [not null]
    resume_id int
 }
 
@@ -392,6 +407,9 @@ Table Resume_experiences {
    start_date date
    end_date date
    is_current bool
+   working_model enum('REMOTE', 'ONSITE', 'HYBRID')
+   employment_type enum('FULL_TIME', 'PART_TIME', 'SELF_EMPLOYED', 'FREELANCE', 'CONTRACT', 'INTERNSHIP', 'APPRENTICESHIP', 'SEASONAL')
+   order_index int [not null]
    resume_id int
 }
 
@@ -406,6 +424,7 @@ Table Resume_projects {
    end_date date
    is_current bool
    project_url varchar
+   order_index int [not null]
    resume_id int 
 }
 
@@ -423,10 +442,10 @@ Table Resume_experience_details {
    id int [pk, increment]
    description text
    title varchar
-   position varchar
    start_date date
    end_date date
    is_current bool
+   order_index int [not null]
    experience_id int
 }
 
@@ -553,6 +572,7 @@ TableGroup "Matching Score" [color: #e74c3c] {
 
 TableGroup "Resume & Skill" [color: #e74c3c] {
   Resumes
+  Resume_skill_groups
   Resume_skills
   Skills
   Resume_educations
@@ -566,7 +586,8 @@ TableGroup "Resume & Skill" [color: #e74c3c] {
 }
 Ref: "Candidates"."id" < "Resumes"."candidate_id"
 Ref: "Resumes"."id" < "Resumes"."root_resume_id"
-Ref: "Resumes"."id" < "Resume_skills"."resume_id"
+Ref: "Resumes"."id" < "Resume_skill_groups"."resume_id"
+Ref: "Resume_skill_groups"."id" < "Resume_skills"."skill_group_id"
 Ref: "Resume_skills"."skill_id" > "Skills"."id"
 
 Ref: "Resumes"."id" < "Resume_educations"."resume_id"

@@ -1,5 +1,7 @@
 package com.sma.core.dto.response.resume;
 
+import com.sma.core.enums.EmploymentType;
+import com.sma.core.enums.WorkingModel;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -21,5 +23,8 @@ public class ResumeExperienceResponse {
     LocalDate startDate;
     LocalDate endDate;
     Boolean isCurrent;
+    WorkingModel workingModel;
+    EmploymentType employmentType;
+    Integer orderIndex;
     List<ResumeExperienceDetailResponse> details;
 }

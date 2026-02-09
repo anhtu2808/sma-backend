@@ -15,6 +15,7 @@ import com.sma.core.dto.request.auth.RefreshTokenRequest;
 import com.sma.core.dto.request.auth.RegisterRequest;
 import com.sma.core.dto.response.auth.AuthenticationResponse;
 import com.sma.core.entity.Candidate;
+import com.sma.core.entity.Resume;
 import com.sma.core.entity.User;
 import com.sma.core.entity.UserToken;
 import com.sma.core.enums.CandidateShowAs;
@@ -23,6 +24,7 @@ import com.sma.core.enums.TokenType;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.repository.ResumeRepository;
 import com.sma.core.repository.UserRepository;
 import com.sma.core.repository.UserTokenRepository;
 import com.sma.core.service.AuthService;
@@ -64,13 +66,13 @@ public class AuthServiceImpl implements AuthService {
     final UserRepository userRepository;
     final PasswordEncoder passwordEncoder;
     final UserTokenRepository userTokenRepository;
+    final ResumeRepository resumeRepository;
 
 
 
 
     @Override
     public AuthenticationResponse registerAsCandidate(RegisterRequest request) {
-        log.info("Email: {}, password: {}", request.getEmail(), request.getPassword());
         User oldUser = userRepository.findByEmail(request.getEmail()).orElse(null);
         if (oldUser != null)
             throw new AppException(ErrorCode.USER_EXISTS);
@@ -78,7 +80,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .fullName(request.getFullName())
                 .passwordHash(request.getPassword() != null ? passwordEncoder.encode(request.getPassword()) : "")
-                .avatar(request.getAvatar() != null ? request.getAvatar() : "DEFAULT AVATAR")
+                .avatar(request.getAvatar())
                 .status(UserStatus.ACTIVE)
                 .role(Role.CANDIDATE)
                 .build();
@@ -88,8 +90,15 @@ public class AuthServiceImpl implements AuthService {
                 .isProfilePublic(Boolean.TRUE)
                 .profileCompleteness(0)
                 .build();
+        Resume resume = Resume.builder()
+                .candidate(candidate)
+                .type(com.sma.core.enums.ResumeType.PROFILE)
+                .status(com.sma.core.enums.ResumeStatus.ACTIVE)
+                .candidate(candidate)
+                .build();
         user.setCandidate(candidate);
         userRepository.save(user);
+        resumeRepository.save(resume);
         return AuthenticationResponse.builder()
                 .accessToken(generateToken(user))
                 .refreshToken(generateRefreshToken(user))

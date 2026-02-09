@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.sma.core.dto.message.resume.ResumeParsingResultMessage;
 import com.sma.core.entity.*;
 import com.sma.core.enums.DegreeType;
+import com.sma.core.enums.EmploymentType;
 import com.sma.core.enums.ProjectType;
 import com.sma.core.enums.ResumeLanguage;
 import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
 import com.sma.core.enums.ResumeType;
+import com.sma.core.enums.WorkingModel;
 import com.sma.core.repository.*;
 import com.sma.core.service.ResumeParsingResultService;
 import lombok.AccessLevel;
@@ -38,6 +40,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     SkillCategoryRepository skillCategoryRepository;
     SkillRepository skillRepository;
     ResumeSkillRepository resumeSkillRepository;
+    ResumeSkillGroupRepository resumeSkillGroupRepository;
     ResumeEducationRepository resumeEducationRepository;
     ResumeExperienceRepository resumeExperienceRepository;
     ResumeExperienceDetailRepository resumeExperienceDetailRepository;
@@ -45,7 +48,6 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     ResumeProjectRepository resumeProjectRepository;
     ProjectSkillRepository projectSkillRepository;
     ResumeCertificationRepository resumeCertificationRepository;
-    ConcurrentMap<String, Object> categoryUpsertLocks = new ConcurrentHashMap<>();
     ConcurrentMap<String, Object> skillUpsertLocks = new ConcurrentHashMap<>();
 
     @Override
@@ -130,6 +132,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         resumeProjectRepository.deleteByResumeId(resumeId);
         resumeExperienceRepository.deleteByResumeId(resumeId);
         resumeSkillRepository.deleteByResumeId(resumeId);
+        resumeSkillGroupRepository.deleteByResumeId(resumeId);
         resumeEducationRepository.deleteByResumeId(resumeId);
         resumeCertificationRepository.deleteByResumeId(resumeId);
     }
@@ -205,9 +208,25 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return;
         }
 
-        for (JsonNode groupNode : groupedSkillsNode) {
-            String rawCategoryName = text(groupNode, "categoryName");
-            String rawSkillSection = text(groupNode, "rawSkillSection");
+        Map<String, ResumeSkillGroup> resumeSkillGroupCache = new HashMap<>();
+
+        for (int groupIndex = 0; groupIndex < groupedSkillsNode.size(); groupIndex++) {
+            JsonNode groupNode = groupedSkillsNode.get(groupIndex);
+            String groupName = firstNonBlank(text(groupNode, "groupName"), text(groupNode, "categoryName"), "Ungrouped");
+            Integer groupOrderIndex = resolveOrderIndex(integerValue(groupNode.get("orderIndex")), groupIndex + 1);
+            String groupKey = normalizeLookupKey(groupName);
+
+            ResumeSkillGroup skillGroup = resumeSkillGroupCache.get(groupKey);
+            if (skillGroup == null) {
+                skillGroup = ResumeSkillGroup.builder()
+                        .name(groupName)
+                        .orderIndex(groupOrderIndex)
+                        .resume(resume)
+                        .build();
+                skillGroup = resumeSkillGroupRepository.save(skillGroup);
+                resumeSkillGroupCache.put(groupKey, skillGroup);
+            }
+
             JsonNode skillsNode = groupNode.get("skills");
             if (skillsNode == null || !skillsNode.isArray()) {
                 continue;
@@ -216,15 +235,17 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             for (JsonNode skillNode : skillsNode) {
                 String skillName = text(skillNode, "name");
                 String description = text(skillNode, "description");
-                Skill skill = upsertSkill(skillName, description, rawCategoryName, categoryCache, skillCache);
+                Integer yearsOfExperience = integerValue(skillNode.get("yearsOfExperience"));
+                String categoryName = firstNonBlank(text(skillNode.path("category"), "name"), groupName);
+                Skill skill = upsertSkill(skillName, description, categoryName, categoryCache, skillCache);
                 if (skill == null) {
                     continue;
                 }
 
                 ResumeSkill resumeSkill = ResumeSkill.builder()
-                        .rawSkillSection(rawSkillSection)
+                        .yearsOfExperience(yearsOfExperience)
+                        .skillGroup(skillGroup)
                         .skill(skill)
-                        .resume(resume)
                         .build();
                 resumeSkillRepository.save(resumeSkill);
             }
@@ -236,7 +257,8 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return;
         }
 
-        for (JsonNode educationNode : educationsNode) {
+        for (int educationIndex = 0; educationIndex < educationsNode.size(); educationIndex++) {
+            JsonNode educationNode = educationsNode.get(educationIndex);
             ResumeEducation education = ResumeEducation.builder()
                     .institution(text(educationNode, "institution"))
                     .degree(parseEnum(DegreeType.class, text(educationNode, "degree")))
@@ -245,6 +267,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                     .startDate(parseDate(text(educationNode, "startDate")))
                     .endDate(parseDate(text(educationNode, "endDate")))
                     .isCurrent(booleanValue(educationNode.get("isCurrent")))
+                    .orderIndex(resolveOrderIndex(integerValue(educationNode.get("orderIndex")), educationIndex + 1))
                     .resume(resume)
                     .build();
             resumeEducationRepository.save(education);
@@ -261,12 +284,16 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return;
         }
 
-        for (JsonNode experienceNode : experiencesNode) {
+        for (int experienceIndex = 0; experienceIndex < experiencesNode.size(); experienceIndex++) {
+            JsonNode experienceNode = experiencesNode.get(experienceIndex);
             ResumeExperience experience = ResumeExperience.builder()
                     .company(text(experienceNode, "company"))
                     .startDate(parseDate(text(experienceNode, "startDate")))
                     .endDate(parseDate(text(experienceNode, "endDate")))
                     .isCurrent(booleanValue(experienceNode.get("isCurrent")))
+                    .workingModel(parseEnum(WorkingModel.class, text(experienceNode, "workingModel")))
+                    .employmentType(parseEnum(EmploymentType.class, text(experienceNode, "employmentType")))
+                    .orderIndex(resolveOrderIndex(integerValue(experienceNode.get("orderIndex")), experienceIndex + 1))
                     .resume(resume)
                     .build();
             experience = resumeExperienceRepository.save(experience);
@@ -276,14 +303,15 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                 continue;
             }
 
-            for (JsonNode detailNode : detailsNode) {
+            for (int detailIndex = 0; detailIndex < detailsNode.size(); detailIndex++) {
+                JsonNode detailNode = detailsNode.get(detailIndex);
                 ResumeExperienceDetail detail = ResumeExperienceDetail.builder()
                         .description(text(detailNode, "description"))
-                        .title(text(detailNode, "title"))
-                        .position(text(detailNode, "position"))
+                        .title(firstNonBlank(text(detailNode, "title"), text(detailNode, "position")))
                         .startDate(parseDate(text(detailNode, "startDate")))
                         .endDate(parseDate(text(detailNode, "endDate")))
                         .isCurrent(booleanValue(detailNode.get("isCurrent")))
+                        .orderIndex(resolveOrderIndex(integerValue(detailNode.get("orderIndex")), detailIndex + 1))
                         .experience(experience)
                         .build();
                 detail = resumeExperienceDetailRepository.save(detail);
@@ -331,7 +359,8 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return;
         }
 
-        for (JsonNode projectNode : projectsNode) {
+        for (int projectIndex = 0; projectIndex < projectsNode.size(); projectIndex++) {
+            JsonNode projectNode = projectsNode.get(projectIndex);
             ResumeProject project = ResumeProject.builder()
                     .title(text(projectNode, "title"))
                     .teamSize(integerValue(projectNode.get("teamSize")))
@@ -342,6 +371,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                     .endDate(parseDate(text(projectNode, "endDate")))
                     .isCurrent(booleanValue(projectNode.get("isCurrent")))
                     .projectUrl(text(projectNode, "projectUrl"))
+                    .orderIndex(resolveOrderIndex(integerValue(projectNode.get("orderIndex")), projectIndex + 1))
                     .resume(resume)
                     .build();
             project = resumeProjectRepository.save(project);
@@ -408,7 +438,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return null;
         }
 
-        SkillCategory category = upsertSkillCategory(rawCategoryName, categoryCache);
+        SkillCategory category = findExistingSkillCategory(rawCategoryName, categoryCache);
         String key = normalizeLookupKey(skillName);
 
         Skill cached = skillCache.get(key);
@@ -445,15 +475,9 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             }
 
             // Keep one global skill per normalized name.
-            // If existing category is missing or too generic ("Other"), upgrade it using current parsed category.
-            if (category != null && category.getName() != null) {
-                SkillCategory currentCategory = skill.getCategory();
-                boolean shouldUpdateCategory = currentCategory == null
-                        || currentCategory.getName() == null
-                        || "Other".equalsIgnoreCase(currentCategory.getName());
-                if (shouldUpdateCategory && !category.getId().equals(currentCategory != null ? currentCategory.getId() : null)) {
-                    skill.setCategory(category);
-                }
+            // Category is read-only from existing categories. Assign only if missing.
+            if (category != null && skill.getCategory() == null) {
+                skill.setCategory(category);
             }
 
             if ((skill.getDescription() == null || skill.getDescription().isBlank())
@@ -468,99 +492,29 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         }
     }
 
-    private SkillCategory upsertSkillCategory(String rawCategoryName, Map<String, SkillCategory> categoryCache) {
-        String categoryName = normalizeCategoryName(rawCategoryName);
+    private SkillCategory findExistingSkillCategory(String rawCategoryName, Map<String, SkillCategory> categoryCache) {
+        String categoryName = normalizeFreeText(rawCategoryName);
+        if (categoryName == null) {
+            return null;
+        }
+
         String key = normalizeLookupKey(categoryName);
-
-        SkillCategory cached = categoryCache.get(key);
-        if (cached != null) {
-            return cached;
+        if (categoryCache.containsKey(key)) {
+            return categoryCache.get(key);
         }
 
-        Object lock = categoryUpsertLocks.computeIfAbsent(key, ignored -> new Object());
-        synchronized (lock) {
-            cached = categoryCache.get(key);
-            if (cached != null) {
-                return cached;
-            }
-
-            List<SkillCategory> existingCategories = skillCategoryRepository.findAllByNormalizedName(categoryName);
-            SkillCategory category;
-            if (!existingCategories.isEmpty()) {
-                category = existingCategories.get(0);
-                if (existingCategories.size() > 1) {
-                    log.warn(
-                            "Detected duplicate skill categories for normalized name '{}', using categoryId={}",
-                            categoryName,
-                            category.getId()
-                    );
-                }
-            } else {
-                category = skillCategoryRepository.save(
-                        SkillCategory.builder()
-                                .name(categoryName)
-                                .build()
-                );
-            }
-
-            categoryCache.put(key, category);
-            return category;
-        }
-    }
-
-    private String normalizeCategoryName(String rawCategoryName) {
-        if (rawCategoryName == null || rawCategoryName.isBlank()) {
-            return "Other";
+        List<SkillCategory> existingCategories = skillCategoryRepository.findAllByNormalizedName(categoryName);
+        SkillCategory category = existingCategories.isEmpty() ? null : existingCategories.get(0);
+        if (existingCategories.size() > 1) {
+            log.warn(
+                    "Detected duplicate skill categories for normalized name '{}', using categoryId={}",
+                    categoryName,
+                    category != null ? category.getId() : null
+            );
         }
 
-        String normalized = rawCategoryName.trim().toLowerCase(Locale.ROOT);
-
-        if (normalized.contains("programming") || normalized.contains("language")) {
-            return "Programming Language";
-        }
-        if (normalized.contains("framework")) {
-            return "Framework";
-        }
-        if (normalized.contains("tool")) {
-            return "Tool";
-        }
-        if (normalized.contains("database") || normalized.contains("sql")) {
-            return "Database";
-        }
-        if (normalized.contains("front")) {
-            return "Frontend";
-        }
-        if (normalized.contains("back")) {
-            return "Backend";
-        }
-        if (normalized.contains("devops") || normalized.contains("ci/cd")) {
-            return "DevOps";
-        }
-        if (normalized.contains("soft")) {
-            return "Soft Skill";
-        }
-        if (normalized.contains("methodolog") || normalized.contains("agile") || normalized.contains("scrum")
-                || normalized.contains("sdlc")) {
-            return "Methodology";
-        }
-        if (normalized.contains("cloud") || normalized.contains("aws") || normalized.contains("azure")
-                || normalized.contains("gcp")) {
-            return "Cloud";
-        }
-
-        return switch (normalized) {
-            case "programming language", "framework", "tool", "database", "frontend", "backend",
-                    "devops", "soft skills", "methodology", "cloud" -> toTitleCase(normalized);
-            default -> "Other";
-        };
-    }
-
-    private String toTitleCase(String value) {
-        return switch (value) {
-            case "programming language" -> "Programming Language";
-            case "soft skill", "soft skills" -> "Soft Skill";
-            default -> Character.toUpperCase(value.charAt(0)) + value.substring(1);
-        };
+        categoryCache.put(key, category);
+        return category;
     }
 
     private String normalizeFreeText(String rawValue) {
@@ -574,6 +528,26 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     private String normalizeLookupKey(String rawValue) {
         String normalized = normalizeFreeText(rawValue);
         return normalized == null ? "" : normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private Integer resolveOrderIndex(Integer rawOrderIndex, int fallbackOrderIndex) {
+        if (rawOrderIndex == null || rawOrderIndex <= 0) {
+            return fallbackOrderIndex;
+        }
+        return rawOrderIndex;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            String normalized = normalizeFreeText(value);
+            if (normalized != null) {
+                return normalized;
+            }
+        }
+        return null;
     }
 
     private String text(JsonNode node, String fieldName) {

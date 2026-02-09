@@ -33,10 +33,10 @@ async def parse_resume_endpoint(
     
     Returns structured JSON with:
     - Resume entity fields (fullName, emailInResume, githubLink, etc.)
-    - resumeSkills grouped by categoryName, then skills
-    - resumeEducations
-    - resumeExperiences and nested details/skills
-    - resumeProjects and nested skills
+    - resumeSkills grouped by groupName, each skill includes optional yearsOfExperience
+    - resumeEducations (supports optional orderIndex)
+    - resumeExperiences with workingModel/employmentType and nested details/skills
+    - resumeProjects and nested skills (supports optional orderIndex)
     - resumeCertifications
     - Parsing metadata
     """

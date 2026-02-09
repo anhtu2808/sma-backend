@@ -16,14 +16,14 @@ public class ResumeSkill {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "raw_skill_section", columnDefinition = "TEXT")
-    private String rawSkillSection;
+    @Column(name = "years_of_experience")
+    private Integer yearsOfExperience;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "skill_id")
     private Skill skill;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "resume_id")
-    private Resume resume;
+    @JoinColumn(name = "skill_group_id")
+    private ResumeSkillGroup skillGroup;
 }

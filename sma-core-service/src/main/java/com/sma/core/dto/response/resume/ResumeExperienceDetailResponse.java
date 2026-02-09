@@ -19,9 +19,9 @@ public class ResumeExperienceDetailResponse {
     Integer id;
     String description;
     String title;
-    String position;
     LocalDate startDate;
     LocalDate endDate;
     Boolean isCurrent;
+    Integer orderIndex;
     List<ExperienceSkillResponse> skills;
 }
