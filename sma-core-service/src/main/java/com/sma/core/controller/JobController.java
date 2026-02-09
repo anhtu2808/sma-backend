@@ -22,6 +22,10 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
+import static org.springframework.security.authorization.AuthorityReactiveAuthorizationManager.hasAnyRole;
+
 @RestController
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -107,10 +111,13 @@ public class JobController {
     }
 
     @GetMapping("/{jobId}/job-questions")
-    public ApiResponse<PagingResponse<JobQuestionResponse>> getByJobId(
-            @PathVariable Integer jobId, @ParameterObject JobQuestionFilterRequest request) {
-        return ApiResponse.<PagingResponse<JobQuestionResponse>>builder()
-                .data(jobQuestionService.getByJobId(jobId, request))
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN', 'CANDIDATE')")
+    public ApiResponse<Set<JobQuestionResponse>> getByJobId(
+            @PathVariable Integer jobId) {
+        return ApiResponse.<Set<JobQuestionResponse>>builder()
+                .data(jobQuestionService.getByJobId(jobId))
                 .build();
     }
+
+
 }
