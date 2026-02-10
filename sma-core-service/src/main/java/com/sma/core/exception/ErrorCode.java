@@ -22,7 +22,7 @@ public enum ErrorCode {
     CAN_NOT_DRAFTED(HttpStatus.BAD_REQUEST, "Current job can not be drafted, please check job status"),
     INVALID_JOB_STATUS(HttpStatus.BAD_REQUEST, "Job status is invalid"),
     CANT_DELETE_RESUME_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete resume that is in use"),
-
+    EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
@@ -39,7 +39,6 @@ public enum ErrorCode {
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),
     ROLE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Role does not exist"),
     EMAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, "Email does not exist"),
-    EMAIL_EXISTS(HttpStatus.NOT_FOUND, "Email already exists"),
     COMPANY_ALREADY_REGISTERED(HttpStatus.NOT_FOUND, "Company already registered"),
     TOKEN_NOT_EXISTED(HttpStatus.NOT_FOUND, "Token does not exist"),
     STATUS_ALREADY_FINALIZED(HttpStatus.NOT_FOUND, "Company status already finalized"),
