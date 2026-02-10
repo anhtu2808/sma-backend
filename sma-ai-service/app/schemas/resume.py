@@ -26,7 +26,7 @@ EmploymentType = Literal[
 class SkillCategory(BaseModel):
     """Maps to skill_categories entity."""
 
-    name: str
+    name: Optional[str] = None
 
 
 class Skill(BaseModel):
@@ -120,6 +120,17 @@ class ResumeExperience(BaseModel):
     employmentType: Optional[EmploymentType] = None
     orderIndex: Optional[int] = Field(default=None, ge=1)
     details: List[ResumeExperienceDetail] = Field(default_factory=list)
+
+    @field_validator("workingModel", mode="before")
+    @classmethod
+    def normalize_working_model(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            normalized = value.strip().upper()
+            if normalized in {"REMOTE", "ONSITE", "HYBRID"}:
+                return normalized
+        return None
 
 
 class ProjectSkill(BaseModel):
