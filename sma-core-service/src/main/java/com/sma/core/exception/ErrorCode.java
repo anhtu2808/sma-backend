@@ -66,6 +66,11 @@ public enum ErrorCode {
     CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
     JOB_QUESTION_NOT_EXIST(HttpStatus.NOT_FOUND, "Job question does not exist"),
     PACKAGE_NOT_EXIST(HttpStatus.NOT_FOUND, "Package does not exist"),
+    PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan not found"),
+    FEATURE_NOT_FOUND(HttpStatus.NOT_FOUND, "Feature not found"),
+    PLAN_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "Plan already exists"),
+    PLAN_PRICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan price not found"),
+    PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

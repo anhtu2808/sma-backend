@@ -33,15 +33,15 @@ public class Subscription {
     private Candidate candidate;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "package_id", nullable = false)
-    private Package packageEntity;
+    @JoinColumn(name = "plan_id", nullable = false)
+    private Plan plan;
 
     @Column(nullable = false, precision = 15, scale = 2)
     @Builder.Default
     private BigDecimal price = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, columnDefinition = "subscription_status_type")
+    @Column(name = "status", nullable = false, columnDefinition = "subscription_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private SubscriptionStatus status = SubscriptionStatus.PENDING_PAYMENT;
@@ -60,6 +60,9 @@ public class Subscription {
 
     @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PaymentHistory> paymentHistories = new HashSet<>();
+
+    @OneToMany(mappedBy = "subscription", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<UsageEvent> usageEvents = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {

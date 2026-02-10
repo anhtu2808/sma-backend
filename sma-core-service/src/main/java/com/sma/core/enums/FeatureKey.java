@@ -1,0 +1,14 @@
+package com.sma.core.enums;
+
+public enum FeatureKey {
+    CV_UPLOAD_LIMIT,
+    AI_SUGGESTION,
+    EXPORT_SHORTLIST,
+    TALENT_UNLOCK,
+    MATCHING_SCORE,
+    RESUME_PARSING,
+    JOB_POST_LIMIT,
+    CANDIDATE_SEARCH,
+    COMPANY_BRANDING,
+    PRIORITY_SUPPORT
+}

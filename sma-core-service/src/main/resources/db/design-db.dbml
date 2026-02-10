@@ -608,20 +608,27 @@ Ref: "Resumes"."id" < "Resume_Evaluations"."resume_id"
 Ref: "Resume_Evaluations"."id" < "Evaluation_Criteria_Scores"."evaluation_id"
 Ref: "Resume_Evaluations"."job_id" > "Jobs"."id"
 // ==============================================
-// GROUP 4: PACKAGE & SUBSCRIPTION
+// GROUP 4: PLAN & SUBSCRIPTION
 // ==============================================
 
-Table Packages {
+Table Plans {
   id int [pk, increment]
   name varchar(100) [not null]
   description text
-  package_target enum('CANDIDATE', 'COMPANY') [not null]
-  package_type enum('CREDIT', 'FEATURE')
+  plan_target enum('COMPANY', 'CANDIDATE') [not null]
+  plan_type enum('ADDONS_FEATURE', 'ADDONS_QUOTA', 'MAIN') [not null]
+  currency varchar(3) [not null, default: 'VND']
+  is_active boolean [not null, default: true]
+}
+
+Table Plan_prices {
+  id int [pk, increment]
+  plan_id int [not null]
   original_price decimal(15,2) [not null, default: 0]
   sale_price decimal(15,2) [not null, default: 0]
   currency varchar(3) [not null, default: 'VND']
-  billing_cycle enum('MONTHLY', 'YEARLY', 'ONE_TIME') [not null]
-  credit_quota int [default: 0]
+  duration int [not null]
+  unit enum('MONTH', 'YEAR') [not null]
   is_active boolean [not null, default: true]
 }
 
@@ -629,50 +636,42 @@ Table Features {
   id int [pk, increment]
   name varchar(100) [not null]                                          // e.g. "CV Upload Limit", "AI Suggestion", "Export Shortlist"
   description text
+  usage_type enum('BOOLEAN', 'EVENT', 'STATE')
   feature_key varchar(100) [unique, not null]                           // unique key cho code check
   is_active boolean [not null, default: true]
 }
 
-Table Credit_wallets {
-  id int [pk, increment]
-  company_id int 
-  candidate_id int
-  balance int
-}
-
-Table Package_Features {
-  package_id int [not null]
+Table Usage_limits {
+  plan_id int [not null]
   feature_id int [not null]
+  max_quota int [not null]
+  limit_unit enum('TOTAL', 'PER_MONTH') [not null]
   indexes {
-    (package_id, feature_id) [pk]
+    (plan_id, feature_id) [pk]
   }
-  max_quota int [default: 0]
-
 }
-
 
 Table Subscriptions {
   id int [pk, increment]
   company_id int
-  package_id int [not null]
+  candidate_id int
+  plan_id int [not null]
   price decimal(15,2) [not null, default: 0]
   status enum('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING_PAYMENT') [not null, default: 'PENDING_PAYMENT']
   start_date datetime [not null]                                       // start of current billing cycle
-  end_date datetime [not null]                                       // end of current billing cycle → credits expire here   // current remaining credits                             // max credits this cycle (snapshot from Package)
+  end_date datetime [not null]                                         // end of current billing cycle
   purchased_at datetime [default: `now()`]
   renewed_at datetime
+  // NOTE: exactly one of company_id/candidate_id must be set (XOR)
 }
 
-Table Credit_Transactions {
+Table Usage_Events {
   id int [pk, increment]
-  credit_wallet_id int [not null] 
-  credit_type enum('EARNED', 'CONSUMED', 'EXPIRED', 'BONUS') [not null]
+  subscription_id int [not null]
+  feature_id int [not null]
   amount int [not null]
-  reference_type enum('AI_SUGGESTION', 'MATCHING_SCORE', 'CV_SCORE', 'TALENT_UNLOCK', 'CYCLE_RESET', 'TRIAL')
-  description text
   created_at datetime [default: `now()`]
 }
-
 
 Table Payment_Histories {
   id int [pk, increment]
@@ -686,21 +685,25 @@ Table Payment_Histories {
   created_at datetime [default: `now()`]
 }
 
-Ref: Package_Features.package_id > Packages.id [delete: cascade]
-Ref: Package_Features.feature_id > Features.id [delete: cascade]
+Ref: Plan_prices.plan_id > Plans.id [delete: cascade]
+Ref: Usage_limits.plan_id > Plans.id [delete: cascade]
+Ref: Usage_limits.feature_id > Features.id [delete: cascade]
 Ref: Subscriptions.company_id > Companies.id [delete: cascade]
+Ref: Subscriptions.candidate_id > Candidates.id [delete: cascade]
+Ref: Subscriptions.plan_id > Plans.id
+Ref: Usage_Events.subscription_id > Subscriptions.id [delete: cascade]
+Ref: Usage_Events.feature_id > Features.id [delete: cascade]
 Ref: Payment_Histories.subscription_id > Subscriptions.id [delete: cascade]
-Ref: Subscriptions.package_id > Packages.id
 Ref: Applications.candidate_id > Candidates.id
 
-TableGroup "Package & Subscription" [color: #8e44ad] {
-  Packages
+TableGroup "Plan & Subscription" [color: #8e44ad] {
+  Plans
+  Plan_prices
   Features
+  Usage_limits
   Subscriptions
+  Usage_Events
   Payment_Histories
-  Package_Features
-  Credit_Transactions
-  Credit_wallets
 }
 
 
@@ -847,12 +850,6 @@ Ref: "Job_expertises"."id" < "Jobs"."id"
 
 Ref: "Companies"."id" < "Jobs"."company_id"
 
-
-Ref: "Credit_wallets"."id" < "Credit_Transactions"."credit_wallet_id"
-
-Ref: "Companies"."id" < "Credit_wallets"."company_id"
-
-Ref: "Candidates"."id" < "Credit_wallets"."candidate_id"
 
 Ref: "Evaluation_Criteria_Scores"."id" < "Evaluation_Hard_Skills"."evaluation_criteria_score_id"
 
