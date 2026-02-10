@@ -13,6 +13,7 @@ public interface ResumeService {
     ResumeDetailResponse getResumeDetail(Integer resumeId);
     ResumeResponse uploadResume(UploadResumeRequest request);
     ResumeResponse updateResume(Integer resumeId, UpdateResumeRequest request);
+    ResumeResponse cloneResume(Integer resumeId, ResumeType targetType);
     ResumeResponse reparseResume(Integer resumeId);
     String getResumeStatus(Integer resumeId);
     String getResumeParseStatus(Integer resumeId);

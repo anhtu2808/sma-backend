@@ -317,6 +317,15 @@ public class ResumeController {
                 .build();
     }
 
+    @PostMapping("/{resumeId}/set-profile")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<ResumeResponse> setResumeAsProfile(@PathVariable Integer resumeId) {
+        return ApiResponse.<ResumeResponse>builder()
+                .message("Set resume as profile successfully")
+                .data(resumeService.cloneResume(resumeId, ResumeType.PROFILE))
+                .build();
+    }
+
     @PostMapping("/{resumeId}/re-parse")
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ResumeResponse> reparseResume(@PathVariable Integer resumeId) {

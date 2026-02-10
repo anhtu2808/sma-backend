@@ -40,7 +40,7 @@ public class ResumeDetailResponse {
     ResumeParseStatus parseStatus;
     ResumeLanguage language;
     Boolean isDefault;
-    Boolean isOverrided;
+    Boolean isDeleted;
     List<ResumeSkillGroupResponse> skillGroups;
     List<ResumeEducationDetailResponse> educations;
     List<ResumeExperienceResponse> experiences;
