@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class CreateSubscriptionRequest {
 
-    Integer packageId;
+    Integer planPriceId;
 
 
 }

@@ -23,7 +23,7 @@ public class SubscriptionController {
     SubscriptionService subscriptionService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('RECRUITER, CANDIDATE')")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'CANDIDATE')")
     public ApiResponse<String> createSubscription(@RequestBody CreateSubscriptionRequest request){
         return ApiResponse.<String>builder()
                 .message("Create subscription successfully")

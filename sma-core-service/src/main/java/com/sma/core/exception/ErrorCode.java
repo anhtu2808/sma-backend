@@ -23,6 +23,8 @@ public enum ErrorCode {
     INVALID_JOB_STATUS(HttpStatus.BAD_REQUEST, "Job status is invalid"),
     CANT_DELETE_RESUME_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete resume that is in use"),
     EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
+    INVALID_SEPAY_CONTENT_FORMAT(HttpStatus.BAD_REQUEST, "Invalid sepay content format"),
+
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
@@ -33,7 +35,8 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, "Refresh token expired"),
     NOT_HAVE_PERMISSION(HttpStatus.FORBIDDEN, "You do not have permission to access this resource"),
     CAN_NOT_CHANGE_DIRECT_TO_PENDING(HttpStatus.FORBIDDEN, "You do not have permission to change job status to pending review directly"),
-
+    PAYMENT_TIME_EXPIRED(HttpStatus.FORBIDDEN, "Payment time expired"),
+    PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),
@@ -70,8 +73,7 @@ public enum ErrorCode {
     FEATURE_NOT_FOUND(HttpStatus.NOT_FOUND, "Feature not found"),
     PLAN_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "Plan already exists"),
     PLAN_PRICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan price not found"),
-    PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
-
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

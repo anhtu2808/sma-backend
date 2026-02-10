@@ -1,19 +1,13 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.subscription.CreateSubscriptionRequest;
-import com.sma.core.entity.Candidate;
-import com.sma.core.entity.Company;
-import com.sma.core.entity.Package;
-import com.sma.core.entity.Subscription;
+import com.sma.core.entity.*;
 import com.sma.core.enums.PaymentMethod;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.SubscriptionStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
-import com.sma.core.repository.CandidateRepository;
-import com.sma.core.repository.PackageRepository;
-import com.sma.core.repository.RecruiterRepository;
-import com.sma.core.repository.SubscriptionRepository;
+import com.sma.core.repository.*;
 import com.sma.core.service.PaymentService;
 import com.sma.core.service.SubscriptionService;
 import com.sma.core.utils.JwtTokenProvider;
@@ -33,19 +27,26 @@ import java.util.Objects;
 public class SubscriptionServiceImpl implements SubscriptionService {
 
     final SubscriptionRepository subscriptionRepository;
-    final PackageRepository packageRepository;
+    final PlanPriceRepository planPriceRepository;
     final CandidateRepository candidateRepository;
     final RecruiterRepository recruiterRepository;
     final PaymentService paymentService;
 
     @Override
     public String createSubscription(CreateSubscriptionRequest request) {
-        Package existedPackage = packageRepository.findById(request.getPackageId())
-                .orElseThrow(() -> new AppException(ErrorCode.PACKAGE_NOT_EXIST));
+        PlanPrice planPrice = planPriceRepository.findById(request.getPlanPriceId())
+                .orElseThrow(() -> new AppException(ErrorCode.PLAN_PRICE_NOT_FOUND));
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime endDate = switch (planPrice.getUnit()) {
+            case MONTH -> now.plusMonths(planPrice.getDuration());
+            case YEAR -> now.plusYears(planPrice.getDuration());
+        };
+
         Subscription subscription = Subscription.builder()
-                .startDate(LocalDateTime.now())
-                .price(existedPackage.getSalePrice())
-                .packageEntity(existedPackage)
+                .startDate(now)
+                .endDate(endDate)
+                .price(planPrice.getSalePrice())
+                .plan(planPrice.getPlan())
                 .status(SubscriptionStatus.PENDING_PAYMENT)
                 .build();
         if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.CANDIDATE)){
@@ -60,8 +61,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                     .getCompany();
             subscription.setCompany(company);
         }
-        String qr = paymentService.createQR(subscription, PaymentMethod.SEPAY);
         subscriptionRepository.save(subscription);
-        return qr;
+        return paymentService.createQR(subscription, PaymentMethod.SEPAY);
     }
 }
