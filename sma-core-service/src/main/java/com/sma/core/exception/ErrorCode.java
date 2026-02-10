@@ -66,6 +66,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
     CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
     JOB_QUESTION_NOT_EXIST(HttpStatus.NOT_FOUND, "Job question does not exist"),
+    PACKAGE_NOT_EXIST(HttpStatus.NOT_FOUND, "Package does not exist"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

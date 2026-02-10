@@ -19,12 +19,6 @@ public class PaymentController {
 
     PaymentService paymentService;
 
-    @PostMapping
-    public ApiResponse<String> createQR(){
-        return ApiResponse.<String>builder()
-                .message("Create QR successfully")
-                .data(paymentService.createQR())
-                .build();
-    }
+
 
 }
