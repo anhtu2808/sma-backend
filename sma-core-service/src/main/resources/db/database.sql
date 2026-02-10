@@ -322,7 +322,7 @@ CREATE TABLE resumes (
   parse_status parse_status DEFAULT 'WAITING',
   language resume_language,
   is_default boolean DEFAULT false,
-  is_overrided boolean DEFAULT false,
+  is_deleted boolean DEFAULT false,
   candidate_id int
 );
 

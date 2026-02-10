@@ -55,5 +55,5 @@ public class ResumeResponse {
 
      Boolean isDefault;
 
-     Boolean isOverrided;
+     Boolean isDeleted;
 }

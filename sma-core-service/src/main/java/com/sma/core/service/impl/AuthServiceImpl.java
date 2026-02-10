@@ -94,6 +94,7 @@ public class AuthServiceImpl implements AuthService {
                 .candidate(candidate)
                 .type(com.sma.core.enums.ResumeType.PROFILE)
                 .status(com.sma.core.enums.ResumeStatus.ACTIVE)
+                .isDeleted(Boolean.FALSE)
                 .candidate(candidate)
                 .build();
         user.setCandidate(candidate);

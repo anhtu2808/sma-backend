@@ -87,8 +87,9 @@ public class Resume {
     @Column(name = "is_default")
     private Boolean isDefault;
 
-    @Column(name = "is_overrided")
-    private Boolean isOverrided;
+    @Column(name = "is_deleted")
+    @Builder.Default
+    private Boolean isDeleted = Boolean.FALSE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id")
