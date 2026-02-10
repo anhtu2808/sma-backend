@@ -84,3 +84,10 @@ app:
     resume-parsing:
       request-queue: ${RABBITMQ_RESUME_PARSING_REQUEST_QUEUE:resume.parsing.request}
       result-queue: ${RABBITMQ_RESUME_PARSING_RESULT_QUEUE:resume.parsing.result}
+
+sepay:
+  link: ${SEPAY_LINK}
+  api-key: ${SEPAY_API_KEY}
+  prefix: ${SEPAY_PREFIX}
+  bank-account: ${SEPAY_BANK_ACCOUNT}
+  bank: ${SEPAY_BANK}
