@@ -1,6 +1,7 @@
 package com.sma.core.mapper.plan;
 
 import com.sma.core.dto.request.usagelimit.UsageLimitRequest;
+import com.sma.core.dto.request.usagelimit.UsageLimitUpdateRequest;
 import com.sma.core.dto.response.usagelimit.UsageLimitResponse;
 import com.sma.core.entity.UsageLimit;
 import org.mapstruct.BeanMapping;
@@ -28,4 +29,9 @@ public interface UsageLimitMapper {
     @Mapping(target = "plan", ignore = true)
     @Mapping(target = "feature", ignore = true)
     void updateFromRequest(UsageLimitRequest request, @MappingTarget UsageLimit usageLimit);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(target = "plan", ignore = true)
+    @Mapping(target = "feature", ignore = true)
+    void updateFromRequest(UsageLimitUpdateRequest request, @MappingTarget UsageLimit usageLimit);
 }
