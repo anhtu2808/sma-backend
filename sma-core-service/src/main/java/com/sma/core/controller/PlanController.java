@@ -2,14 +2,11 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.plan.PlanCreateRequest;
 import com.sma.core.dto.request.plan.PlanFilterRequest;
-import com.sma.core.dto.request.planprice.PlanPriceRequest;
 import com.sma.core.dto.request.plan.PlanUpdateRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
-import com.sma.core.dto.response.planprice.PlanPriceResponse;
 import com.sma.core.dto.response.plan.PlanResponse;
 import com.sma.core.service.PlanService;
-import com.sma.core.service.PlanPriceService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +22,6 @@ import org.springframework.web.bind.annotation.*;
 public class PlanController {
 
     PlanService planService;
-    PlanPriceService planPriceService;
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
@@ -58,29 +54,6 @@ public class PlanController {
     ) {
         return ApiResponse.<PagingResponse<PlanResponse>>builder()
                 .data(planService.getPlans(request))
-                .build();
-    }
-
-    @PostMapping("/{planId}/prices")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ApiResponse<PlanPriceResponse> addPrice(
-            @PathVariable Integer planId,
-            @RequestBody @Valid PlanPriceRequest request
-    ) {
-        return ApiResponse.<PlanPriceResponse>builder()
-                .data(planPriceService.addPrice(planId, request))
-                .build();
-    }
-
-    @DeleteMapping("/{planId}/prices/{priceId}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    public ApiResponse<Void> deletePrice(
-            @PathVariable Integer planId,
-            @PathVariable Integer priceId
-    ) {
-        planPriceService.deletePrice(planId, priceId);
-        return ApiResponse.<Void>builder()
-                .message("Plan price deleted successfully")
                 .build();
     }
 }

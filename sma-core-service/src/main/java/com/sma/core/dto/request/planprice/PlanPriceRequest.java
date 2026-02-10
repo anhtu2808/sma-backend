@@ -1,6 +1,7 @@
 package com.sma.core.dto.request.planprice;
 
 import com.sma.core.enums.PlanDurationUnit;
+import com.sma.core.validation.ValidSalePrice;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -12,10 +13,9 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ValidSalePrice
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PlanPriceRequest {
-    Integer id;
-
     @NotNull(message = "Original price is required")
     BigDecimal originalPrice;
 
