@@ -24,5 +24,8 @@ public class JobDetailResponse extends BaseJobResponse{
     BaseJobResponse rootJob;
     Set<JobScoringCriteriaResponse> scoringCriterias;
     Boolean enableAiScoring;
+    Integer appliedAttempt;
+    Object lastApplicationStatus;
+    Boolean canApply;
 
 }
