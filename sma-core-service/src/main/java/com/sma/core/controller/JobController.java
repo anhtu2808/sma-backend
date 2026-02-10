@@ -22,6 +22,10 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
+import static org.springframework.security.authorization.AuthorityReactiveAuthorizationManager.hasAnyRole;
+
 @RestController
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -107,10 +111,33 @@ public class JobController {
     }
 
     @GetMapping("/{jobId}/job-questions")
-    public ApiResponse<PagingResponse<JobQuestionResponse>> getByJobId(
-            @PathVariable Integer jobId, @ParameterObject JobQuestionFilterRequest request) {
-        return ApiResponse.<PagingResponse<JobQuestionResponse>>builder()
-                .data(jobQuestionService.getByJobId(jobId, request))
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN', 'CANDIDATE')")
+    public ApiResponse<Set<JobQuestionResponse>> getByJobId(
+            @PathVariable Integer jobId) {
+        return ApiResponse.<Set<JobQuestionResponse>>builder()
+                .message("Get job questions by job id successfully")
+                .data(jobQuestionService.getByJobId(jobId))
                 .build();
     }
+
+    @PostMapping("/{jobId}/mark")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<Boolean> markJob(
+            @PathVariable Integer jobId) {
+        Boolean isMarked = jobService.markJob(jobId);
+        return ApiResponse.<Boolean>builder()
+                .message(isMarked ? "Mark job successfully" : "Unmark job successfully")
+                .build();
+    }
+
+    @GetMapping("/marked")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<PagingResponse<BaseJobResponse>> getMarkedJob(
+            @RequestParam Integer page, @RequestParam Integer size) {
+        return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
+                .message("Get my marked job successfully")
+                .data(jobService.getAllMyFavoriteJob(page, size))
+                .build();
+    }
+
 }

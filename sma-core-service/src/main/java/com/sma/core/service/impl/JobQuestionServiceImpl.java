@@ -27,7 +27,10 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -74,13 +77,7 @@ public class JobQuestionServiceImpl implements JobQuestionService {
     public JobQuestionResponse getById(Integer id) {
         JobQuestion jobQuestion = jobQuestionRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_QUESTION_NOT_EXIST));
-        Role role = JwtTokenProvider.getCurrentRole();
-        if(role != null && role.equals(Role.RECRUITER)){
-            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
-                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-            if (recruiter.getCompany().getId().equals(jobQuestion.getJob().getCompany().getId()))
-                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-        }
+        isPermission(jobQuestion);
         return jobQuestionMapper.toJobQuestionResponse(jobQuestion);
     }
 
@@ -102,17 +99,17 @@ public class JobQuestionServiceImpl implements JobQuestionService {
 
     @Override
     @Transactional(readOnly = true)
-    public PagingResponse<JobQuestionResponse> getByJobId(Integer jobId, JobQuestionFilterRequest filter) {
-        if (!jobRepository.existsById(jobId)) {
-            throw new AppException(ErrorCode.JOB_NOT_EXISTED);
-        }
-        Role role = JwtTokenProvider.getCurrentRole();
-        if (role == null || role.equals(Role.CANDIDATE))
-            filter.setDeleted(false);
-        Specification<JobQuestion> spec = JobQuestionSpecification.withFilter(filter, jobId, null);
-        Pageable pageable = PageRequest.of(filter.getPage(), filter.getSize());
-        Page<JobQuestion> questions = jobQuestionRepository.findAll(spec, pageable);
-        return PagingResponse.fromPage(questions.map(jobQuestionMapper::toJobQuestionResponse));
+    public Set<JobQuestionResponse> getByJobId(Integer jobId) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        Set<JobQuestion> questions;
+        if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.CANDIDATE) || !isPermission(job))
+            questions = jobQuestionRepository.findByJob_IdAndDeletedFalse(jobId);
+        else
+            questions = jobQuestionRepository.findByJob_Id(jobId);
+        return questions.stream()
+                .map(jobQuestionMapper::toJobQuestionResponse)
+                .collect(Collectors.toCollection(HashSet::new));
     }
 
     void isPermission(JobQuestion jobQuestion) {
@@ -124,4 +121,15 @@ public class JobQuestionServiceImpl implements JobQuestionService {
             }
         }
     }
+
+    Boolean isPermission(Job job) {
+        if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.RECRUITER)) {
+            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+            return recruiter.getCompany().getId().equals(job.getCompany().getId());
+        }
+        return true;
+    }
 }
+
+

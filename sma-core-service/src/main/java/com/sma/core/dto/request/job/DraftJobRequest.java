@@ -40,6 +40,6 @@ public class DraftJobRequest {
     private List<Integer> questionIds;
     private Set<AddJobScoringCriteriaRequest> scoringCriterias;
     private List<Integer> locationIds;
-
+    private Integer rootId;
 
 }

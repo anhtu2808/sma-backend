@@ -7,10 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Set;
+
 @Repository
 public interface JobQuestionRepository
         extends JpaRepository<JobQuestion, Integer>, JpaSpecificationExecutor<JobQuestion> {
     Page<JobQuestion> findByDeletedFalse(Pageable pageable);
 
     Page<JobQuestion> findByJobIdAndDeletedFalse(Integer jobId, Pageable pageable);
+
+    Set<JobQuestion> findByJob_IdAndDeletedFalse(Integer jobId);
+    Set<JobQuestion> findByJob_Id(Integer jobId);
 }

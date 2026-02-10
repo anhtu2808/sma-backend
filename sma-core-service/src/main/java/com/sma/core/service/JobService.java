@@ -12,7 +12,8 @@ public interface JobService {
 
     PagingResponse<BaseJobResponse> getAllJob(JobFilterRequest request);
 
-    PagingResponse<BaseJobResponse> getAllMySavedJob();
+    Boolean markJob(Integer jobId);
+    PagingResponse<BaseJobResponse> getAllMyFavoriteJob(Integer page, Integer size);
 
     JobDetailResponse getJobById(Integer id);
 
