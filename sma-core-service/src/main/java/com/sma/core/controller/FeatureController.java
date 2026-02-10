@@ -1,16 +1,22 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.request.feature.FeatureRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.feature.FeatureResponse;
 import com.sma.core.service.FeatureService;
+import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
@@ -27,6 +33,25 @@ public class FeatureController {
     public ApiResponse<List<FeatureResponse>> getAll(@RequestParam(required = false) Boolean onlyActive) {
         return ApiResponse.<List<FeatureResponse>>builder()
                 .data(featureService.getAllFeatures(onlyActive))
+                .build();
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ApiResponse<FeatureResponse> create(@RequestBody @Valid FeatureRequest request) {
+        return ApiResponse.<FeatureResponse>builder()
+                .data(featureService.createFeature(request))
+                .build();
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    public ApiResponse<FeatureResponse> update(
+            @PathVariable Integer id,
+            @RequestBody @Valid FeatureRequest request
+    ) {
+        return ApiResponse.<FeatureResponse>builder()
+                .data(featureService.updateFeature(id, request))
                 .build();
     }
 }

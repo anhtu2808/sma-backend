@@ -46,18 +46,31 @@ public class JobServiceImpl implements JobService {
     final ScoringCriteriaService scoringCriteriaService;
     final UserRepository userRepository;
     final JobMarkRepository jobMarkRepository;
+    final ApplicationRepository applicationRepository;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
         Job job = jobRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-        // handle restrict candidate access to SUSPENDED, DRAFT, PENDING REVIEW job
+
         Role role = JwtTokenProvider.getCurrentRole();
+        Integer currentCandidateId = JwtTokenProvider.getCurrentCandidateId();
         if (role == null || role.equals(Role.CANDIDATE)) {
             EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.PUBLISHED, JobStatus.CLOSED);
-            if (!allowedStatus.contains(job.getStatus()))
+            if (!allowedStatus.contains(job.getStatus())) {
                 throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
-            return jobMapper.toJobDetailResponse(job);
+            }
+            JobDetailResponse response = jobMapper.toJobDetailResponse(job);
+            if (currentCandidateId != null) {
+                long totalAttempts = applicationRepository.countByCandidateIdAndJobId(currentCandidateId, id);
+                response.setAppliedAttempt((int) totalAttempts);
+                applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(currentCandidateId, id)
+                        .ifPresent(lastApp -> {
+                            response.setLastApplicationStatus(lastApp.getStatus());
+                        });
+                response.setCanApply(totalAttempts < 2);
+            }
+            return response;
         }
         return jobMapper.toJobInternalResponse(job);
     }

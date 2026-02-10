@@ -11,13 +11,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UsageLimitRequest {
-    @NotNull(message = "Plan id is required")
-    Integer planId;
-
-    @NotNull(message = "Feature id is required")
-    Integer featureId;
-
+public class UsageLimitUpdateRequest {
     @NotNull(message = "Max quota is required")
     Integer maxQuota;
 

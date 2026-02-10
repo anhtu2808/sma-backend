@@ -1,6 +1,7 @@
 package com.sma.core.controller;
 
 import com.sma.core.dto.request.usagelimit.UsageLimitRequest;
+import com.sma.core.dto.request.usagelimit.UsageLimitUpdateRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.usagelimit.UsageLimitResponse;
 import com.sma.core.service.UsageLimitService;
@@ -14,41 +15,40 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/v1/plans")
+@RequestMapping("/v1/usage-limits")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UsageLimitController {
 
     UsageLimitService usageLimitService;
 
-    @PostMapping("/{planId}/usage-limits")
+    @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<UsageLimitResponse> addLimit(
-            @PathVariable Integer planId,
             @RequestBody @Valid UsageLimitRequest request
     ) {
         return ApiResponse.<UsageLimitResponse>builder()
-                .data(usageLimitService.addLimit(planId, request))
+                .data(usageLimitService.addLimit(request.getPlanId(), request))
                 .build();
     }
 
-    @PutMapping("/{planId}/usage-limits/{featureId}")
+    @PutMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<UsageLimitResponse> updateLimit(
-            @PathVariable Integer planId,
-            @PathVariable Integer featureId,
-            @RequestBody @Valid UsageLimitRequest request
+            @RequestParam Integer planId,
+            @RequestParam Integer featureId,
+            @RequestBody @Valid UsageLimitUpdateRequest request
     ) {
         return ApiResponse.<UsageLimitResponse>builder()
                 .data(usageLimitService.updateLimit(planId, featureId, request))
                 .build();
     }
 
-    @DeleteMapping("/{planId}/usage-limits/{featureId}")
+    @DeleteMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
     public ApiResponse<Void> deleteLimit(
-            @PathVariable Integer planId,
-            @PathVariable Integer featureId
+            @RequestParam Integer planId,
+            @RequestParam Integer featureId
     ) {
         usageLimitService.deleteLimit(planId, featureId);
         return ApiResponse.<Void>builder()
@@ -56,9 +56,9 @@ public class UsageLimitController {
                 .build();
     }
 
-    @GetMapping("/{planId}/usage-limits")
+    @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN')")
-    public ApiResponse<List<UsageLimitResponse>> getLimits(@PathVariable Integer planId) {
+    public ApiResponse<List<UsageLimitResponse>> getLimits(@RequestParam Integer planId) {
         return ApiResponse.<List<UsageLimitResponse>>builder()
                 .data(usageLimitService.getLimits(planId))
                 .build();

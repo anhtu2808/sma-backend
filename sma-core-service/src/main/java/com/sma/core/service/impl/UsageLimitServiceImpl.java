@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.usagelimit.UsageLimitRequest;
+import com.sma.core.dto.request.usagelimit.UsageLimitUpdateRequest;
 import com.sma.core.dto.response.usagelimit.UsageLimitResponse;
 import com.sma.core.entity.Feature;
 import com.sma.core.entity.Plan;
@@ -55,17 +56,12 @@ public class UsageLimitServiceImpl implements UsageLimitService {
     }
 
     @Override
-    public UsageLimitResponse updateLimit(Integer planId, Integer featureId, UsageLimitRequest request) {
+    public UsageLimitResponse updateLimit(Integer planId, Integer featureId, UsageLimitUpdateRequest request) {
         if (subscriptionRepository.existsByPlanId(planId)) {
             throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
         }
         UsageLimit limit = usageLimitRepository.findByPlanIdAndFeatureId(planId, featureId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-
-        if (!featureId.equals(request.getFeatureId())) {
-            throw new AppException(ErrorCode.BAD_REQUEST);
-        }
-
         usageLimitMapper.updateFromRequest(request, limit);
         return usageLimitMapper.toResponse(usageLimitRepository.save(limit));
     }
