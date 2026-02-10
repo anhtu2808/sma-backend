@@ -71,6 +71,8 @@ public enum ErrorCode {
     PLAN_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "Plan already exists"),
     PLAN_PRICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan price not found"),
     PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
+    FEATURE_KEY_EXISTS(HttpStatus.BAD_REQUEST, "Feature key already exists"),
+    FEATURE_NAME_EXISTS(HttpStatus.BAD_REQUEST, "Feature name already exists"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
