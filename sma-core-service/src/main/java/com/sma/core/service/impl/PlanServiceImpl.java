@@ -4,12 +4,10 @@ import com.sma.core.dto.request.plan.PlanCreateRequest;
 import com.sma.core.dto.request.plan.PlanUpdateRequest;
 import com.sma.core.dto.request.plan.PlanFilterRequest;
 import com.sma.core.dto.response.PagingResponse;
-import com.sma.core.dto.response.planprice.PlanPriceResponse;
 import com.sma.core.dto.response.plan.PlanResponse;
-import com.sma.core.dto.response.usagelimit.UsageLimitResponse;
+import com.sma.core.dto.response.planprice.PlanPriceResponse;
 import com.sma.core.entity.Plan;
 import com.sma.core.entity.PlanPrice;
-import com.sma.core.entity.UsageLimit;
 import com.sma.core.enums.PlanTarget;
 import com.sma.core.enums.PlanType;
 import com.sma.core.enums.Role;
@@ -20,7 +18,6 @@ import com.sma.core.mapper.plan.PlanPriceMapper;
 import com.sma.core.repository.PlanPriceRepository;
 import com.sma.core.repository.PlanRepository;
 import com.sma.core.repository.SubscriptionRepository;
-import com.sma.core.repository.UsageLimitRepository;
 import com.sma.core.service.PlanService;
 import com.sma.core.specification.PlanSpecification;
 import com.sma.core.utils.JwtTokenProvider;
@@ -44,7 +41,6 @@ public class PlanServiceImpl implements PlanService {
 
     PlanRepository planRepository;
     PlanPriceRepository planPriceRepository;
-    UsageLimitRepository usageLimitRepository;
     SubscriptionRepository subscriptionRepository;
     PlanMapper planMapper;
     PlanPriceMapper planPriceMapper;
@@ -134,8 +130,6 @@ public class PlanServiceImpl implements PlanService {
     private PlanResponse buildResponse(Plan plan) {
         PlanResponse response = planMapper.toResponse(plan);
         List<PlanPrice> prices = planPriceRepository.findAllByPlanId(plan.getId());
-        List<UsageLimit> limits = usageLimitRepository.findAllByPlanId(plan.getId());
-
         List<PlanPriceResponse> priceResponses = planPriceMapper.toResponses(prices);
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == null || role == Role.CANDIDATE || role == Role.RECRUITER) {
@@ -143,12 +137,7 @@ public class PlanServiceImpl implements PlanService {
                     .filter(pr -> Boolean.TRUE.equals(pr.getIsActive()))
                     .collect(Collectors.toList());
         }
-        List<UsageLimitResponse> limitResponses = limits.stream()
-                .map(planMapper::toUsageLimitResponse)
-                .collect(Collectors.toList());
-
         response.setPlanPrices(priceResponses);
-        response.setUsageLimits(limitResponses);
         return response;
     }
 }

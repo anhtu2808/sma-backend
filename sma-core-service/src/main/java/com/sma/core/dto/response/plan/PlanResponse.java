@@ -1,12 +1,11 @@
 package com.sma.core.dto.response.plan;
 
-import com.sma.core.dto.response.planprice.PlanPriceResponse;
-import com.sma.core.dto.response.usagelimit.UsageLimitResponse;
 import com.sma.core.enums.PlanTarget;
 import com.sma.core.enums.PlanType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import com.sma.core.dto.response.planprice.PlanPriceResponse;
 import java.util.List;
 
 @Getter
@@ -24,5 +23,4 @@ public class PlanResponse {
     String currency;
     Boolean isActive;
     List<PlanPriceResponse> planPrices;
-    List<UsageLimitResponse> usageLimits;
 }

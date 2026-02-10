@@ -10,8 +10,6 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface PlanMapper {
 
-    @Mapping(target = "planPrices", ignore = true)
-    @Mapping(target = "usageLimits", ignore = true)
     PlanResponse toResponse(Plan plan);
 
     @Mapping(target = "featureId", source = "feature.id")
