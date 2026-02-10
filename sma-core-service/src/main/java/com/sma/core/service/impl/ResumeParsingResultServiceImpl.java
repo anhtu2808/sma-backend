@@ -192,9 +192,9 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             resume.setIsDefault(isDefault);
         }
 
-        Boolean isOverrided = booleanValue(resumeNode.get("isOverrided"));
-        if (isOverrided != null) {
-            resume.setIsOverrided(isOverrided);
+        Boolean isDeleted = booleanValue(resumeNode.get("isDeleted"));
+        if (isDeleted != null) {
+            resume.setIsDeleted(isDeleted);
         }
     }
 

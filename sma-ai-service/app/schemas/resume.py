@@ -57,7 +57,7 @@ class Resume(BaseModel):
     status: Optional[ResumeStatus] = "ACTIVE"
     language: Optional[ResumeLanguage] = None
     isDefault: Optional[bool] = False
-    isOverrided: Optional[bool] = False
+    isDeleted: Optional[bool] = False
 
 
 class ResumeSkill(BaseModel):

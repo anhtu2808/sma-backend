@@ -68,6 +68,9 @@ public class CandidateServiceImpl implements CandidateService {
         Resume profileResume = resumeRepository
                 .findFirstByCandidate_IdAndTypeOrderByIdDesc(candidateId, ResumeType.PROFILE)
                 .orElse(null);
+        if (profileResume != null && Boolean.TRUE.equals(profileResume.getIsDeleted())) {
+            profileResume = null;
+        }
 
         ResumeDetailResponse profileResumeDetail = profileResume != null
                 ? resumeDetailMapper.toDetailResponse(profileResume)

@@ -19,13 +19,13 @@ import com.sma.core.repository.ApplicationRepository;
 import com.sma.core.repository.CandidateRepository;
 import com.sma.core.repository.ResumeRepository;
 import com.sma.core.service.ResumeService;
+import com.sma.core.service.ResumeCloneService;
 import com.sma.core.specification.ResumeSpecification;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +44,7 @@ public class ResumeServiceImpl implements ResumeService {
     final ResumeMapper resumeMapper;
     final ResumeDetailMapper resumeDetailMapper;
     final ResumeParsingRequestPublisher resumeParsingRequestPublisher;
+    final ResumeCloneService resumeCloneService;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,6 +61,9 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume;
         if (currentRole == Role.CANDIDATE) {
             resume = getOwnedResume(resumeId);
+            if (Boolean.TRUE.equals(resume.getIsDeleted())) {
+                throw new AppException(ErrorCode.RESUME_NOT_EXISTED);
+            }
         } else if (currentRole == Role.RECRUITER || currentRole == Role.ADMIN) {
             resume = resumeRepository.findById(resumeId)
                     .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
@@ -78,11 +82,9 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setRootResume(null);
         resume.setStatus(ResumeStatus.DRAFT);
         resume.setParseStatus(ResumeParseStatus.WAITING);
+        resume.setIsDeleted(Boolean.FALSE);
         if (resume.getIsDefault() == null) {
             resume.setIsDefault(Boolean.FALSE);
-        }
-        if (resume.getIsOverrided() == null) {
-            resume.setIsOverrided(Boolean.FALSE);
         }
 
         resume.setCandidate(candidate);
@@ -112,6 +114,35 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    public ResumeResponse cloneResume(Integer resumeId, ResumeType targetType) {
+        if (targetType == null) {
+            throw new AppException(ErrorCode.BAD_REQUEST);
+        }
+
+        Resume source = getOwnedResume(resumeId);
+        if (targetType == ResumeType.PROFILE && source.getType() == ResumeType.PROFILE) {
+            return resumeMapper.toResponse(source);
+        }
+
+        if (targetType == ResumeType.PROFILE) {
+            Resume existingProfile = resumeRepository
+                    .findFirstByCandidate_IdAndTypeOrderByIdDesc(source.getCandidate().getId(), ResumeType.PROFILE)
+                    .orElse(null);
+            if (existingProfile != null && !existingProfile.getId().equals(source.getId())) {
+                resumeRepository.delete(existingProfile);
+                resumeRepository.flush();
+            }
+        }
+
+        Resume clone = resumeMapper.cloneEntity(source, source, targetType);
+
+        resumeCloneService.cloneAll(source, clone);
+
+        Resume saved = resumeRepository.save(clone);
+        return resumeMapper.toResponse(saved);
+    }
+
+    @Override
     public ResumeResponse reparseResume(Integer resumeId) {
         Resume resume = getOwnedResume(resumeId);
         resume.setStatus(ResumeStatus.DRAFT);
@@ -135,6 +166,9 @@ public class ResumeServiceImpl implements ResumeService {
     @Override
     public String getResumeStatus(Integer resumeId) {
         Resume resume = getOwnedResume(resumeId);
+        if (Boolean.TRUE.equals(resume.getIsDeleted())) {
+            throw new AppException(ErrorCode.RESUME_NOT_EXISTED);
+        }
         if (resume.getStatus() == null) {
             return ResumeStatus.DRAFT.name();
         }
@@ -144,6 +178,9 @@ public class ResumeServiceImpl implements ResumeService {
     @Override
     public String getResumeParseStatus(Integer resumeId) {
         Resume resume = getOwnedResume(resumeId);
+        if (Boolean.TRUE.equals(resume.getIsDeleted())) {
+            throw new AppException(ErrorCode.RESUME_NOT_EXISTED);
+        }
         if (resume.getParseStatus() == null) {
             return ResumeParseStatus.WAITING.name();
         }
@@ -155,16 +192,13 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = getOwnedResume(resumeId);
 
         if (applicationRepository.existsByResume_Id(resumeId) || resumeRepository.existsByRootResume_Id(resumeId)) {
-            throw new AppException(ErrorCode.CANT_DELETE_RESUME_IN_USE);
+            resume.setIsDeleted(Boolean.TRUE);
+            resumeRepository.save(resume);
+            return;
         }
 
-        try {
-            resumeRepository.delete(resume);
-            resumeRepository.flush();
-        } catch (DataIntegrityViolationException ex) {
-            log.warn("Cannot delete resumeId={} due to FK constraints", resumeId, ex);
-            throw new AppException(ErrorCode.CANT_DELETE_RESUME_IN_USE);
-        }
+        resumeRepository.delete(resume);
+        resumeRepository.flush();
     }
 
     private Candidate getCurrentCandidate() {
@@ -183,4 +217,5 @@ public class ResumeServiceImpl implements ResumeService {
 
         return resume;
     }
+
 }
