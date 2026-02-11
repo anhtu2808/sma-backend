@@ -34,7 +34,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public String createSubscription(CreateSubscriptionRequest request) {
-        Subscription subscription = getSubscription(request.getPlanPriceId());
+        Subscription subscription = buildSubscription(request.getPlanPriceId());
         if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.CANDIDATE)){
             subscription = bindCandidate(subscription, JwtTokenProvider.getCurrentCandidateId());
         } else {
@@ -46,17 +46,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public String createSubscription(Integer targetId, CreateSubscriptionRequest request, Role role) {
-        Subscription subscription = getSubscription(request.getPlanPriceId());
+        Subscription subscription = buildSubscription(request.getPlanPriceId());
         if (role.equals(Role.CANDIDATE)){
             subscription = bindCandidate(subscription, targetId);
         } else {
             subscription = bindCompany(subscription, targetId);
         }
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscriptionRepository.save(subscription);
         return "";
     }
 
-    Subscription getSubscription(Integer planPriceId) {
+    Subscription buildSubscription(Integer planPriceId) {
         PlanPrice planPrice = planPriceRepository.findById(planPriceId)
                 .orElseThrow(() -> new AppException(ErrorCode.PLAN_PRICE_NOT_FOUND));
         LocalDateTime now = LocalDateTime.now();

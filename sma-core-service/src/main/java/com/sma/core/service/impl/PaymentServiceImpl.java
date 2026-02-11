@@ -48,7 +48,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(subscription.getPrice())
                 .subscription(subscription)
                 .paymentStatus(PaymentStatus.PENDING)
-                .currency("VND")
+                .currency(subscription.getPlan().getCurrency())
                 .build();
         long amount = subscription.getPrice()
                 .setScale(0, RoundingMode.HALF_UP)
