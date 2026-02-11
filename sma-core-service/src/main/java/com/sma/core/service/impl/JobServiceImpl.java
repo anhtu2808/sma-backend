@@ -47,6 +47,7 @@ public class JobServiceImpl implements JobService {
     final UserRepository userRepository;
     final JobMarkRepository jobMarkRepository;
     final ApplicationRepository applicationRepository;
+    final BannedKeywordServiceImpl bannedKeywordService;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -298,13 +299,24 @@ public class JobServiceImpl implements JobService {
             jobRepository.save(rootJob);
             job.setRootJob(rootJob);
         }
-        if (isSaved){
+        boolean hasViolation = bannedKeywordService.isContentViolated(job);
+        job.setIsViolated(hasViolation);
+
+        if (isSaved) {
             job.setStatus(JobStatus.DRAFT);
         } else {
-            job.setStatus(JobStatus.PENDING_REVIEW);
+            if (hasViolation) {
+                job.setStatus(JobStatus.PENDING_REVIEW);
+                log.info("Job ID {} flagged for violation, status set to PENDING_REVIEW", job.getId());
+            } else {
+                job.setStatus(JobStatus.PUBLISHED);
+                log.info("Job ID {} passed auto-moderation, status set to PUBLISHED", job.getId());
+            }
         }
+
         job.setCompany(recruiter.getCompany());
         job.setUploadTime(LocalDateTime.now());
+
         return jobRepository.save(job);
     }
 
