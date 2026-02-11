@@ -18,9 +18,11 @@ public class PlanResponse {
     Integer id;
     String name;
     String description;
+    String planDetails;
     PlanTarget planTarget;
     PlanType planType;
     String currency;
     Boolean isActive;
+    Boolean isPopular;
     List<PlanPriceResponse> planPrices;
 }

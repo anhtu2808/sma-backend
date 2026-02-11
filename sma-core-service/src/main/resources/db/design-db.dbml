@@ -615,10 +615,12 @@ Table Plans {
   id int [pk, increment]
   name varchar(100) [not null]
   description text
+  plan_details text
   plan_target enum('COMPANY', 'CANDIDATE') [not null]
   plan_type enum('ADDONS_FEATURE', 'ADDONS_QUOTA', 'MAIN') [not null]
   currency varchar(3) [not null, default: 'VND']
   is_active boolean [not null, default: true]
+  is_popular boolean [not null, default: false]
 }
 
 Table Plan_prices {
