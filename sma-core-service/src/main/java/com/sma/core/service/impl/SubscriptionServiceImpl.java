@@ -34,7 +34,30 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public String createSubscription(CreateSubscriptionRequest request) {
-        PlanPrice planPrice = planPriceRepository.findById(request.getPlanPriceId())
+        Subscription subscription = getSubscription(request.getPlanPriceId());
+        if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.CANDIDATE)){
+            subscription = bindCandidate(subscription, JwtTokenProvider.getCurrentCandidateId());
+        } else {
+            subscription = bindCompany(subscription, JwtTokenProvider.getCurrentRecruiterId());
+        }
+        subscriptionRepository.save(subscription);
+        return paymentService.createQR(subscription, PaymentMethod.SEPAY);
+    }
+
+    @Override
+    public String createSubscription(Integer targetId, CreateSubscriptionRequest request, Role role) {
+        Subscription subscription = getSubscription(request.getPlanPriceId());
+        if (role.equals(Role.CANDIDATE)){
+            subscription = bindCandidate(subscription, targetId);
+        } else {
+            subscription = bindCompany(subscription, targetId);
+        }
+        subscriptionRepository.save(subscription);
+        return "";
+    }
+
+    Subscription getSubscription(Integer planPriceId) {
+        PlanPrice planPrice = planPriceRepository.findById(planPriceId)
                 .orElseThrow(() -> new AppException(ErrorCode.PLAN_PRICE_NOT_FOUND));
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime endDate = switch (planPrice.getUnit()) {
@@ -42,26 +65,29 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             case YEAR -> now.plusYears(planPrice.getDuration());
         };
 
-        Subscription subscription = Subscription.builder()
+        return Subscription.builder()
                 .startDate(now)
                 .endDate(endDate)
                 .price(planPrice.getSalePrice())
                 .plan(planPrice.getPlan())
                 .status(SubscriptionStatus.PENDING_PAYMENT)
                 .build();
-        if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.CANDIDATE)){
-            Candidate candidate = candidateRepository
-                    .findById(JwtTokenProvider.getCurrentCandidateId())
-                    .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
-            subscription.setCandidate(candidate);
-        } else {
-            Company company = recruiterRepository
-                    .findById(JwtTokenProvider.getCurrentRecruiterId())
-                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED))
-                    .getCompany();
-            subscription.setCompany(company);
-        }
-        subscriptionRepository.save(subscription);
-        return paymentService.createQR(subscription, PaymentMethod.SEPAY);
+    }
+
+    Subscription bindCandidate(Subscription subscription, Integer candidateId){
+        Candidate candidate = candidateRepository
+                .findById(candidateId)
+                .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
+        subscription.setCandidate(candidate);
+        return subscription;
+    }
+
+    Subscription bindCompany(Subscription subscription, Integer recruiterId){
+        Company company = recruiterRepository
+                .findById(recruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED))
+                .getCompany();
+        subscription.setCompany(company);
+        return subscription;
     }
 }
