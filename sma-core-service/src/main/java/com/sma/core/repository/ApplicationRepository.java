@@ -32,6 +32,17 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
 
     Optional<Application> findTopByCandidate_IdAndJob_IdOrderByAttemptDesc(Integer candidateId, Integer jobId);
 
+    @EntityGraph(attributePaths = {
+            "resume",
+            "resume.candidate",
+            "resume.experiences.details.skills",
+            "resume.skillGroups.skills.skill",
+            "resume.evaluations.criteriaScores.scoringCriteria.criteria",
+            "resume.evaluations.gaps",
+            "resume.evaluations.weaknesses"
+    })
+    Optional<Application> findById(Integer id);
+
     @EntityGraph(attributePaths = {"resume", "resume.experiences", "resume.skillGroups", "resume.evaluations"})
     Page<Application> findAll(Specification<Application> spec, Pageable pageable);
 }

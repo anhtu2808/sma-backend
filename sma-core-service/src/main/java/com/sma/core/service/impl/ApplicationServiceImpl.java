@@ -3,14 +3,19 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.application.AnswerRequest;
 import com.sma.core.dto.request.application.ApplicationFilter;
 import com.sma.core.dto.request.application.ApplicationRequest;
+import com.sma.core.dto.response.application.ApplicationDetailResponse;
 import com.sma.core.dto.response.application.ApplicationListResponse;
 import com.sma.core.dto.response.application.ApplicationResponse;
+import com.sma.core.dto.response.resume.ResumeDetailResponse;
+import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.ApplicationStatus;
 import com.sma.core.enums.ResumeParseStatus;
+import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.ApplicationMapper;
+import com.sma.core.mapper.resume.ResumeDetailMapper;
 import com.sma.core.repository.*;
 import com.sma.core.service.ApplicationService;
 import com.sma.core.utils.JwtTokenProvider;
@@ -48,6 +53,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     CandidateRepository candidateRepository;
     ApplicationMapper applicationMapper;
     RecruiterRepository recruiterRepository;
+    ResumeDetailMapper resumeDetailMapper;
 
     @Override
     @Transactional
@@ -239,5 +245,64 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .matchLevel(evaluation != null ? evaluation.getMatchLevel() : null)
                 .aiSummary(evaluation != null ? evaluation.getSummary() : null)
                 .build();
+    }
+
+
+    @Override
+    public ApplicationDetailResponse getApplicationDetail(Integer applicationId) {
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
+
+        Role currentRole = JwtTokenProvider.getCurrentRole();
+        if (currentRole == Role.CANDIDATE) {
+            Integer currentCandidateId = JwtTokenProvider.getCurrentCandidateId();
+            if (!app.getCandidate().getId().equals(currentCandidateId)) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+            }
+        } else if (currentRole == Role.RECRUITER) {
+            validateRecruiterPermission(app.getJob().getId());
+        }
+        ResumeDetailResponse resumeDetail = resumeDetailMapper.toDetailResponse(app.getResume());
+        ApplicationDetailResponse.ApplicationDetailResponseBuilder responseBuilder = ApplicationDetailResponse.builder()
+                .applicationInfo(applicationMapper.toResponse(app))
+                .resumeDetail(resumeDetail);
+        if (currentRole == Role.RECRUITER) {
+            ResumeEvaluationResponse aiEvaluation = app.getResume().getEvaluations().stream()
+                    .filter(e -> e.getJob().getId().equals(app.getJob().getId()))
+                    .map(resumeDetailMapper::toResumeEvaluationResponse)
+                    .findFirst()
+                    .orElse(null);
+            responseBuilder.aiEvaluation(aiEvaluation);
+        }
+        return responseBuilder.build();
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(Integer applicationId, ApplicationStatus status, String rejectReason) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
+        validateRecruiterPermission(application.getJob().getId());
+        application.setStatus(status);
+        if (status == ApplicationStatus.NOT_SUITABLE || status == ApplicationStatus.AUTO_REJECTED) {
+            application.setRejectReason(rejectReason);
+        }
+
+        applicationRepository.save(application);
+        log.info("Application {} status updated to {} by Recruiter", applicationId, status);
+    }
+
+
+    private void validateRecruiterPermission(Integer jobId) {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
     }
 }

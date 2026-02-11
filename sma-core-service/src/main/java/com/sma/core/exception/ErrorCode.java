@@ -80,6 +80,7 @@ public enum ErrorCode {
     PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
     FEATURE_KEY_EXISTS(HttpStatus.BAD_REQUEST, "Feature key already exists"),
     FEATURE_NAME_EXISTS(HttpStatus.BAD_REQUEST, "Feature name already exists"),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"Application not found"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
