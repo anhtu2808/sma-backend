@@ -1,7 +1,9 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.application.AnswerRequest;
+import com.sma.core.dto.request.application.ApplicationFilter;
 import com.sma.core.dto.request.application.ApplicationRequest;
+import com.sma.core.dto.response.application.ApplicationListResponse;
 import com.sma.core.dto.response.application.ApplicationResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.ApplicationStatus;
@@ -9,21 +11,30 @@ import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.ApplicationMapper;
-import com.sma.core.repository.ApplicationRepository;
-import com.sma.core.repository.CandidateRepository;
-import com.sma.core.repository.JobRepository;
-import com.sma.core.repository.ResumeRepository;
+import com.sma.core.repository.*;
 import com.sma.core.service.ApplicationService;
+import com.sma.core.utils.JwtTokenProvider;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.ListJoin;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import jakarta.persistence.criteria.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +47,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     ResumeRepository resumeRepository;
     CandidateRepository candidateRepository;
     ApplicationMapper applicationMapper;
+    RecruiterRepository recruiterRepository;
 
     @Override
     @Transactional
@@ -137,5 +149,95 @@ public class ApplicationServiceImpl implements ApplicationService {
                 throw new AppException(ErrorCode.REQUIRED_QUESTION_NOT_ANSWERED);
             }
         }
+    }
+
+
+    @Override
+    public Page<ApplicationListResponse> getApplicationsForRecruiter(ApplicationFilter filter) {
+
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+
+        Recruiter currentRecruiter = recruiterRepository.findById(currentRecruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        Integer currentCompanyId = currentRecruiter.getCompany().getId();
+        Job job = jobRepository.findById(filter.getJobId())
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        if (!job.getCompany().getId().equals(currentCompanyId)) {
+            log.warn("Security Alert: Recruiter {} tried to access applications for Job {} belonging to another company",
+                    currentRecruiterId, filter.getJobId());
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+        Specification<Application> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            Join<Application, Resume> resumeJoin = root.join("resume", JoinType.LEFT);
+
+            predicates.add(cb.equal(root.get("job").get("id"), filter.getJobId()));
+
+            if (filter.getStatus() != null) {
+                predicates.add(cb.equal(root.get("status"), filter.getStatus()));
+            }
+
+            if (StringUtils.hasText(filter.getLocation())) {
+                predicates.add(cb.like(cb.lower(resumeJoin.get("addressInResume")),
+                        "%" + filter.getLocation().toLowerCase() + "%"));
+            }
+
+            if (filter.getSkills() != null && !filter.getSkills().isEmpty()) {
+                Join<Resume, ResumeSkillGroup> skillJoin = resumeJoin.join("skillGroups");
+                predicates.add(skillJoin.get("name").in(filter.getSkills()));
+            }
+
+            if (filter.getMatchLevel() != null) {
+                ListJoin<Resume, ResumeEvaluation> evalJoin = resumeJoin.joinList("evaluations");
+                predicates.add(cb.equal(evalJoin.get("job").get("id"), filter.getJobId()));
+                predicates.add(cb.equal(evalJoin.get("matchLevel"), filter.getMatchLevel()));
+            }
+            query.distinct(true);
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        Pageable pageable = PageRequest.of(filter.getPage(), filter.getSize(), Sort.by("appliedAt").descending());
+        return applicationRepository.findAll(spec, pageable).map(this::convertToResponse);
+    }
+
+    private ApplicationListResponse convertToResponse(Application app) {
+        Resume resume = app.getResume();
+        double totalYears = 0;
+
+        if (resume.getExperiences() != null) {
+            totalYears = resume.getExperiences().stream()
+                    .filter(exp -> exp.getStartDate() != null && exp.getEndDate() != null)
+                    .mapToDouble(exp -> {
+                        long days = java.time.temporal.ChronoUnit.DAYS.between(exp.getStartDate(), exp.getEndDate());
+                        return days / 365.0;
+                    })
+                    .sum();
+        }
+
+        ResumeEvaluation evaluation = resume.getEvaluations().stream()
+                .filter(e -> e.getJob().getId().equals(app.getJob().getId()))
+                .findFirst()
+                .orElse(null);
+
+        return ApplicationListResponse.builder()
+                .applicationId(app.getId())
+                .candidateName(app.getFullName())
+                .candidateEmail(app.getEmail())
+                .status(app.getStatus())
+                .appliedAt(app.getAppliedAt())
+                .resumeUrl(resume.getResumeUrl())
+                .location(resume.getAddressInResume())
+                .language(resume.getLanguage())
+                .totalExperienceYears(Math.round(totalYears * 10.0) / 10.0)
+                .topSkills(resume.getSkillGroups().stream()
+                        .flatMap(group -> group.getSkills().stream())
+                        .map(resumeSkill -> resumeSkill.getSkill().getName())
+                        .distinct()
+                        .limit(5)
+                        .collect(Collectors.toList()))
+                .aiScore(evaluation != null ? evaluation.getAiOverallScore() : null)
+                .matchLevel(evaluation != null ? evaluation.getMatchLevel() : null)
+                .aiSummary(evaluation != null ? evaluation.getSummary() : null)
+                .build();
     }
 }
