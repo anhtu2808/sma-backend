@@ -22,6 +22,8 @@ public enum ErrorCode {
     CAN_NOT_DRAFTED(HttpStatus.BAD_REQUEST, "Current job can not be drafted, please check job status"),
     INVALID_JOB_STATUS(HttpStatus.BAD_REQUEST, "Job status is invalid"),
     CANT_DELETE_RESUME_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete resume that is in use"),
+    EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
+    INVALID_SEPAY_CONTENT_FORMAT(HttpStatus.BAD_REQUEST, "Invalid sepay content format"),
 
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
@@ -33,13 +35,15 @@ public enum ErrorCode {
     REFRESH_TOKEN_EXPIRED(HttpStatus.FORBIDDEN, "Refresh token expired"),
     NOT_HAVE_PERMISSION(HttpStatus.FORBIDDEN, "You do not have permission to access this resource"),
     CAN_NOT_CHANGE_DIRECT_TO_PENDING(HttpStatus.FORBIDDEN, "You do not have permission to change job status to pending review directly"),
+    PAYMENT_TIME_EXPIRED(HttpStatus.FORBIDDEN, "Payment time expired"),
+    PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
+    CANDIDATE_CAN_NOT_LOGIN(HttpStatus.FORBIDDEN, "Candidate can not be logged in"),
 
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),
     ROLE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Role does not exist"),
     EMAIL_NOT_EXISTED(HttpStatus.NOT_FOUND, "Email does not exist"),
-    EMAIL_EXISTS(HttpStatus.NOT_FOUND, "Email already exists"),
     COMPANY_ALREADY_REGISTERED(HttpStatus.NOT_FOUND, "Company already registered"),
     TOKEN_NOT_EXISTED(HttpStatus.NOT_FOUND, "Token does not exist"),
     STATUS_ALREADY_FINALIZED(HttpStatus.NOT_FOUND, "Company status already finalized"),
@@ -73,15 +77,16 @@ public enum ErrorCode {
     RESUME_PARSE_FAILED(HttpStatus.BAD_REQUEST, "Your resume parsing failed, please upload a new resume to apply"),
     RESUME_STILL_PARSING(HttpStatus.BAD_REQUEST, "Your resume is still being parsed, please wait until the parsing is complete to apply"),
     RESUME_ALREADY_DELETED(HttpStatus.NOT_FOUND, "This resume has already been deleted"),
+    PACKAGE_NOT_EXIST(HttpStatus.NOT_FOUND, "Package does not exist"),
     PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan not found"),
     FEATURE_NOT_FOUND(HttpStatus.NOT_FOUND, "Feature not found"),
     PLAN_ALREADY_EXISTS(HttpStatus.NOT_FOUND, "Plan already exists"),
     PLAN_PRICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan price not found"),
-    PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
     FEATURE_KEY_EXISTS(HttpStatus.BAD_REQUEST, "Feature key already exists"),
     FEATURE_NAME_EXISTS(HttpStatus.BAD_REQUEST, "Feature name already exists"),
     APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"Application not found"),
-
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
+    
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

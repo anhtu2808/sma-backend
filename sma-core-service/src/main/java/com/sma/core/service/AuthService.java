@@ -12,6 +12,7 @@ public interface AuthService {
     AuthenticationResponse registerAsCandidate(RegisterRequest request);
     AuthenticationResponse login(LoginRequest request);
     AuthenticationResponse registerOrLogin(String idTokenString);
+    AuthenticationResponse loginWithGoogle(String idTokenString);
     Boolean logout(LogoutRequest request);
     AuthenticationResponse refreshToken(RefreshTokenRequest refreshToken);
 }

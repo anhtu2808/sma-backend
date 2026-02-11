@@ -1,7 +1,9 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.request.user.CreateRecruiterMemberRequest;
 import com.sma.core.dto.request.user.CreateUserRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.myinfo.RecruiterMyInfoResponse;
 import com.sma.core.dto.response.user.UserAdminResponse;
 import com.sma.core.dto.response.user.UserDetailResponse;
 import com.sma.core.enums.Role;
@@ -66,4 +68,6 @@ public class UserController {
                 .data(userService.createUser(request))
                 .build();
     }
+
+
 }
