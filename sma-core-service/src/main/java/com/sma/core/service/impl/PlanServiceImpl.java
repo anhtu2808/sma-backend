@@ -54,10 +54,12 @@ public class PlanServiceImpl implements PlanService {
         Plan plan = Plan.builder()
                 .name(request.getName())
                 .description(request.getDescription())
+                .planDetails(request.getPlanDetails())
                 .planTarget(request.getPlanTarget())
                 .planType(request.getPlanType())
                 .currency(normalizeCurrency(request.getCurrency()))
                 .isActive(false)
+                .isPopular(Boolean.TRUE.equals(request.getIsPopular()))
                 .build();
 
         plan = planRepository.save(plan);
@@ -78,9 +80,13 @@ public class PlanServiceImpl implements PlanService {
 
         plan.setName(request.getName());
         plan.setDescription(request.getDescription());
+        plan.setPlanDetails(request.getPlanDetails());
         plan.setPlanTarget(request.getPlanTarget());
         plan.setPlanType(request.getPlanType());
         plan.setCurrency(normalizeCurrency(request.getCurrency()));
+        if (request.getIsPopular() != null) {
+            plan.setIsPopular(request.getIsPopular());
+        }
 
         planRepository.save(plan);
         return buildResponse(plan);
@@ -102,6 +108,7 @@ public class PlanServiceImpl implements PlanService {
         PlanType resolvedPlanType = request.getPlanType();
         String resolvedName = request.getName();
         Boolean resolvedActive = request.getIsActive();
+        Boolean resolvedPopular = request.getIsPopular();
 
         if (role == null || role == Role.CANDIDATE) {
             resolvedTarget = PlanTarget.CANDIDATE;
@@ -115,7 +122,7 @@ public class PlanServiceImpl implements PlanService {
 
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         Page<Plan> plans = planRepository.findAll(
-                PlanSpecification.withFilter(resolvedName, resolvedTarget, resolvedPlanType, resolvedActive),
+                PlanSpecification.withFilter(resolvedName, resolvedTarget, resolvedPlanType, resolvedActive, resolvedPopular),
                 pageable
         );
 

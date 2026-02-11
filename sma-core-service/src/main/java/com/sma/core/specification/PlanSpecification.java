@@ -16,7 +16,8 @@ public class PlanSpecification {
             String name,
             PlanTarget planTarget,
             PlanType planType,
-            Boolean isActive
+            Boolean isActive,
+            Boolean isPopular
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -36,6 +37,10 @@ public class PlanSpecification {
 
             if (isActive != null) {
                 predicates.add(cb.equal(root.get("isActive"), isActive));
+            }
+
+            if (isPopular != null) {
+                predicates.add(cb.equal(root.get("isPopular"), isPopular));
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

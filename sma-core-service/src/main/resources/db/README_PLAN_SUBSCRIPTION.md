@@ -7,6 +7,8 @@ Mô hình mới thay thế hoàn toàn phần Package/Credit cũ bằng các b�
 1. **Plans**
    - Xác định đối tượng áp dụng (`plan_target`: `COMPANY` hoặc `CANDIDATE`)
    - Xác định loại gói (`plan_type`: `ADDONS_FEATURE`, `ADDONS_QUOTA`, `MAIN`)
+   - `plan_details`: nội dung chi tiết để hiển thị "What's included" (có thể lưu text/markdown theo convention FE)
+   - `is_popular`: cờ đánh dấu plan nổi bật để FE render badge "Popular"
    - Không lưu giá trực tiếp; giá nằm ở `plan_prices`
 
 2. **Plan_prices**

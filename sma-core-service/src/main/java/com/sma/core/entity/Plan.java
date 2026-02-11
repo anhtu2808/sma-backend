@@ -29,6 +29,9 @@ public class Plan {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "plan_details", columnDefinition = "TEXT")
+    private String planDetails;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "plan_target", nullable = false, columnDefinition = "plan_target_type")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
@@ -46,6 +49,10 @@ public class Plan {
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @Column(name = "is_popular", nullable = false)
+    @Builder.Default
+    private Boolean isPopular = false;
 
     @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PlanPrice> planPrices = new HashSet<>();

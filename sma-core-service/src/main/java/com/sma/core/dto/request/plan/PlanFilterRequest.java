@@ -16,6 +16,7 @@ public class PlanFilterRequest {
     PlanTarget planTarget;
     PlanType planType;
     Boolean isActive;
+    Boolean isPopular;
 
     @Builder.Default
     Integer page = 0;
