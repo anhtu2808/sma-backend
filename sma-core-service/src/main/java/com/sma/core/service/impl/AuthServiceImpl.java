@@ -124,6 +124,20 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    @Override
+    public AuthenticationResponse loginWithGoogle(String idTokenString) {
+        var googlePayload = verifyGoogleIdToken(idTokenString);
+        var email = googlePayload.getEmail();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.EMAIL_NOT_EXISTED));
+        if (user.getRole().equals(Role.CANDIDATE))
+            throw new AppException(ErrorCode.CANDIDATE_CAN_NOT_LOGIN);
+        return AuthenticationResponse.builder()
+                .accessToken(generateToken(user))
+                .refreshToken(generateRefreshToken(user))
+                .build();
+    }
+
     private GoogleIdToken.Payload verifyGoogleIdToken(String idTokenString) {
         try {
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(),
