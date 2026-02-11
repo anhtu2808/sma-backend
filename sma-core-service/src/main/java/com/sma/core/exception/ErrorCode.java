@@ -37,6 +37,8 @@ public enum ErrorCode {
     CAN_NOT_CHANGE_DIRECT_TO_PENDING(HttpStatus.FORBIDDEN, "You do not have permission to change job status to pending review directly"),
     PAYMENT_TIME_EXPIRED(HttpStatus.FORBIDDEN, "Payment time expired"),
     PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
+    CANDIDATE_CAN_NOT_LOGIN(HttpStatus.FORBIDDEN, "Candidate can not be logged in"),
+
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
     USER_NOT_EXISTED(HttpStatus.NOT_FOUND, "User does not exist"),

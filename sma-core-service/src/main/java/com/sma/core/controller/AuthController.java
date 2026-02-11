@@ -1,5 +1,6 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.request.auth.GoogleTokenRequest;
 import com.sma.core.dto.request.auth.LoginRequest;
 import com.sma.core.dto.request.auth.LogoutRequest;
 import com.sma.core.dto.request.auth.RefreshTokenRequest;
@@ -46,6 +47,14 @@ public class AuthController {
         return ApiResponse.<AuthenticationResponse>builder()
                 .message("Refresh token successfully")
                 .data(authService.refreshToken(request))
+                .build();
+    }
+
+    @PostMapping("/google-login")
+    public ApiResponse<AuthenticationResponse> loginWithGoogle(@RequestBody GoogleTokenRequest request) {
+        return ApiResponse.<AuthenticationResponse>builder()
+                .message("Login with google successfully")
+                .data(authService.loginWithGoogle(request.getIdToken()))
                 .build();
     }
 
