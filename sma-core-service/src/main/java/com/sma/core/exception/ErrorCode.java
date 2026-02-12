@@ -85,6 +85,12 @@ public enum ErrorCode {
     FEATURE_KEY_EXISTS(HttpStatus.BAD_REQUEST, "Feature key already exists"),
     FEATURE_NAME_EXISTS(HttpStatus.BAD_REQUEST, "Feature name already exists"),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
+    FEATURE_DISABLED(HttpStatus.FORBIDDEN, "Feature is disabled"),
+    FEATURE_NOT_INCLUDED(HttpStatus.FORBIDDEN, "Feature is not included in active subscription"),
+    FEATURE_QUOTA_EXCEEDED(HttpStatus.FORBIDDEN, "Feature quota exceeded"),
+    INVALID_FEATURE_USAGE_AMOUNT(HttpStatus.BAD_REQUEST, "Invalid feature usage amount"),
+    STATE_CHECKER_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "State checker not configured"),
+
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

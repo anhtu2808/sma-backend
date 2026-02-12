@@ -1,10 +1,12 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.annotation.CheckFeatureQuota;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Candidate;
+import com.sma.core.enums.FeatureKey;
 import com.sma.core.entity.Resume;
 import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
@@ -20,6 +22,7 @@ import com.sma.core.repository.CandidateRepository;
 import com.sma.core.repository.ResumeRepository;
 import com.sma.core.service.ResumeService;
 import com.sma.core.service.ResumeCloneService;
+import com.sma.core.service.quota.impl.CvUploadLimitStateChecker;
 import com.sma.core.specification.ResumeSpecification;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -74,6 +77,11 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    @CheckFeatureQuota(
+            featureKey = FeatureKey.CV_UPLOAD_LIMIT,
+            stateChecker = CvUploadLimitStateChecker.class
+    )
+    @CheckFeatureQuota(featureKey = FeatureKey.RESUME_PARSING)
     public ResumeResponse uploadResume(UploadResumeRequest request) {
         Resume resume = resumeMapper.toEntity(request);
         Candidate candidate = getCurrentCandidate();
@@ -143,6 +151,7 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    @CheckFeatureQuota(featureKey = FeatureKey.RESUME_PARSING)
     public ResumeResponse reparseResume(Integer resumeId) {
         Resume resume = getOwnedResume(resumeId);
         resume.setStatus(ResumeStatus.DRAFT);
