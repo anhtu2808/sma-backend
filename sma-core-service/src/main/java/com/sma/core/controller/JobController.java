@@ -140,4 +140,13 @@ public class JobController {
                 .build();
     }
 
+    @GetMapping("/my-jobs")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
+    public ApiResponse<PagingResponse<BaseJobResponse>> getMyCompanyJobs(@ParameterObject JobFilterRequest request) {
+        return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
+                .message("Get company jobs successfully")
+                .data(jobService.getJobsByCurrentCompany(request))
+                .build();
+    }
+
 }
