@@ -177,21 +177,25 @@ public class ApplicationServiceImpl implements ApplicationService {
         Specification<Application> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             Join<Application, Resume> resumeJoin = root.join("resume", JoinType.LEFT);
-
             predicates.add(cb.equal(root.get("job").get("id"), filter.getJobId()));
-
+            if (StringUtils.hasText(filter.getKeyword())) {
+                String keywordPattern = "%" + filter.getKeyword().toLowerCase() + "%";
+                Predicate nameLike = cb.like(cb.lower(root.get("fullName")), keywordPattern);
+                Predicate emailLike = cb.like(cb.lower(root.get("email")), keywordPattern);
+                predicates.add(cb.or(nameLike, emailLike));
+            }
             if (filter.getStatus() != null) {
                 predicates.add(cb.equal(root.get("status"), filter.getStatus()));
             }
-
             if (StringUtils.hasText(filter.getLocation())) {
                 predicates.add(cb.like(cb.lower(resumeJoin.get("addressInResume")),
                         "%" + filter.getLocation().toLowerCase() + "%"));
             }
-
             if (filter.getSkills() != null && !filter.getSkills().isEmpty()) {
-                Join<Resume, ResumeSkillGroup> skillJoin = resumeJoin.join("skillGroups");
-                predicates.add(skillJoin.get("name").in(filter.getSkills()));
+                Join<Resume, ResumeSkillGroup> skillGroupJoin = resumeJoin.join("skillGroups");
+                Join<ResumeSkillGroup, ResumeSkill> resumeSkillJoin = skillGroupJoin.join("skills");
+                Join<ResumeSkill, Skill> skillTableJoin = resumeSkillJoin.join("skill");
+                predicates.add(skillTableJoin.get("name").in(filter.getSkills()));
             }
 
             if (filter.getMatchLevel() != null) {
@@ -199,6 +203,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 predicates.add(cb.equal(evalJoin.get("job").get("id"), filter.getJobId()));
                 predicates.add(cb.equal(evalJoin.get("matchLevel"), filter.getMatchLevel()));
             }
+
             query.distinct(true);
             return cb.and(predicates.toArray(new Predicate[0]));
         };
@@ -279,17 +284,30 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional
-    public void updateStatus(Integer applicationId, ApplicationStatus status, String rejectReason) {
+    public void updateStatus(Integer applicationId, ApplicationStatus newStatus, String rejectReason) {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
+
         validateRecruiterPermission(application.getJob().getId());
-        application.setStatus(status);
-        if (status == ApplicationStatus.NOT_SUITABLE || status == ApplicationStatus.AUTO_REJECTED) {
+
+        ApplicationStatus currentStatus = application.getStatus();
+
+        if (currentStatus == ApplicationStatus.NOT_SUITABLE ||
+                currentStatus == ApplicationStatus.AUTO_REJECTED) {
+            throw new AppException(ErrorCode.APPLICATION_ALREADY_CLOSED);
+        }
+        if (newStatus != ApplicationStatus.NOT_SUITABLE && newStatus.ordinal() <= currentStatus.ordinal()) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
+        }
+        application.setStatus(newStatus);
+        if (newStatus == ApplicationStatus.NOT_SUITABLE || newStatus == ApplicationStatus.AUTO_REJECTED) {
             application.setRejectReason(rejectReason);
+        } else {
+            application.setRejectReason(null);
         }
 
         applicationRepository.save(application);
-        log.info("Application {} status updated to {} by Recruiter", applicationId, status);
+        log.info("Application {} updated from {} to {}", applicationId, currentStatus, newStatus);
     }
 
 
