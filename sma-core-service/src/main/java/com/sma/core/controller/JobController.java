@@ -1,9 +1,6 @@
 package com.sma.core.controller;
 
-import com.sma.core.dto.request.job.DraftJobRequest;
-import com.sma.core.dto.request.job.PublishJobRequest;
-import com.sma.core.dto.request.job.JobFilterRequest;
-import com.sma.core.dto.request.job.UpdateJobStatusRequest;
+import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.request.question.UpsertQuestionRequest;
 import com.sma.core.dto.request.question.JobQuestionFilterRequest;
 import com.sma.core.dto.response.ApiResponse;
@@ -146,6 +143,18 @@ public class JobController {
         return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
                 .message("Get company jobs successfully")
                 .data(jobService.getJobsByCurrentCompany(request))
+                .build();
+    }
+
+    @PatchMapping("/{id}/ai-settings")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
+    public ApiResponse<JobDetailResponse> updateAiSettings(
+            @PathVariable Integer id,
+            @RequestBody @Valid JobAiSettingsRequest request) {
+
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Update AI scoring settings successfully")
+                .data(jobService.updateAiSettings(id, request))
                 .build();
     }
 
