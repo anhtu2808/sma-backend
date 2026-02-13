@@ -1,4 +1,4 @@
-package com.sma.core.service.quota;
+package com.sma.core.dto.model;
 
 import com.sma.core.enums.Role;
 import lombok.Builder;

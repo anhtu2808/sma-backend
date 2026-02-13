@@ -1,7 +1,7 @@
 package com.sma.core.annotation;
 
 import com.sma.core.enums.FeatureKey;
-import com.sma.core.service.quota.NoopStateQuotaChecker;
+import com.sma.core.service.quota.impl.NoopStateQuotaChecker;
 import com.sma.core.service.quota.StateQuotaChecker;
 
 import java.lang.annotation.ElementType;

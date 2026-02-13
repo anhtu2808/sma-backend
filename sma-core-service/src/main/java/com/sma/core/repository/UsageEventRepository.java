@@ -12,20 +12,20 @@ import java.time.LocalDateTime;
 public interface UsageEventRepository extends JpaRepository<UsageEvent, Integer> {
 
     @Query("""
-            select coalesce(sum(ue.amount), 0)
-            from UsageEvent ue
-            where ue.subscription.id = :subscriptionId
-                and ue.feature.id = :featureId
+            SELECT COALESCE(SUM(ue.amount), 0)
+            FROM UsageEvent ue
+            WHERE ue.subscription.id = :subscriptionId
+                AND ue.feature.id = :featureId
             """)
     Long sumTotal(@Param("subscriptionId") Integer subscriptionId, @Param("featureId") Integer featureId);
 
     @Query("""
-            select coalesce(sum(ue.amount), 0)
-            from UsageEvent ue
-            where ue.subscription.id = :subscriptionId
-                and ue.feature.id = :featureId
-                and ue.createdAt >= :periodStart
-                and ue.createdAt < :periodEnd
+            SELECT COALESCE(SUM(ue.amount), 0)
+            FROM UsageEvent ue
+            WHERE ue.subscription.id = :subscriptionId
+                AND ue.feature.id = :featureId
+                AND ue.createdAt >= :periodStart
+                AND ue.createdAt < :periodEnd
             """)
     Long sumInPeriod(@Param("subscriptionId") Integer subscriptionId,
                      @Param("featureId") Integer featureId,

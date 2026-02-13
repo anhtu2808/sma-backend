@@ -13,7 +13,7 @@ import java.util.List;
 public interface ResumeSkillGroupRepository extends JpaRepository<ResumeSkillGroup, Integer> {
 
     @Modifying
-    @Query("delete from ResumeSkillGroup rsg where rsg.resume.id = :resumeId")
+    @Query("DELETE FROM ResumeSkillGroup rsg WHERE rsg.resume.id = :resumeId")
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
 
     @Query("""
@@ -26,6 +26,6 @@ public interface ResumeSkillGroupRepository extends JpaRepository<ResumeSkillGro
             """)
     List<ResumeSkillGroup> findByResumeIdAndNormalizedName(@Param("resumeId") Integer resumeId, @Param("name") String name);
 
-    @Query("select coalesce(max(rsg.orderIndex), 0) from ResumeSkillGroup rsg where rsg.resume.id = :resumeId")
+    @Query("SELECT COALESCE(MAX(rsg.orderIndex), 0) FROM ResumeSkillGroup rsg WHERE rsg.resume.id = :resumeId")
     Integer findMaxOrderIndexByResumeId(@Param("resumeId") Integer resumeId);
 }

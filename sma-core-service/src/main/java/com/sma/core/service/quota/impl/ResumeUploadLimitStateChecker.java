@@ -4,7 +4,7 @@ import com.sma.core.enums.ResumeType;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.repository.ResumeRepository;
-import com.sma.core.service.quota.QuotaOwnerContext;
+import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.service.quota.StateQuotaChecker;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class CvUploadLimitStateChecker implements StateQuotaChecker {
+public class ResumeUploadLimitStateChecker implements StateQuotaChecker {
 
     ResumeRepository resumeRepository;
 

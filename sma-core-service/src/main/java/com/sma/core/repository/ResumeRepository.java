@@ -17,11 +17,11 @@ public interface ResumeRepository extends JpaRepository<Resume, Integer>, JpaSpe
     Optional<Resume> findFirstByCandidate_IdAndTypeOrderByIdDesc(Integer candidateId, ResumeType type);
 
     @Query("""
-            select count(r)
-            from Resume r
-            where r.candidate.id = :candidateId
-                and r.type = :type
-                and (r.isDeleted = false or r.isDeleted is null)
+            SELECT COUNT(r)
+            FROM Resume r
+            WHERE r.candidate.id = :candidateId
+                AND r.type = :type
+                AND (r.isDeleted = false OR r.isDeleted IS NULL)
             """)
     long countActiveByCandidateIdAndType(@Param("candidateId") Integer candidateId, @Param("type") ResumeType type);
 }

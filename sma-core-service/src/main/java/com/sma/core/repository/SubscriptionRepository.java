@@ -18,36 +18,36 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
     boolean existsByPlanId(Integer planId);
 
     @Query("""
-            select s
-            from Subscription s
-            join fetch s.plan p
-            where s.candidate.id = :candidateId
-                and s.status = :status
-                and :now between s.startDate and s.endDate
-            order by
-                s.purchasedAt asc,
-                s.id asc
+            SELECT s
+            FROM Subscription s
+            JOIN FETCH s.plan p
+            WHERE s.candidate.id = :candidateId
+                AND s.status = :status
+                AND :now BETWEEN s.startDate AND s.endDate
+            ORDER BY
+                s.purchasedAt ASC,
+                s.id ASC
             """)
     List<Subscription> findEligibleByCandidateId(@Param("candidateId") Integer candidateId,
                                                  @Param("status") SubscriptionStatus status,
                                                  @Param("now") LocalDateTime now);
 
     @Query("""
-            select s
-            from Subscription s
-            join fetch s.plan p
-            where s.company.id = :companyId
-                and s.status = :status
-                and :now between s.startDate and s.endDate
-            order by
-                s.purchasedAt asc,
-                s.id asc
+            SELECT s
+            FROM Subscription s
+            JOIN FETCH s.plan p
+            WHERE s.company.id = :companyId
+                AND s.status = :status
+                AND :now BETWEEN s.startDate AND s.endDate
+            ORDER BY
+                s.purchasedAt ASC,
+                s.id ASC
             """)
     List<Subscription> findEligibleByCompanyId(@Param("companyId") Integer companyId,
                                                @Param("status") SubscriptionStatus status,
                                                @Param("now") LocalDateTime now);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select s from Subscription s where s.id = :subscriptionId")
+    @Query("SELECT s FROM Subscription s WHERE s.id = :subscriptionId")
     Optional<Subscription> lockById(@Param("subscriptionId") Integer subscriptionId);
 }

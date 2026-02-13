@@ -3,7 +3,7 @@ package com.sma.core.service;
 import com.sma.core.entity.Feature;
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.FeatureKey;
-import com.sma.core.service.quota.QuotaOwnerContext;
+import com.sma.core.dto.model.QuotaOwnerContext;
 
 import java.time.LocalDateTime;
 import java.util.List;

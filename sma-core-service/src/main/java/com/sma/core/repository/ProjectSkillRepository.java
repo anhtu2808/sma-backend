@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface ProjectSkillRepository extends JpaRepository<ProjectSkill, Integer> {
     @Modifying
-    @Query("delete from ProjectSkill ps where ps.project.resume.id = :resumeId")
+    @Query("DELETE FROM ProjectSkill ps WHERE ps.project.resume.id = :resumeId")
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
 
     Optional<ProjectSkill> findByIdAndProject_Resume_IdAndProject_Resume_Candidate_Id(Integer id, Integer resumeId, Integer candidateId);

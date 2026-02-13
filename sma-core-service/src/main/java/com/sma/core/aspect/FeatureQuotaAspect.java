@@ -7,8 +7,8 @@ import com.sma.core.enums.UsageType;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.service.FeatureQuotaRuntimeService;
-import com.sma.core.service.quota.NoopStateQuotaChecker;
-import com.sma.core.service.quota.QuotaOwnerContext;
+import com.sma.core.service.quota.impl.NoopStateQuotaChecker;
+import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.service.quota.StateQuotaChecker;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -50,19 +50,19 @@ public class FeatureQuotaAspect {
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = AopUtils.getMostSpecificMethod(signature.getMethod(), joinPoint.getTarget().getClass());
-        CheckFeatureQuota[] checks = method.getAnnotationsByType(CheckFeatureQuota.class);
-        if (checks.length == 0) {
+        CheckFeatureQuota[] quotaChecks = method.getAnnotationsByType(CheckFeatureQuota.class);
+        if (quotaChecks.length == 0) {
             return joinPoint.proceed();
         }
 
         QuotaOwnerContext ownerContext = featureQuotaRuntimeService.resolveOwnerContext();
         LocalDateTime now = LocalDateTime.now();
         List<Subscription> eligibleSubscriptions = featureQuotaRuntimeService.findEligibleSubscriptions(ownerContext, now);
-        EvaluationContext evaluationContext = buildEvaluationContext(joinPoint, method);
+        EvaluationContext spelContext = buildSpelContext(joinPoint, method);
 
-        List<FeatureQuotaRuntimeService.EventReservation> pendingReservations = new ArrayList<>();
+        List<FeatureQuotaRuntimeService.EventReservation> eventReservations = new ArrayList<>();
 
-        for (CheckFeatureQuota check : checks) {
+        for (CheckFeatureQuota check : quotaChecks) {
             Feature feature = featureQuotaRuntimeService.resolveActiveFeature(check.featureKey());
             UsageType usageType = feature.getUsageType();
             if (usageType == null) {
@@ -70,31 +70,31 @@ public class FeatureQuotaAspect {
             }
 
             switch (usageType) {
-                case BOOLEAN -> validateBooleanFeature(eligibleSubscriptions, feature.getId());
-                case STATE -> validateStateFeature(check, ownerContext, eligibleSubscriptions, feature, evaluationContext);
-                case EVENT -> pendingReservations.add(validateEventFeature(check, eligibleSubscriptions, feature, evaluationContext, now));
+                case BOOLEAN -> assertBooleanEntitlement(eligibleSubscriptions, feature.getId());
+                case STATE -> assertStateQuota(check, ownerContext, eligibleSubscriptions, feature, spelContext);
+                case EVENT -> eventReservations.add(reserveEventQuota(check, eligibleSubscriptions, feature, spelContext, now));
             }
         }
 
         Object result = joinPoint.proceed();
-        for (FeatureQuotaRuntimeService.EventReservation reservation : pendingReservations) {
+        for (FeatureQuotaRuntimeService.EventReservation reservation : eventReservations) {
             featureQuotaRuntimeService.saveUsageEvent(reservation);
         }
         return result;
     }
 
-    private void validateBooleanFeature(List<Subscription> subscriptions, Integer featureId) {
+    private void assertBooleanEntitlement(List<Subscription> subscriptions, Integer featureId) {
         boolean hasEntitlement = featureQuotaRuntimeService.hasBooleanEntitlement(subscriptions, featureId);
         if (!hasEntitlement) {
             throw new AppException(ErrorCode.FEATURE_NOT_INCLUDED);
         }
     }
 
-    private void validateStateFeature(CheckFeatureQuota check,
-                                      QuotaOwnerContext ownerContext,
-                                      List<Subscription> subscriptions,
-                                      Feature feature,
-                                      EvaluationContext evaluationContext) {
+    private void assertStateQuota(CheckFeatureQuota check,
+                                  QuotaOwnerContext ownerContext,
+                                  List<Subscription> subscriptions,
+                                  Feature feature,
+                                  EvaluationContext spelContext) {
         if (check.stateChecker() == NoopStateQuotaChecker.class) {
             throw new AppException(ErrorCode.STATE_CHECKER_NOT_CONFIGURED);
         }
@@ -104,27 +104,34 @@ public class FeatureQuotaAspect {
             throw new AppException(ErrorCode.FEATURE_NOT_INCLUDED);
         }
 
-        StateQuotaChecker stateQuotaChecker = resolveStateChecker(check.stateChecker());
-        Object stateInput = resolveStateInput(check, evaluationContext);
+        StateQuotaChecker stateQuotaChecker = getStateChecker(check.stateChecker());
+        Object stateInput = evaluateStateInput(check, spelContext);
         long currentUsage = stateQuotaChecker.getCurrentUsage(ownerContext, stateInput);
         if (currentUsage >= effectiveLimit) {
-            throw new AppException(ErrorCode.FEATURE_QUOTA_EXCEEDED);
+            throw buildQuotaExceeded(feature);
         }
     }
 
-    private FeatureQuotaRuntimeService.EventReservation validateEventFeature(CheckFeatureQuota check,
-                                                                             List<Subscription> subscriptions,
-                                                                             Feature feature,
-                                                                             EvaluationContext evaluationContext,
-                                                                             LocalDateTime now) {
-        int amount = resolveAmount(check.amountExpression(), evaluationContext);
+    private FeatureQuotaRuntimeService.EventReservation reserveEventQuota(CheckFeatureQuota check,
+                                                                          List<Subscription> subscriptions,
+                                                                          Feature feature,
+                                                                          EvaluationContext spelContext,
+                                                                          LocalDateTime now) {
+        int amount = evaluateAmount(check.amountExpression(), spelContext);
         if (amount <= 0) {
             throw new AppException(ErrorCode.INVALID_FEATURE_USAGE_AMOUNT);
         }
-        return featureQuotaRuntimeService.selectEventReservation(subscriptions, feature.getId(), amount, now);
+        try {
+            return featureQuotaRuntimeService.selectEventReservation(subscriptions, feature.getId(), amount, now);
+        } catch (AppException ex) {
+            if (ex.getErrorCode() == ErrorCode.FEATURE_QUOTA_EXCEEDED) {
+                throw buildQuotaExceeded(feature);
+            }
+            throw ex;
+        }
     }
 
-    private StateQuotaChecker resolveStateChecker(Class<? extends StateQuotaChecker> checkerClass) {
+    private StateQuotaChecker getStateChecker(Class<? extends StateQuotaChecker> checkerClass) {
         try {
             return applicationContext.getBean(checkerClass);
         } catch (Exception ex) {
@@ -132,17 +139,17 @@ public class FeatureQuotaAspect {
         }
     }
 
-    private Object resolveStateInput(CheckFeatureQuota check, EvaluationContext evaluationContext) {
+    private Object evaluateStateInput(CheckFeatureQuota check, EvaluationContext spelContext) {
         if (check.stateInputExpression() == null || check.stateInputExpression().isBlank()) {
             return null;
         }
-        return expressionParser.parseExpression(check.stateInputExpression()).getValue(evaluationContext);
+        return expressionParser.parseExpression(check.stateInputExpression()).getValue(spelContext);
     }
 
-    private int resolveAmount(String amountExpression, EvaluationContext evaluationContext) {
+    private int evaluateAmount(String amountExpression, EvaluationContext spelContext) {
         Object rawValue;
         try {
-            rawValue = expressionParser.parseExpression(amountExpression).getValue(evaluationContext);
+            rawValue = expressionParser.parseExpression(amountExpression).getValue(spelContext);
         } catch (Exception ex) {
             throw new AppException(ErrorCode.INVALID_FEATURE_USAGE_AMOUNT);
         }
@@ -160,7 +167,13 @@ public class FeatureQuotaAspect {
         }
     }
 
-    private EvaluationContext buildEvaluationContext(ProceedingJoinPoint joinPoint, Method method) {
+    private AppException buildQuotaExceeded(Feature feature) {
+        String featureName = feature != null && feature.getName() != null ? feature.getName() : "này";
+        String message = "Xin lỗi, bạn đã hết quota cho tính năng " + featureName;
+        return new AppException(ErrorCode.FEATURE_QUOTA_EXCEEDED, message);
+    }
+
+    private EvaluationContext buildSpelContext(ProceedingJoinPoint joinPoint, Method method) {
         StandardEvaluationContext context = new StandardEvaluationContext();
         Object[] args = joinPoint.getArgs();
         String[] parameterNames = parameterNameDiscoverer.getParameterNames(method);
