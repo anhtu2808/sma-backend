@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface ResumeCertificationRepository extends JpaRepository<ResumeCertification, Integer> {
     @Modifying
-    @Query("delete from ResumeCertification rc where rc.resume.id = :resumeId")
+    @Query("DELETE FROM ResumeCertification rc WHERE rc.resume.id = :resumeId")
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
 
     Optional<ResumeCertification> findByIdAndResume_IdAndResume_Candidate_Id(Integer id, Integer resumeId, Integer candidateId);

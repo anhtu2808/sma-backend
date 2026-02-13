@@ -12,11 +12,11 @@ import java.util.Optional;
 @Repository
 public interface ResumeExperienceDetailRepository extends JpaRepository<ResumeExperienceDetail, Integer> {
     @Modifying
-    @Query("delete from ResumeExperienceDetail red where red.experience.resume.id = :resumeId")
+    @Query("DELETE FROM ResumeExperienceDetail red WHERE red.experience.resume.id = :resumeId")
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
 
     Optional<ResumeExperienceDetail> findByIdAndExperience_Resume_IdAndExperience_Resume_Candidate_Id(Integer id, Integer resumeId, Integer candidateId);
 
-    @Query("select coalesce(max(red.orderIndex), 0) from ResumeExperienceDetail red where red.experience.id = :experienceId")
+    @Query("SELECT COALESCE(MAX(red.orderIndex), 0) FROM ResumeExperienceDetail red WHERE red.experience.id = :experienceId")
     Integer findMaxOrderIndexByExperienceId(@Param("experienceId") Integer experienceId);
 }

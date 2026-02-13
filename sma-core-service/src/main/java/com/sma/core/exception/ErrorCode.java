@@ -3,7 +3,6 @@ package com.sma.core.exception;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.NotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
@@ -86,6 +85,12 @@ public enum ErrorCode {
     FEATURE_NAME_EXISTS(HttpStatus.BAD_REQUEST, "Feature name already exists"),
     APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"Application not found"),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
+    FEATURE_DISABLED(HttpStatus.FORBIDDEN, "Feature is disabled"),
+    FEATURE_NOT_INCLUDED(HttpStatus.FORBIDDEN, "Feature is not included in active subscription"),
+    FEATURE_QUOTA_EXCEEDED(HttpStatus.FORBIDDEN, "Feature quota exceeded"),
+    INVALID_FEATURE_USAGE_AMOUNT(HttpStatus.BAD_REQUEST, "Invalid feature usage amount"),
+    STATE_CHECKER_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "State checker not configured"),
+
     APPLICATION_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "Application is already closed"),
     
     //500 - Server Error

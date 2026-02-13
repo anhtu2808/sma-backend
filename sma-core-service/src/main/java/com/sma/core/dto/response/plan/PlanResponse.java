@@ -24,5 +24,6 @@ public class PlanResponse {
     String currency;
     Boolean isActive;
     Boolean isPopular;
+    Boolean isCurrent;
     List<PlanPriceResponse> planPrices;
 }
