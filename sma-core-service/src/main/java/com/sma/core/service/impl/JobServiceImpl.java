@@ -320,4 +320,25 @@ public class JobServiceImpl implements JobService {
         return jobRepository.save(job);
     }
 
+    @Override
+    public PagingResponse<BaseJobResponse> getJobsByCurrentCompany(JobFilterRequest request) {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+        request.setCompanyId(recruiter.getCompany().getId());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+        EnumSet<JobStatus> allowedStatus;
+        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+            allowedStatus = request.getStatuses();
+        } else {
+            allowedStatus = EnumSet.noneOf(JobStatus.class);
+        }
+        Page<Job> jobPage = jobRepository.findAll(
+                JobSpecification.withFilter(request, allowedStatus, null),
+                pageable
+        );
+
+        return PagingResponse.fromPage(jobPage.map(jobMapper::toBaseJobResponse));
+    }
 }

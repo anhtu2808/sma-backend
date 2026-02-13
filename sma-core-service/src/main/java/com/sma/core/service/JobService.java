@@ -23,4 +23,5 @@ public interface JobService {
     JobDetailResponse saveExistingJob(Integer id, DraftJobRequest request);
     JobDetailResponse publishExistingJob(Integer id, PublishJobRequest request);
     JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request);
+    PagingResponse<BaseJobResponse> getJobsByCurrentCompany(JobFilterRequest request);
 }

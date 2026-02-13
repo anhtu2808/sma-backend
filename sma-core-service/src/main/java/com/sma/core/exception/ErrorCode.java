@@ -3,7 +3,6 @@ package com.sma.core.exception;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.NotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 
@@ -54,28 +53,28 @@ public enum ErrorCode {
     RESUME_NOT_EXISTED(HttpStatus.NOT_FOUND, "Resume does not exist"),
     CANDIDATE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Candidate does not exist"),
     RECRUITER_NOT_EXISTED(HttpStatus.NOT_FOUND, "Recruiter does not exist"),
-    DOMAIN_ALREADY_EXISTED(HttpStatus.NOT_FOUND, "Domain already existed"),
+    DOMAIN_ALREADY_EXISTED(HttpStatus.BAD_REQUEST, "Domain already existed"),
     DOMAIN_NOT_FOUND(HttpStatus.NOT_FOUND, "Domain not found"),
     CANT_DELETE_DOMAIN_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete domain that is in use"),
-    CATEGORY_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Category already existed"),
-    CANT_DELETE_CATEGORY_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete category that is in use"),
-    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "Category not found"),
-    SKILL_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Skill already existed"),
-    CANT_DELETE_SKILL_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete skill that is in use"),
-    GROUP_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise group already existed"),
+    CATEGORY_ALREADY_EXITED(HttpStatus.BAD_REQUEST, "Category already existed"),
+    CANT_DELETE_CATEGORY_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete category that is in use"),
+    CATEGORY_NOT_FOUND(HttpStatus.BAD_REQUEST, "Category not found"),
+    SKILL_ALREADY_EXITED(HttpStatus.BAD_REQUEST, "Skill already existed"),
+    CANT_DELETE_SKILL_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete skill that is in use"),
+    GROUP_ALREADY_EXITED(HttpStatus.BAD_REQUEST, "Expertise group already existed"),
     EXPERTISE_GROUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Expertise group not found"),
-    CANT_DELETE_EXPERTISE_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise that is in use"),
-    EXPERTISE_ALREADY_EXITED(HttpStatus.NOT_FOUND, "Expertise already existed"),
-    EXPERTISE_GROUP_IN_USE(HttpStatus.NOT_FOUND, "Cannot delete expertise group that is in use"),
+    CANT_DELETE_EXPERTISE_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete expertise that is in use"),
+    EXPERTISE_ALREADY_EXITED(HttpStatus.BAD_REQUEST, "Expertise already existed"),
+    EXPERTISE_GROUP_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete expertise group that is in use"),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "User not found"),
     CRITERIA_NOT_EXISTED(HttpStatus.NOT_FOUND, "Criteria does not exist"),
     JOB_QUESTION_NOT_EXIST(HttpStatus.NOT_FOUND, "Job question does not exist"),
-    ALREADY_REJECTED_FOR_THIS_JOB(HttpStatus.NOT_FOUND, "You have already been rejected for this job"),
-    MAX_APPLY_ATTEMPTS_REACHED (HttpStatus.NOT_FOUND, "You have reached the maximum number of application attempts for this job"),
-    CANNOT_REAPPLY_AFTER_PROCESSING (HttpStatus.NOT_FOUND, "You cannot reapply for this job after your previous application has been processed"),
-    REQUIRED_QUESTION_NOT_ANSWERED (HttpStatus.NOT_FOUND, "You must answer all required questions for this job"),
-    RESUME_PARSE_FAILED(HttpStatus.NOT_FOUND, "Your resume parsing failed, please upload a new resume to apply"),
-    RESUME_STILL_PARSING(HttpStatus.NOT_FOUND, "Your resume is still being parsed, please wait until the parsing is complete to apply"),
+    ALREADY_REJECTED_FOR_THIS_JOB(HttpStatus.BAD_REQUEST, "You have already been rejected for this job"),
+    MAX_APPLY_ATTEMPTS_REACHED (HttpStatus.BAD_REQUEST, "You have reached the maximum number of application attempts for this job"),
+    CANNOT_REAPPLY_AFTER_PROCESSING (HttpStatus.BAD_REQUEST, "You cannot reapply for this job after your previous application has been processed"),
+    REQUIRED_QUESTION_NOT_ANSWERED (HttpStatus.BAD_REQUEST, "You must answer all required questions for this job"),
+    RESUME_PARSE_FAILED(HttpStatus.BAD_REQUEST, "Your resume parsing failed, please upload a new resume to apply"),
+    RESUME_STILL_PARSING(HttpStatus.BAD_REQUEST, "Your resume is still being parsed, please wait until the parsing is complete to apply"),
     RESUME_ALREADY_DELETED(HttpStatus.NOT_FOUND, "This resume has already been deleted"),
     PACKAGE_NOT_EXIST(HttpStatus.NOT_FOUND, "Package does not exist"),
     PLAN_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan not found"),
@@ -84,6 +83,7 @@ public enum ErrorCode {
     PLAN_PRICE_NOT_FOUND(HttpStatus.NOT_FOUND, "Plan price not found"),
     FEATURE_KEY_EXISTS(HttpStatus.BAD_REQUEST, "Feature key already exists"),
     FEATURE_NAME_EXISTS(HttpStatus.BAD_REQUEST, "Feature name already exists"),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND,"Application not found"),
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Payment not found"),
     FEATURE_DISABLED(HttpStatus.FORBIDDEN, "Feature is disabled"),
     FEATURE_NOT_INCLUDED(HttpStatus.FORBIDDEN, "Feature is not included in active subscription"),
@@ -91,6 +91,8 @@ public enum ErrorCode {
     INVALID_FEATURE_USAGE_AMOUNT(HttpStatus.BAD_REQUEST, "Invalid feature usage amount"),
     STATE_CHECKER_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "State checker not configured"),
 
+    APPLICATION_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "Application is already closed"),
+    
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 
