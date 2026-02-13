@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class RecruiterShortResponse {
     Integer id;
+    Integer userId;
     String avatar;
     String fullName;
     String email;

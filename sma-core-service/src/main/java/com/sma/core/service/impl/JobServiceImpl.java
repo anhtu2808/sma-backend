@@ -138,50 +138,51 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Transactional
     public JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request) {
-        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
-                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-        Job job = jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-        boolean sameCompany =
-                recruiter.getCompany().getId().equals(job.getCompany().getId());
-        boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
-        if (!sameCompany || !isRoot) {
-            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-        }
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-        JobStatus currentStatus = job.getStatus();
-        JobStatus targetStatus = request.getJobStatus();
-        if (role != Role.ADMIN) {
-            if (targetStatus == JobStatus.PUBLISHED
-                    || targetStatus == JobStatus.SUSPENDED) {
-                throw new AppException(ErrorCode.UNAUTHORIZED);
+
+        if (role == Role.RECRUITER) {
+            Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+            Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+            boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
+            boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
+
+            if (!sameCompany || !isRoot) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+            }
+            if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
         }
+        JobStatus currentStatus = job.getStatus();
+        JobStatus targetStatus = request.getJobStatus();
+
         switch (targetStatus) {
             case CLOSED -> {
-                if (currentStatus != JobStatus.PUBLISHED) {
-                    throw new AppException(ErrorCode.CAN_NOT_CLOSED);
-                }
+                if (currentStatus != JobStatus.PUBLISHED) throw new AppException(ErrorCode.CAN_NOT_CLOSED);
                 job.setStatus(JobStatus.CLOSED);
             }
             case DRAFT -> {
-                if (currentStatus != JobStatus.PENDING_REVIEW
-                        && currentStatus != JobStatus.CLOSED) {
+                if (currentStatus != JobStatus.PENDING_REVIEW && currentStatus != JobStatus.CLOSED)
                     throw new AppException(ErrorCode.CAN_NOT_DRAFTED);
-                }
                 job.setStatus(JobStatus.DRAFT);
             }
             case PUBLISHED, SUSPENDED -> {
                 job.setStatus(targetStatus);
             }
-            case PENDING_REVIEW -> {
-                throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
-            }
+            case PENDING_REVIEW -> throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
             default -> throw new AppException(ErrorCode.INVALID_JOB_STATUS);
         }
+
         jobRepository.save(job);
         return jobMapper.toJobDetailResponse(job);
     }
