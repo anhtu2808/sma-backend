@@ -7,6 +7,7 @@ import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.Role;
+import com.sma.core.enums.SubscriptionStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.job.JobMapper;
@@ -48,6 +49,8 @@ public class JobServiceImpl implements JobService {
     final JobMarkRepository jobMarkRepository;
     final ApplicationRepository applicationRepository;
     final BannedKeywordServiceImpl bannedKeywordService;
+    final SubscriptionRepository subscriptionRepository;
+    final UsageEventRepository usageEventRepository;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -266,6 +269,10 @@ public class JobServiceImpl implements JobService {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
         }
+
+        job.setCompany(recruiter.getCompany());
+        job.setUploadTime(LocalDateTime.now());
+
         if (expertiseId != null) {
             job.setExpertise(jobExpertiseRepository.getReferenceById(expertiseId));
         }
@@ -293,6 +300,11 @@ public class JobServiceImpl implements JobService {
             job.setScoringCriterias(scoringCriteriaService
                     .saveJobScoringCriteria(job, scoringCriteriaRequests));
         }
+
+        if (!isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
+            validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
+        }
+
         if (rootId != null) {
             Job rootJob = jobRepository.findById(rootId)
                     .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
@@ -315,9 +327,7 @@ public class JobServiceImpl implements JobService {
             }
         }
 
-        job.setCompany(recruiter.getCompany());
         job.setUploadTime(LocalDateTime.now());
-
         return jobRepository.save(job);
     }
 
@@ -341,5 +351,75 @@ public class JobServiceImpl implements JobService {
         );
 
         return PagingResponse.fromPage(jobPage.map(jobMapper::toBaseJobResponse));
+    }
+
+
+    @Override
+    @Transactional
+    public JobDetailResponse updateAiSettings(Integer jobId, JobAiSettingsRequest request) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        verifyPermission(job);
+        validateAndCheckAiQuota(job, request.getEnableAiScoring(), request.getAutoRejectThreshold());
+        job.setEnableAiScoring(request.getEnableAiScoring());
+        job.setAutoRejectThreshold(request.getAutoRejectThreshold());
+        return jobMapper.toJobInternalResponse(jobRepository.save(job));
+    }
+
+    private void verifyPermission(Job job) {
+        Role role = JwtTokenProvider.getCurrentRole();
+        if (role == Role.ADMIN) return;
+
+        if (role == Role.RECRUITER) {
+            Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+            Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+            if (!recruiter.getCompany().getId().equals(job.getCompany().getId())) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+            }
+        } else {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    private void validateAndCheckAiQuota(Job job, Boolean enableAiScoring, Double threshold) {
+        if (Boolean.TRUE.equals(enableAiScoring)) {
+            if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) {
+                throw new AppException(ErrorCode.MISSING_SCORING_CRITERIA);
+            }
+
+            double totalWeight = job.getScoringCriterias().stream()
+                    .mapToDouble(ScoringCriteria::getWeight)
+                    .sum();
+
+            if (Math.abs(totalWeight - 100.0) > 0.001) {
+                throw new AppException(ErrorCode.INVALID_SCORING_WEIGHT);
+            }
+            List<Subscription> activeSubs = subscriptionRepository.findEligibleByCompanyId(
+                    job.getCompany().getId(),
+                    SubscriptionStatus.ACTIVE,
+                    LocalDateTime.now()
+            );
+
+            if (activeSubs.isEmpty()) {
+                throw new AppException(ErrorCode.NO_ACTIVE_SUBSCRIPTION);
+            }
+
+            Subscription sub = activeSubs.get(0);
+            String AI_FEATURE_KEY = "AI_SCORING";
+
+            UsageLimit aiLimit = sub.getPlan().getUsageLimits().stream()
+                    .filter(limit -> limit.getFeature().getFeatureKey().equals(AI_FEATURE_KEY))
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_SUPPORTED));
+
+            Long usedAmount = usageEventRepository.sumTotal(sub.getId(), aiLimit.getFeature().getId());
+
+            if (usedAmount >= aiLimit.getMaxQuota()) {
+                throw new AppException(ErrorCode.AI_QUOTA_EXHAUSTED);
+            }
+        }
     }
 }

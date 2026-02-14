@@ -90,8 +90,13 @@ public enum ErrorCode {
     FEATURE_QUOTA_EXCEEDED(HttpStatus.FORBIDDEN, "Feature quota exceeded"),
     INVALID_FEATURE_USAGE_AMOUNT(HttpStatus.BAD_REQUEST, "Invalid feature usage amount"),
     STATE_CHECKER_NOT_CONFIGURED(HttpStatus.INTERNAL_SERVER_ERROR, "State checker not configured"),
-
+    INVALID_SCORING_WEIGHT(HttpStatus.BAD_REQUEST, "Invalid scoring weight"),
     APPLICATION_ALREADY_CLOSED(HttpStatus.BAD_REQUEST, "Application is already closed"),
+    NO_ACTIVE_SUBSCRIPTION(HttpStatus.BAD_REQUEST, "No active subscription"),
+    FEATURE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "Feature not supported for this plan"),
+    AI_QUOTA_EXHAUSTED(HttpStatus.BAD_REQUEST, "AI quota exhausted"),
+    MISSING_SCORING_CRITERIA(HttpStatus.BAD_REQUEST, "Missing scoring criteria"),
+
     
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
