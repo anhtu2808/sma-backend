@@ -58,16 +58,10 @@ public class PlanServiceImpl implements PlanService {
             throw new AppException(ErrorCode.PLAN_ALREADY_EXISTS);
         }
 
-        Plan plan = Plan.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .planDetails(request.getPlanDetails())
-                .planTarget(request.getPlanTarget())
-                .planType(request.getPlanType())
-                .currency(normalizeCurrency(request.getCurrency()))
-                .isActive(false)
-                .isPopular(Boolean.TRUE.equals(request.getIsPopular()))
-                .build();
+        Plan plan = planMapper.toEntity(request);
+        plan.setCurrency(normalizeCurrency(request.getCurrency()));
+        plan.setIsActive(false);
+        plan.setIsPopular(Boolean.TRUE.equals(request.getIsPopular()));
 
         plan = planRepository.save(plan);
 
@@ -85,12 +79,11 @@ public class PlanServiceImpl implements PlanService {
             throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
         }
 
-        plan.setName(request.getName());
-        plan.setDescription(request.getDescription());
-        plan.setPlanDetails(request.getPlanDetails());
-        plan.setPlanTarget(request.getPlanTarget());
-        plan.setPlanType(request.getPlanType());
+        planMapper.updateFromRequest(request, plan);
         plan.setCurrency(normalizeCurrency(request.getCurrency()));
+        if (request.getIsActive() != null) {
+            plan.setIsActive(request.getIsActive());
+        }
         if (request.getIsPopular() != null) {
             plan.setIsPopular(request.getIsPopular());
         }
