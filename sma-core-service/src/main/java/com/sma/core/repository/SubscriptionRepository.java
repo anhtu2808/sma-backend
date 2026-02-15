@@ -1,10 +1,12 @@
 package com.sma.core.repository;
 
 import com.sma.core.entity.Subscription;
+import com.sma.core.enums.PlanType;
 import com.sma.core.enums.SubscriptionStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,6 +48,52 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
     List<Subscription> findEligibleByCompanyId(@Param("companyId") Integer companyId,
                                                @Param("status") SubscriptionStatus status,
                                                @Param("now") LocalDateTime now);
+
+    boolean existsByCandidateIdAndStatusAndPlan_PlanTypeAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            Integer candidateId,
+            SubscriptionStatus status,
+            PlanType planType,
+            LocalDateTime startDate,
+            LocalDateTime endDate
+    );
+
+    @Modifying
+    @Query("""
+            UPDATE Subscription s
+            SET s.status = :expiredStatus,
+                s.endDate = :endDate
+            WHERE s.candidate.id = :candidateId
+              AND s.status = :activeStatus
+              AND s.plan.planType = :planType
+              AND :now BETWEEN s.startDate AND s.endDate
+              AND (:excludeId IS NULL OR s.id <> :excludeId)
+            """)
+    int expireActiveMainByCandidateId(@Param("candidateId") Integer candidateId,
+                                      @Param("activeStatus") SubscriptionStatus activeStatus,
+                                      @Param("expiredStatus") SubscriptionStatus expiredStatus,
+                                      @Param("planType") PlanType planType,
+                                      @Param("now") LocalDateTime now,
+                                      @Param("endDate") LocalDateTime endDate,
+                                      @Param("excludeId") Integer excludeId);
+
+    @Modifying
+    @Query("""
+            UPDATE Subscription s
+            SET s.status = :expiredStatus,
+                s.endDate = :endDate
+            WHERE s.company.id = :companyId
+              AND s.status = :activeStatus
+              AND s.plan.planType = :planType
+              AND :now BETWEEN s.startDate AND s.endDate
+              AND (:excludeId IS NULL OR s.id <> :excludeId)
+            """)
+    int expireActiveMainByCompanyId(@Param("companyId") Integer companyId,
+                                    @Param("activeStatus") SubscriptionStatus activeStatus,
+                                    @Param("expiredStatus") SubscriptionStatus expiredStatus,
+                                    @Param("planType") PlanType planType,
+                                    @Param("now") LocalDateTime now,
+                                    @Param("endDate") LocalDateTime endDate,
+                                    @Param("excludeId") Integer excludeId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM Subscription s WHERE s.id = :subscriptionId")

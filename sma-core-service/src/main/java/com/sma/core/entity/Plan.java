@@ -54,6 +54,10 @@ public class Plan {
     @Builder.Default
     private Boolean isPopular = false;
 
+    @Column(name = "is_default", nullable = false)
+    @Builder.Default
+    private Boolean isDefault = false;
+
     @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PlanPrice> planPrices = new HashSet<>();
 

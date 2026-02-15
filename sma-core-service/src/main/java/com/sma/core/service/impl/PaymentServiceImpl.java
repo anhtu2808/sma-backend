@@ -5,10 +5,12 @@ import com.sma.core.entity.PaymentHistory;
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.PaymentMethod;
 import com.sma.core.enums.PaymentStatus;
+import com.sma.core.enums.PlanType;
 import com.sma.core.enums.SubscriptionStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.repository.PaymentRepository;
+import com.sma.core.repository.SubscriptionRepository;
 import com.sma.core.service.PaymentService;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -18,6 +20,7 @@ import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,6 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
     String sePayBank;
 
     final PaymentRepository paymentRepository;
+    final SubscriptionRepository subscriptionRepository;
 
     @Override
     public String createQR(Subscription subscription, PaymentMethod method) {
@@ -65,6 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public Boolean confirm(String authorization, SePayWebhookRequest request) {
         if (!sePayApiKey.equals(authorization)) {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
@@ -93,6 +98,30 @@ public class PaymentServiceImpl implements PaymentService {
         Subscription subscription = paymentHistory.getSubscription();
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setPurchasedAt(request.getTransactionDate());
+        if (subscription.getPlan() != null && subscription.getPlan().getPlanType() == PlanType.MAIN) {
+            LocalDateTime now = request.getTransactionDate();
+            if (subscription.getCandidate() != null) {
+                subscriptionRepository.expireActiveMainByCandidateId(
+                        subscription.getCandidate().getId(),
+                        SubscriptionStatus.ACTIVE,
+                        SubscriptionStatus.EXPIRED,
+                        PlanType.MAIN,
+                        now,
+                        now,
+                        subscription.getId()
+                );
+            } else if (subscription.getCompany() != null) {
+                subscriptionRepository.expireActiveMainByCompanyId(
+                        subscription.getCompany().getId(),
+                        SubscriptionStatus.ACTIVE,
+                        SubscriptionStatus.EXPIRED,
+                        PlanType.MAIN,
+                        now,
+                        now,
+                        subscription.getId()
+                );
+            }
+        }
         paymentRepository.save(paymentHistory);
         return true;
     }
