@@ -62,8 +62,12 @@ public class PlanServiceImpl implements PlanService {
         plan.setCurrency(normalizeCurrency(request.getCurrency()));
         plan.setIsActive(false);
         plan.setIsPopular(Boolean.TRUE.equals(request.getIsPopular()));
+        plan.setIsDefault(Boolean.TRUE.equals(request.getIsDefault()));
 
         plan = planRepository.save(plan);
+        if (Boolean.TRUE.equals(plan.getIsDefault())) {
+            planRepository.clearDefaultByTarget(plan.getPlanTarget(), plan.getId());
+        }
 
         return buildResponse(plan, null, null);
     }
@@ -76,7 +80,17 @@ public class PlanServiceImpl implements PlanService {
         boolean hasSubscription = subscriptionRepository.existsByPlanId(id);
 
         if (hasSubscription) {
-            throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
+            if (!isUpdateOnlyDefault(plan, request)) {
+                throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
+            }
+            if (request.getIsDefault() != null) {
+                plan.setIsDefault(request.getIsDefault());
+                planRepository.save(plan);
+                if (Boolean.TRUE.equals(request.getIsDefault())) {
+                    planRepository.clearDefaultByTarget(plan.getPlanTarget(), plan.getId());
+                }
+            }
+            return buildResponse(plan, null, null);
         }
 
         planMapper.updateFromRequest(request, plan);
@@ -89,6 +103,9 @@ public class PlanServiceImpl implements PlanService {
         }
 
         planRepository.save(plan);
+        if (Boolean.TRUE.equals(plan.getIsDefault())) {
+            planRepository.clearDefaultByTarget(plan.getPlanTarget(), plan.getId());
+        }
         return buildResponse(plan, null, null);
     }
 
@@ -134,6 +151,21 @@ public class PlanServiceImpl implements PlanService {
 
     private String normalizeCurrency(String currency) {
         return (currency == null || currency.isBlank()) ? "VND" : currency;
+    }
+
+    private boolean isUpdateOnlyDefault(Plan plan, PlanUpdateRequest request) {
+        return Objects.equals(request.getName(), plan.getName())
+                && Objects.equals(request.getDescription(), plan.getDescription())
+                && Objects.equals(request.getPlanDetails(), plan.getPlanDetails())
+                && Objects.equals(request.getPlanTarget(), plan.getPlanTarget())
+                && Objects.equals(request.getPlanType(), plan.getPlanType())
+                && Objects.equals(normalizeCurrency(request.getCurrency()), plan.getCurrency())
+                && equalsIfPresent(request.getIsActive(), plan.getIsActive())
+                && equalsIfPresent(request.getIsPopular(), plan.getIsPopular());
+    }
+
+    private boolean equalsIfPresent(Boolean incoming, Boolean current) {
+        return incoming == null || Objects.equals(incoming, current);
     }
 
 

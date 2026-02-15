@@ -28,4 +28,5 @@ public class PlanCreateRequest {
 
     String currency;
     Boolean isPopular;
+    Boolean isDefault;
 }

@@ -29,4 +29,5 @@ public class PlanUpdateRequest {
     String currency;
     Boolean isActive;
     Boolean isPopular;
+    Boolean isDefault;
 }

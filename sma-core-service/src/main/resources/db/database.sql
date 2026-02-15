@@ -60,7 +60,7 @@ CREATE TYPE experience_gravity_type AS ENUM ('HIGH', 'MEDIUM', 'LOW');
 -- Plan & Subscription
 CREATE TYPE plan_target_type AS ENUM ('COMPANY', 'CANDIDATE');
 CREATE TYPE plan_type AS ENUM ('ADDONS_FEATURE', 'ADDONS_QUOTA', 'MAIN');
-CREATE TYPE plan_duration_unit AS ENUM ('MONTH', 'YEAR');
+CREATE TYPE plan_duration_unit AS ENUM ('MONTH', 'YEAR', 'LIFETIME');
 CREATE TYPE feature_usage_type AS ENUM ('BOOLEAN', 'EVENT', 'STATE');
 CREATE TYPE usage_limit_unit AS ENUM ('TOTAL', 'PER_MONTH');
 CREATE TYPE subscription_status AS ENUM ('ACTIVE', 'EXPIRED', 'CANCELLED', 'PENDING_PAYMENT');
@@ -528,7 +528,8 @@ CREATE TABLE plans (
   plan_type plan_type NOT NULL,
   currency varchar(3) NOT NULL DEFAULT 'VND',
   is_active boolean NOT NULL DEFAULT true,
-  is_popular boolean NOT NULL DEFAULT false
+  is_popular boolean NOT NULL DEFAULT false,
+  is_default boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE plan_prices (
