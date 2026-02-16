@@ -58,8 +58,8 @@ public class JobServiceImpl implements JobService {
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
 
         Role role = JwtTokenProvider.getCurrentRole();
-        Integer currentCandidateId = JwtTokenProvider.getCurrentCandidateId();
         if (role == null || role.equals(Role.CANDIDATE)) {
+            Integer currentCandidateId = JwtTokenProvider.getCurrentCandidateId();
             EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.PUBLISHED, JobStatus.CLOSED);
             if (!allowedStatus.contains(job.getStatus())) {
                 throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
