@@ -32,12 +32,12 @@ public class JobFilterRequest {
     Set<String> location;
 
     @Schema(
-            name = "Chỉ có admin, recruiter mới có quyền lọc theo status"
+            description  = "Chỉ có admin, recruiter mới có quyền lọc theo status"
     )
-    EnumSet<JobStatus> statuses;
+    EnumSet<JobStatus> status;
 
     @Schema(
-            name = "Chỉ có admin, recruiter mới có quyền lọc theo company"
+            description  = "Chỉ có admin, recruiter mới có quyền lọc theo company"
     )
     Integer companyId;
 
