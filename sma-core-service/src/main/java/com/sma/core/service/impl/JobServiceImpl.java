@@ -340,8 +340,8 @@ public class JobServiceImpl implements JobService {
         request.setCompanyId(recruiter.getCompany().getId());
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus;
-        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
-            allowedStatus = request.getStatuses();
+        if (request.getStatus() != null && !request.getStatus().isEmpty()) {
+            allowedStatus = request.getStatus();
         } else {
             allowedStatus = EnumSet.noneOf(JobStatus.class);
         }
