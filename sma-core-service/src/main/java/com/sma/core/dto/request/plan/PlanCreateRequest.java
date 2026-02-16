@@ -18,6 +18,7 @@ public class PlanCreateRequest {
     String name;
 
     String description;
+    String planDetails;
 
     @NotNull(message = "Plan target is required")
     PlanTarget planTarget;
@@ -26,4 +27,6 @@ public class PlanCreateRequest {
     PlanType planType;
 
     String currency;
+    Boolean isPopular;
+    Boolean isDefault;
 }

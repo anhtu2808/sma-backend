@@ -7,6 +7,7 @@ import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.Role;
+import com.sma.core.enums.SubscriptionStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.job.JobMapper;
@@ -47,6 +48,9 @@ public class JobServiceImpl implements JobService {
     final UserRepository userRepository;
     final JobMarkRepository jobMarkRepository;
     final ApplicationRepository applicationRepository;
+    final BannedKeywordServiceImpl bannedKeywordService;
+    final SubscriptionRepository subscriptionRepository;
+    final UsageEventRepository usageEventRepository;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -137,50 +141,51 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Transactional
     public JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request) {
-        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
-                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-        Job job = jobRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-        boolean sameCompany =
-                recruiter.getCompany().getId().equals(job.getCompany().getId());
-        boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
-        if (!sameCompany || !isRoot) {
-            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-        }
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
-        JobStatus currentStatus = job.getStatus();
-        JobStatus targetStatus = request.getJobStatus();
-        if (role != Role.ADMIN) {
-            if (targetStatus == JobStatus.PUBLISHED
-                    || targetStatus == JobStatus.SUSPENDED) {
-                throw new AppException(ErrorCode.UNAUTHORIZED);
+
+        if (role == Role.RECRUITER) {
+            Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+            Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+            boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
+            boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
+
+            if (!sameCompany || !isRoot) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+            }
+            if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
         }
+        JobStatus currentStatus = job.getStatus();
+        JobStatus targetStatus = request.getJobStatus();
+
         switch (targetStatus) {
             case CLOSED -> {
-                if (currentStatus != JobStatus.PUBLISHED) {
-                    throw new AppException(ErrorCode.CAN_NOT_CLOSED);
-                }
+                if (currentStatus != JobStatus.PUBLISHED) throw new AppException(ErrorCode.CAN_NOT_CLOSED);
                 job.setStatus(JobStatus.CLOSED);
             }
             case DRAFT -> {
-                if (currentStatus != JobStatus.PENDING_REVIEW
-                        && currentStatus != JobStatus.CLOSED) {
+                if (currentStatus != JobStatus.PENDING_REVIEW && currentStatus != JobStatus.CLOSED)
                     throw new AppException(ErrorCode.CAN_NOT_DRAFTED);
-                }
                 job.setStatus(JobStatus.DRAFT);
             }
             case PUBLISHED, SUSPENDED -> {
                 job.setStatus(targetStatus);
             }
-            case PENDING_REVIEW -> {
-                throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
-            }
+            case PENDING_REVIEW -> throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
             default -> throw new AppException(ErrorCode.INVALID_JOB_STATUS);
         }
+
         jobRepository.save(job);
         return jobMapper.toJobDetailResponse(job);
     }
@@ -264,6 +269,10 @@ public class JobServiceImpl implements JobService {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
         }
+
+        job.setCompany(recruiter.getCompany());
+        job.setUploadTime(LocalDateTime.now());
+
         if (expertiseId != null) {
             job.setExpertise(jobExpertiseRepository.getReferenceById(expertiseId));
         }
@@ -291,6 +300,11 @@ public class JobServiceImpl implements JobService {
             job.setScoringCriterias(scoringCriteriaService
                     .saveJobScoringCriteria(job, scoringCriteriaRequests));
         }
+
+        if (!isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
+            validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
+        }
+
         if (rootId != null) {
             Job rootJob = jobRepository.findById(rootId)
                     .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
@@ -298,14 +312,114 @@ public class JobServiceImpl implements JobService {
             jobRepository.save(rootJob);
             job.setRootJob(rootJob);
         }
-        if (isSaved){
+        boolean hasViolation = bannedKeywordService.isContentViolated(job);
+        job.setIsViolated(hasViolation);
+
+        if (isSaved) {
             job.setStatus(JobStatus.DRAFT);
         } else {
-            job.setStatus(JobStatus.PENDING_REVIEW);
+            if (hasViolation) {
+                job.setStatus(JobStatus.PENDING_REVIEW);
+                log.info("Job ID {} flagged for violation, status set to PENDING_REVIEW", job.getId());
+            } else {
+                job.setStatus(JobStatus.PUBLISHED);
+                log.info("Job ID {} passed auto-moderation, status set to PUBLISHED", job.getId());
+            }
         }
-        job.setCompany(recruiter.getCompany());
+
         job.setUploadTime(LocalDateTime.now());
         return jobRepository.save(job);
     }
 
+    @Override
+    public PagingResponse<BaseJobResponse> getJobsByCurrentCompany(JobFilterRequest request) {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+        request.setCompanyId(recruiter.getCompany().getId());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+        EnumSet<JobStatus> allowedStatus;
+        if (request.getStatuses() != null && !request.getStatuses().isEmpty()) {
+            allowedStatus = request.getStatuses();
+        } else {
+            allowedStatus = EnumSet.noneOf(JobStatus.class);
+        }
+        Page<Job> jobPage = jobRepository.findAll(
+                JobSpecification.withFilter(request, allowedStatus, null),
+                pageable
+        );
+
+        return PagingResponse.fromPage(jobPage.map(jobMapper::toBaseJobResponse));
+    }
+
+
+    @Override
+    @Transactional
+    public JobDetailResponse updateAiSettings(Integer jobId, JobAiSettingsRequest request) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        verifyPermission(job);
+        validateAndCheckAiQuota(job, request.getEnableAiScoring(), request.getAutoRejectThreshold());
+        job.setEnableAiScoring(request.getEnableAiScoring());
+        job.setAutoRejectThreshold(request.getAutoRejectThreshold());
+        return jobMapper.toJobInternalResponse(jobRepository.save(job));
+    }
+
+    private void verifyPermission(Job job) {
+        Role role = JwtTokenProvider.getCurrentRole();
+        if (role == Role.ADMIN) return;
+
+        if (role == Role.RECRUITER) {
+            Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+            Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+            if (!recruiter.getCompany().getId().equals(job.getCompany().getId())) {
+                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+            }
+        } else {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+    }
+
+    private void validateAndCheckAiQuota(Job job, Boolean enableAiScoring, Double threshold) {
+        if (Boolean.TRUE.equals(enableAiScoring)) {
+            if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) {
+                throw new AppException(ErrorCode.MISSING_SCORING_CRITERIA);
+            }
+
+            double totalWeight = job.getScoringCriterias().stream()
+                    .mapToDouble(ScoringCriteria::getWeight)
+                    .sum();
+
+            if (Math.abs(totalWeight - 100.0) > 0.001) {
+                throw new AppException(ErrorCode.INVALID_SCORING_WEIGHT);
+            }
+            List<Subscription> activeSubs = subscriptionRepository.findEligibleByCompanyId(
+                    job.getCompany().getId(),
+                    SubscriptionStatus.ACTIVE,
+                    LocalDateTime.now()
+            );
+
+            if (activeSubs.isEmpty()) {
+                throw new AppException(ErrorCode.NO_ACTIVE_SUBSCRIPTION);
+            }
+
+            Subscription sub = activeSubs.get(0);
+            String AI_FEATURE_KEY = "AI_SCORING";
+
+            UsageLimit aiLimit = sub.getPlan().getUsageLimits().stream()
+                    .filter(limit -> limit.getFeature().getFeatureKey().equals(AI_FEATURE_KEY))
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_SUPPORTED));
+
+            Long usedAmount = usageEventRepository.sumTotal(sub.getId(), aiLimit.getFeature().getId());
+
+            if (usedAmount >= aiLimit.getMaxQuota()) {
+                throw new AppException(ErrorCode.AI_QUOTA_EXHAUSTED);
+            }
+        }
+    }
 }

@@ -615,10 +615,13 @@ Table Plans {
   id int [pk, increment]
   name varchar(100) [not null]
   description text
+  plan_details text
   plan_target enum('COMPANY', 'CANDIDATE') [not null]
   plan_type enum('ADDONS_FEATURE', 'ADDONS_QUOTA', 'MAIN') [not null]
   currency varchar(3) [not null, default: 'VND']
   is_active boolean [not null, default: true]
+  is_popular boolean [not null, default: false]
+  is_default boolean [not null, default: false]
 }
 
 Table Plan_prices {
@@ -628,7 +631,7 @@ Table Plan_prices {
   sale_price decimal(15,2) [not null, default: 0]
   currency varchar(3) [not null, default: 'VND']
   duration int [not null]
-  unit enum('MONTH', 'YEAR') [not null]
+  unit enum('MONTH', 'YEAR', 'LIFETIME') [not null]
   is_active boolean [not null, default: true]
 }
 

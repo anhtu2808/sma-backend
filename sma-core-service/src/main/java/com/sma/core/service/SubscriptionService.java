@@ -8,5 +8,6 @@ public interface SubscriptionService {
 
     String createSubscription(CreateSubscriptionRequest request);
     String createSubscription(Integer targetId, CreateSubscriptionRequest request, Role role);
+    void assignDefaultPlanForCandidate(Integer candidateId);
 
 }

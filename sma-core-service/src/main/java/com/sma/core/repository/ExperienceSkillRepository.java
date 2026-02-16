@@ -12,7 +12,7 @@ import java.util.Optional;
 @Repository
 public interface ExperienceSkillRepository extends JpaRepository<ExperienceSkill, Integer> {
     @Modifying
-    @Query("delete from ExperienceSkill es where es.detail.experience.resume.id = :resumeId")
+    @Query("DELETE FROM ExperienceSkill es WHERE es.detail.experience.resume.id = :resumeId")
     void deleteByResumeId(@Param("resumeId") Integer resumeId);
 
     Optional<ExperienceSkill> findByIdAndDetail_Experience_Resume_IdAndDetail_Experience_Resume_Candidate_Id(Integer id, Integer resumeId, Integer candidateId);

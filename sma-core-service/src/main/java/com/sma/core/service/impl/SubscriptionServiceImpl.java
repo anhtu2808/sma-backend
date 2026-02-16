@@ -3,6 +3,9 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.subscription.CreateSubscriptionRequest;
 import com.sma.core.entity.*;
 import com.sma.core.enums.PaymentMethod;
+import com.sma.core.enums.PlanDurationUnit;
+import com.sma.core.enums.PlanTarget;
+import com.sma.core.enums.PlanType;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.SubscriptionStatus;
 import com.sma.core.exception.AppException;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -24,10 +28,14 @@ import java.util.Objects;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
+@Transactional
 public class SubscriptionServiceImpl implements SubscriptionService {
+
+    static final LocalDateTime LIFETIME_END_DATE = LocalDateTime.of(9999, 12, 31, 23, 59, 59);
 
     final SubscriptionRepository subscriptionRepository;
     final PlanPriceRepository planPriceRepository;
+    final PlanRepository planRepository;
     final CandidateRepository candidateRepository;
     final RecruiterRepository recruiterRepository;
     final PaymentService paymentService;
@@ -52,6 +60,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         } else {
             subscription = bindCompany(subscription, targetId);
         }
+        if (subscription.getPlan() != null && subscription.getPlan().getPlanType() == PlanType.MAIN) {
+            expireActiveMainSubscriptions(subscription, LocalDateTime.now(), null);
+        }
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscriptionRepository.save(subscription);
         return "";
@@ -64,6 +75,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         LocalDateTime endDate = switch (planPrice.getUnit()) {
             case MONTH -> now.plusMonths(planPrice.getDuration());
             case YEAR -> now.plusYears(planPrice.getDuration());
+            case LIFETIME -> LIFETIME_END_DATE;
         };
 
         return Subscription.builder()
@@ -90,5 +102,67 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 .getCompany();
         subscription.setCompany(company);
         return subscription;
+    }
+
+    @Override
+    public void assignDefaultPlanForCandidate(Integer candidateId) {
+        if (candidateId == null) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        boolean hasActiveMain = subscriptionRepository
+                .existsByCandidateIdAndStatusAndPlan_PlanTypeAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        candidateId,
+                        SubscriptionStatus.ACTIVE,
+                        PlanType.MAIN,
+                        now,
+                        now
+                );
+        if (hasActiveMain) {
+            return;
+        }
+        Plan defaultPlan = planRepository
+                .findFirstByPlanTargetAndPlanTypeAndIsDefaultTrueAndIsActiveTrue(PlanTarget.CANDIDATE, PlanType.MAIN)
+                .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_FOUND));
+        PlanPrice planPrice = planPriceRepository
+                .findFirstByPlanIdAndUnitAndIsActiveTrue(defaultPlan.getId(), PlanDurationUnit.LIFETIME)
+                .orElseThrow(() -> new AppException(ErrorCode.PLAN_PRICE_NOT_FOUND));
+
+        Subscription subscription = buildSubscription(planPrice.getId());
+        subscription = bindCandidate(subscription, candidateId);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscriptionRepository.save(subscription);
+    }
+
+    private void expireActiveMainSubscriptions(Subscription subscription, LocalDateTime now, Integer excludeId) {
+        if (subscription == null || subscription.getPlan() == null) {
+            return;
+        }
+        if (subscription.getPlan().getPlanType() != PlanType.MAIN) {
+            return;
+        }
+        if (subscription.getCandidate() != null) {
+            subscriptionRepository.expireActiveMainByCandidateId(
+                    subscription.getCandidate().getId(),
+                    SubscriptionStatus.ACTIVE,
+                    SubscriptionStatus.EXPIRED,
+                    PlanType.MAIN,
+                    now,
+                    now,
+                    excludeId
+            );
+            return;
+        }
+        if (subscription.getCompany() != null) {
+            subscriptionRepository.expireActiveMainByCompanyId(
+                    subscription.getCompany().getId(),
+                    SubscriptionStatus.ACTIVE,
+                    SubscriptionStatus.EXPIRED,
+                    PlanType.MAIN,
+                    now,
+                    now,
+                    excludeId
+            );
+        }
     }
 }

@@ -7,11 +7,14 @@ Mô hình mới thay thế hoàn toàn phần Package/Credit cũ bằng các b�
 1. **Plans**
    - Xác định đối tượng áp dụng (`plan_target`: `COMPANY` hoặc `CANDIDATE`)
    - Xác định loại gói (`plan_type`: `ADDONS_FEATURE`, `ADDONS_QUOTA`, `MAIN`)
+   - `plan_details`: nội dung chi tiết để hiển thị "What's included" (có thể lưu text/markdown theo convention FE)
+   - `is_popular`: cờ đánh dấu plan nổi bật để FE render badge "Popular"
+   - `is_default`: cờ đánh dấu plan mặc định cho đối tượng (dùng để auto-assign)
    - Không lưu giá trực tiếp; giá nằm ở `plan_prices`
 
 2. **Plan_prices**
    - Một plan có thể có nhiều mức giá theo thời lượng (`duration` + `unit`)
-   - `unit` dùng `MONTH` hoặc `YEAR`
+   - `unit` dùng `MONTH`, `YEAR`, hoặc `LIFETIME`
    - `original_price` và `sale_price` là snapshot giá tại thời điểm cấu hình
 
 3. **Features**
@@ -47,6 +50,7 @@ Mô hình mới thay thế hoàn toàn phần Package/Credit cũ bằng các b�
 2. **Mua plan**
    - Khi tạo subscription, lưu `price` từ `plan_prices` (snapshot)
    - `start_date`/`end_date` quyết định chu kỳ billing
+   - Với `LIFETIME`, `end_date` set mốc xa (vd: 9999-12-31 23:59:59)
 
 3. **Tính usage**
    - Dựa trên `usage_events` và `usage_limits`

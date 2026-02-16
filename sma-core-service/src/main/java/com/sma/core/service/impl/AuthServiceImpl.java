@@ -28,6 +28,7 @@ import com.sma.core.repository.ResumeRepository;
 import com.sma.core.repository.UserRepository;
 import com.sma.core.repository.UserTokenRepository;
 import com.sma.core.service.AuthService;
+import com.sma.core.service.SubscriptionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -67,6 +68,7 @@ public class AuthServiceImpl implements AuthService {
     final PasswordEncoder passwordEncoder;
     final UserTokenRepository userTokenRepository;
     final ResumeRepository resumeRepository;
+    final SubscriptionService subscriptionService;
 
 
 
@@ -100,6 +102,7 @@ public class AuthServiceImpl implements AuthService {
         user.setCandidate(candidate);
         userRepository.save(user);
         resumeRepository.save(resume);
+        subscriptionService.assignDefaultPlanForCandidate(candidate.getId());
         return AuthenticationResponse.builder()
                 .accessToken(generateToken(user))
                 .refreshToken(generateRefreshToken(user))

@@ -43,13 +43,16 @@ public interface JobMapper {
     @Named("publishJob")
     Job toJob(PublishJobRequest request);
 
+    @Mapping(target = "enableAiScoring", source = "enableAiScoring")
+    @Mapping(target = "autoRejectThreshold", source = "autoRejectThreshold")
     @Named("draftJob")
     Job toJob(DraftJobRequest request);
 
     @Named("publishExistingJob")
     Job toJob(PublishJobRequest request, @MappingTarget Job job);
 
-
+    @Mapping(target = "enableAiScoring", source = "enableAiScoring")
+    @Mapping(target = "autoRejectThreshold", source = "autoRejectThreshold")
     Job toJob(DraftJobRequest request, @MappingTarget Job job);
 
 
