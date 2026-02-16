@@ -15,6 +15,7 @@ import com.sma.core.repository.CompanyRepository;
 import com.sma.core.repository.RecruiterRepository;
 import com.sma.core.repository.UserRepository;
 import com.sma.core.service.RecruiterService;
+import com.sma.core.service.SubscriptionService;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,9 @@ public class RecruiterServiceImpl implements RecruiterService {
     private final CompanyLocationRepository companyLocationRepository;
     private final PasswordEncoder passwordEncoder;
     private final RecruiterMapper recruiterMapper;
+    
+    // FIXME: Temporarily disabled - causing 500 error
+    // private final SubscriptionService subscriptionService;
 
     @Override
     public void registerRecruiter(RecruiterRegisterRequest request) {
@@ -89,6 +93,10 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .isRootRecruiter(true)
                 .build();
         recruiterRepository.save(recruiter);
+        
+        // FIXME: Temporarily disabled - causing 500 error
+        // Assign default package for recruiter - commented out due to API error
+        // subscriptionService.assignDefaultPlanForCompany(company.getId());
     }
 
     @Override
