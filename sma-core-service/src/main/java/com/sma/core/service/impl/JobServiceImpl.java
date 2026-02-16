@@ -198,8 +198,8 @@ public class JobServiceImpl implements JobService {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
             date = LocalDateTime.now();
         } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
-            if (request.getStatuses() != null && !request.getStatuses().isEmpty())
-                allowedStatus = request.getStatuses();
+            if (request.getStatus() != null && !request.getStatus().isEmpty())
+                allowedStatus = request.getStatus();
             else
                 allowedStatus = EnumSet.noneOf(JobStatus.class);
             if (role.equals(Role.RECRUITER)) {
