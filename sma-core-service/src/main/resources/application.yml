@@ -91,3 +91,16 @@ sepay:
   prefix: ${SEPAY_PREFIX}
   bank-account: ${SEPAY_BANK_ACCOUNT}
   bank: ${SEPAY_BANK}
+
+#Monitoring and Metrics Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: sma-core-service
