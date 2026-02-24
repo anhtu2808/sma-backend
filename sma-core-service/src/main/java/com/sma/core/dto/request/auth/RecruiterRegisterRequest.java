@@ -3,10 +3,7 @@ package com.sma.core.dto.request.auth;
 import com.sma.core.enums.CompanyIndustry;
 import com.sma.core.enums.CompanyType;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -50,9 +47,9 @@ public class RecruiterRegisterRequest {
                     - IOT
                     """
     )
-    @NotBlank
+    @NotNull
     private CompanyIndustry companyIndustry;
-    @NotBlank
+    @NotNull
     @Schema(
             description = """
                     Type gồm:
@@ -66,9 +63,9 @@ public class RecruiterRegisterRequest {
                     """
     )
     private CompanyType companyType;
-    @NotBlank
+    @NotNull
     private Integer minSize;
-    @NotBlank
+    @NotNull
     private Integer maxSize;
     @NotBlank
     @Email
