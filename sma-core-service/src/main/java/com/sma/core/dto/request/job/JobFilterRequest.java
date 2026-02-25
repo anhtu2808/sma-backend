@@ -46,5 +46,6 @@ public class JobFilterRequest {
 
     @Builder.Default
     Integer size = 10;
+    Boolean isSample;
 
 }

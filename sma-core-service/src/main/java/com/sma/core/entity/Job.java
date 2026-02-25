@@ -89,7 +89,7 @@ public class Job {
     private Job rootJob;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_id")
+    @JoinColumn(name = "company_id", nullable = true)
     private Company company;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -127,4 +127,7 @@ public class Job {
     @JoinTable(name = "job_locations", joinColumns = @JoinColumn(name = "job_id"), inverseJoinColumns = @JoinColumn(name = "company_location_id"))
     @Builder.Default
     private Set<CompanyLocation> locations = new HashSet<>();
+
+    @Column(name = "is_sample")
+    private Boolean isSample;
 }

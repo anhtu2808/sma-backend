@@ -60,8 +60,13 @@ public class ApplicationServiceImpl implements ApplicationService {
     public ApplicationResponse applyToJob(ApplicationRequest request, Integer currentCandidateId) {
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        if (Boolean.TRUE.equals(job.getIsSample())) {
+            throw new AppException(ErrorCode.CAN_NOT_APPLY_SAMPLE);
+        }
+
         Resume resume = resumeRepository.findById(request.getResumeId())
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+
         if (Boolean.TRUE.equals(resume.getIsDeleted())) {
             throw new AppException(ErrorCode.RESUME_ALREADY_DELETED);
         }
@@ -76,25 +81,32 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
         Candidate candidate = candidateRepository.findById(currentCandidateId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        Application application = applicationRepository
+                .findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(candidate.getId(), job.getId())
+                .orElse(new Application());
+
         validateApplicationRules(candidate.getId(), job.getId());
         validateJobAnswers(job, request.getAnswers());
-        long currentAttempts = applicationRepository.countByCandidateIdAndJobId(candidate.getId(), job.getId());
-        int newAttemptValue = (int) currentAttempts + 1;
-        Application application = Application.builder()
-                .status(ApplicationStatus.APPLIED)
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .phone(request.getPhone())
-                .coverLetter(request.getCoverLetter())
-                .appliedAt(LocalDateTime.now())
-                .attempt(newAttemptValue)
-                .job(job)
-                .resume(resume)
-                .candidate(candidate)
-                .build();
+        application.setJob(job);
+        application.setResume(resume);
+        application.setCandidate(candidate);
+        application.setStatus(ApplicationStatus.APPLIED);
+        application.setFullName(request.getFullName());
+        application.setEmail(request.getEmail());
+        application.setPhone(request.getPhone());
+        application.setCoverLetter(request.getCoverLetter());
+        application.setAppliedAt(LocalDateTime.now());
+        if (application.getId() == null) {
+            application.setAttempt(1);
+        } else {
+            application.setAttempt(application.getAttempt() + 1);
+        }
+        if (application.getAnswers() != null) {
+            application.getAnswers().clear();
+        }
 
         if (request.getAnswers() != null && !request.getAnswers().isEmpty()) {
-            Set<JobAnswer> answers = request.getAnswers().stream().map(ansReq -> {
+            Set<JobAnswer> newAnswers = request.getAnswers().stream().map(ansReq -> {
                 JobQuestion question = job.getQuestions().stream()
                         .filter(q -> q.getId().equals(ansReq.getQuestionId()))
                         .findFirst()
@@ -108,12 +120,14 @@ public class ApplicationServiceImpl implements ApplicationService {
                         .build();
             }).collect(Collectors.toSet());
 
-            application.setAnswers(answers);
+            if (application.getAnswers() == null) {
+                application.setAnswers(newAnswers);
+            } else {
+                application.getAnswers().addAll(newAnswers);
+            }
         }
 
         Application savedApplication = applicationRepository.save(application);
-        log.info("Candidate {} applied to Job {} successfully (Attempt {})", currentCandidateId, job.getId(), newAttemptValue);
-
         return applicationMapper.toResponse(savedApplication);
     }
 
@@ -122,17 +136,16 @@ public class ApplicationServiceImpl implements ApplicationService {
                 ApplicationStatus.AUTO_REJECTED,
                 ApplicationStatus.NOT_SUITABLE
         );
+
         if (applicationRepository.hasBeenRejected(candidateId, jobId, rejectStatuses)) {
             throw new AppException(ErrorCode.ALREADY_REJECTED_FOR_THIS_JOB);
         }
 
         applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(candidateId, jobId)
-                .ifPresent(lastApp -> {
-                    long attemptCount = applicationRepository.countByCandidateIdAndJobId(candidateId, jobId);
-                    if (attemptCount >= 2) {
+                .ifPresent(lastApp -> { 
+                    if (lastApp.getAttempt() >= 2) {
                         throw new AppException(ErrorCode.MAX_APPLY_ATTEMPTS_REACHED);
                     }
-
                     if (lastApp.getStatus() != ApplicationStatus.APPLIED) {
                         throw new AppException(ErrorCode.CANNOT_REAPPLY_AFTER_PROCESSING);
                     }

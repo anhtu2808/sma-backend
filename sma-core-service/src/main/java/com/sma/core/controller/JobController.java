@@ -168,4 +168,42 @@ public class JobController {
                 .build();
     }
 
+    @PostMapping("/samples")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<JobDetailResponse> createSampleJob(@RequestBody @Valid AdminJobSampleRequest request) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Create sample job successfully")
+                .data(jobService.createSampleJob(request))
+                .build();
+    }
+
+    @GetMapping("/samples")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CANDIDATE')")
+    public ApiResponse<PagingResponse<BaseJobResponse>> getSampleJobs(JobFilterRequest filterRequest) {
+        return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
+                .message("Get sample jobs successfully")
+                .data(jobService.getSampleJobs(filterRequest))
+                .build();
+    }
+
+    @PutMapping("/samples/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<JobDetailResponse> updateSampleJob(
+            @PathVariable Integer id,
+            @RequestBody @Valid AdminJobSampleRequest request) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Update sample job successfully")
+                .data(jobService.updateSampleJob(id, request))
+                .build();
+    }
+
+    @DeleteMapping("/samples/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> deleteSampleJob(@PathVariable Integer id) {
+        jobService.deleteSampleJob(id);
+        return ApiResponse.<Void>builder()
+                .message("Delete sample job successfully")
+                .build();
+    }
+
 }

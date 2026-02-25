@@ -91,6 +91,20 @@ public class JobSpecification {
                 query.distinct(true);
             }
 
+            //10. Lọc JD mẫu (isSample)
+            if (request.getIsSample() != null) {
+                if (request.getIsSample()) {
+                    predicates.add(cb.isTrue(root.get("isSample")));
+                } else {
+                    predicates.add(
+                            cb.or(
+                                    cb.isFalse(root.get("isSample")),
+                                    cb.isNull(root.get("isSample"))
+                            )
+                    );
+                }
+            }
+
             // 9. Status (Hardcoded Approved)
             if (!allowedStatus.isEmpty())
                 predicates.add(root.get("status").in(allowedStatus));

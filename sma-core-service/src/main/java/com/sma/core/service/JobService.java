@@ -23,4 +23,8 @@ public interface JobService {
     JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request);
     PagingResponse<BaseJobResponse> getJobsByCurrentCompany(JobFilterRequest request);
     JobDetailResponse updateAiSettings(Integer jobId, JobAiSettingsRequest request);
+    JobDetailResponse createSampleJob(AdminJobSampleRequest request);
+    PagingResponse<BaseJobResponse> getSampleJobs(JobFilterRequest request);
+    JobDetailResponse updateSampleJob(Integer id, AdminJobSampleRequest request);
+    void deleteSampleJob(Integer id);
 }
