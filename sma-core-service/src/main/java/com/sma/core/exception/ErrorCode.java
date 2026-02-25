@@ -97,6 +97,10 @@ public enum ErrorCode {
     AI_QUOTA_EXHAUSTED(HttpStatus.BAD_REQUEST, "AI quota exhausted"),
     MISSING_SCORING_CRITERIA(HttpStatus.BAD_REQUEST, "Missing scoring criteria"),
     COMPANY_LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Company location not found"),
+    CANNOT_DELETE_NON_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot delete non-sample job"),
+    NOT_A_SAMPLE_JOB(HttpStatus.BAD_REQUEST, "Not a sample job"),
+    CAN_NOT_APPLY_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot apply to sample job"),
+
     
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

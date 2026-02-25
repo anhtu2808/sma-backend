@@ -1,5 +1,6 @@
 package com.sma.core.mapper.job;
 
+import com.sma.core.dto.request.job.AdminJobSampleRequest;
 import com.sma.core.dto.request.job.DraftJobRequest;
 import com.sma.core.dto.request.job.PublishJobRequest;
 import com.sma.core.dto.response.job.BaseJobResponse;
@@ -55,5 +56,13 @@ public interface JobMapper {
     @Mapping(target = "autoRejectThreshold", source = "autoRejectThreshold")
     Job toJob(DraftJobRequest request, @MappingTarget Job job);
 
+    default Job toJob(AdminJobSampleRequest request) {
+        return toJob((DraftJobRequest) request);
+    }
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "company", ignore = true)
+    @Mapping(target = "enableAiScoring", source = "enableAiScoring")
+    @Mapping(target = "autoRejectThreshold", source = "autoRejectThreshold")
+    void updateJobFromRequest(AdminJobSampleRequest request, @MappingTarget Job job);
 }

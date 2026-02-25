@@ -43,4 +43,5 @@ public class BaseJobResponse {
     LocalDateTime lastApplyAt;
     ApplicationStatus applicationStatus;
     String appliedResumeUrl;
+    Boolean isSample;
 }

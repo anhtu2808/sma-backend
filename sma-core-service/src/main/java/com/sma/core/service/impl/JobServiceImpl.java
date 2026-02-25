@@ -75,6 +75,11 @@ public class JobServiceImpl implements JobService {
                 throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
             }
             JobDetailResponse response = jobMapper.toJobDetailResponse(job);
+            if (Boolean.TRUE.equals(job.getIsSample())) {
+                response.setCanApply(false);
+                response.setAppliedAttempt(0);
+                return response;
+            }
             if (currentCandidateId != null) {
                 long totalAttempts = applicationRepository.countByCandidateIdAndJobId(currentCandidateId, id);
                 response.setAppliedAttempt((int) totalAttempts);
@@ -111,7 +116,7 @@ public class JobServiceImpl implements JobService {
                 null,
                 request.getRootId(),
                 request.getLocationIds(),
-                true));
+                true, false));
     }
 
     @Override
@@ -129,7 +134,7 @@ public class JobServiceImpl implements JobService {
                 id,
                 request.getRootId(),
                 request.getLocationIds(),
-                true));
+                true, false));
     }
 
     @Override
@@ -150,7 +155,7 @@ public class JobServiceImpl implements JobService {
                 id,
                 request.getRootId(),
                 request.getLocationIds(),
-                false));
+                false, false));
     }
 
     @Override
@@ -216,6 +221,7 @@ public class JobServiceImpl implements JobService {
         if (role == null || role.equals(Role.CANDIDATE)) {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
             date = LocalDateTime.now();
+            request.setIsSample(false);
             Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
             if (candidateId != null) {
                 latestApplicationsByJobId = getLatestApplicationsByJobId(candidateId);
@@ -228,6 +234,7 @@ public class JobServiceImpl implements JobService {
             if (role.equals(Role.RECRUITER)) {
                 Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentRecruiterId());
                 request.setCompanyId(recruiter.getCompany().getId());
+                request.setIsSample(false);
             }
         }
         Page<Job> jobPage = jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable);
@@ -340,18 +347,35 @@ public class JobServiceImpl implements JobService {
                          Integer jobId,
                          Integer rootId,
                          List<Integer> locationIds,
-                         boolean isSaved) {
-        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
-                                                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-        if (jobId != null) {
-            if (!recruiter.getCompany().getId().equals(job.getCompany().getId())) {
-                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+                         boolean isSaved,
+                         boolean isSample) {
+        if (!isSample) {
+            Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+            if (jobId != null) {
+                if (!recruiter.getCompany().getId().equals(job.getCompany().getId())) {
+                    throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+                }
             }
+
+            job.setCompany(recruiter.getCompany());
+            job.setIsSample(false);
+            if (locationIds != null && !locationIds.isEmpty()) {
+                Set<CompanyLocation> locations = new HashSet<>();
+                for (Integer locationId : locationIds) {
+                    CompanyLocation location = companyLocationRepository
+                            .findByIdAndCompanyId(locationId, recruiter.getCompany().getId())
+                            .orElseThrow(() -> new AppException(ErrorCode.COMPANY_LOCATION_NOT_FOUND));
+                    locations.add(location);
+                }
+                job.setLocations(locations);
+            }
+        } else {
+            job.setCompany(null);
+            job.setIsSample(true);
+            job.setLocations(null);
         }
-
-        job.setCompany(recruiter.getCompany());
-        job.setUploadTime(LocalDateTime.now());
-
         if (expertiseId != null) {
             job.setExpertise(jobExpertiseRepository.getReferenceById(expertiseId));
         }
@@ -380,21 +404,9 @@ public class JobServiceImpl implements JobService {
                     .saveJobScoringCriteria(job, scoringCriteriaRequests));
         }
 
-        if (!isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
+        if (!isSample && !isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
             validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
         }
-
-        if (locationIds != null && !locationIds.isEmpty()) {
-            Set<CompanyLocation> locations = new HashSet<>();
-            for (Integer locationId : locationIds) {
-                CompanyLocation location = companyLocationRepository
-                        .findByIdAndCompanyId(locationId, recruiter.getCompany().getId())
-                        .orElseThrow(() -> new AppException(ErrorCode.COMPANY_LOCATION_NOT_FOUND));
-                locations.add(location);
-            }
-            job.setLocations(locations);
-        }
-
         if (rootId != null) {
             Job rootJob = jobRepository.findById(rootId)
                                        .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
@@ -402,18 +414,15 @@ public class JobServiceImpl implements JobService {
             jobRepository.save(rootJob);
             job.setRootJob(rootJob);
         }
-        boolean hasViolation = bannedKeywordService.isContentViolated(job);
-        job.setIsViolated(hasViolation);
-
-        if (isSaved) {
-            job.setStatus(JobStatus.DRAFT);
+        if (isSample) {
+            job.setStatus(JobStatus.PUBLISHED);
         } else {
-            if (hasViolation) {
-                job.setStatus(JobStatus.PENDING_REVIEW);
-                log.info("Job ID {} flagged for violation, status set to PENDING_REVIEW", job.getId());
+            boolean hasViolation = bannedKeywordService.isContentViolated(job);
+            job.setIsViolated(hasViolation);
+            if (isSaved) {
+                job.setStatus(JobStatus.DRAFT);
             } else {
-                job.setStatus(JobStatus.PUBLISHED);
-                log.info("Job ID {} passed auto-moderation, status set to PUBLISHED", job.getId());
+                job.setStatus(hasViolation ? JobStatus.PENDING_REVIEW : JobStatus.PUBLISHED);
             }
         }
 
@@ -511,5 +520,69 @@ public class JobServiceImpl implements JobService {
                 throw new AppException(ErrorCode.AI_QUOTA_EXHAUSTED);
             }
         }
+    }
+
+    @Override
+    @Transactional
+    public JobDetailResponse createSampleJob(AdminJobSampleRequest request) {
+        return jobMapper.toJobInternalResponse(bindJobRelations(
+                jobMapper.toJob(request),
+                request.getExpertiseId(), request.getSkillIds(),
+                request.getDomainIds(), request.getBenefitIds(),
+                request.getQuestionIds(), request.getScoringCriterias(),
+                null,
+                null,
+                null,
+                true, true
+        ));
+    }
+
+
+    @Override
+    public PagingResponse<BaseJobResponse> getSampleJobs(JobFilterRequest request) {
+        // Ép buộc lọc theo Sample và Status Published
+        request.setIsSample(true);
+        EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
+
+        // Sử dụng trực tiếp request đã có các tham số lọc từ Controller
+        return PagingResponse.fromPage(jobRepository.findAll(
+                        JobSpecification.withFilter(request, allowedStatus, null),
+                        PageRequest.of(request.getPage(), request.getSize()))
+                .map(jobMapper::toBaseJobResponse));
+    }
+
+    @Override
+    @Transactional
+    public JobDetailResponse updateSampleJob(Integer id, AdminJobSampleRequest request) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        if (!Boolean.TRUE.equals(job.getIsSample())) {
+            throw new AppException(ErrorCode.NOT_A_SAMPLE_JOB);
+        }
+        jobMapper.updateJobFromRequest(request, job);
+        return jobMapper.toJobInternalResponse(bindJobRelations(
+                job,
+                request.getExpertiseId(), request.getSkillIds(),
+                request.getDomainIds(), request.getBenefitIds(),
+                request.getQuestionIds(), request.getScoringCriterias(),
+                id,
+                null,
+                null,
+                true, true
+        ));
+    }
+
+    @Override
+    @Transactional
+    public void deleteSampleJob(Integer id) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        if (!Boolean.TRUE.equals(job.getIsSample())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_NON_SAMPLE);
+        }
+
+        jobRepository.delete(job);
     }
 }
