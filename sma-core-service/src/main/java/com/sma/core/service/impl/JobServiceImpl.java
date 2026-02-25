@@ -216,9 +216,11 @@ public class JobServiceImpl implements JobService {
         if (role == null || role.equals(Role.CANDIDATE)) {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
             date = LocalDateTime.now();
-            Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
-            if (candidateId != null) {
-                latestApplicationsByJobId = getLatestApplicationsByJobId(candidateId);
+            if (role != null ){
+                Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+                if (candidateId != null) {
+                    latestApplicationsByJobId = getLatestApplicationsByJobId(candidateId);
+                }
             }
         } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
             if (request.getStatus() != null && !request.getStatus().isEmpty())
