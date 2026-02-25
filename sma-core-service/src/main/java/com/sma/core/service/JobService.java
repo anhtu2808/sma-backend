@@ -11,6 +11,7 @@ public interface JobService {
 
     Boolean markJob(Integer jobId);
     PagingResponse<BaseJobResponse> getAllMyFavoriteJob(Integer page, Integer size);
+    PagingResponse<BaseJobResponse> getAllMyAppliedJob(Integer page, Integer size);
 
     JobDetailResponse getJobById(Integer id);
 

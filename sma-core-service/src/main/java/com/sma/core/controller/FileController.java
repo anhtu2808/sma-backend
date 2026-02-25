@@ -64,13 +64,17 @@ public class FileController {
             String contentType = Optional.ofNullable(metadata.contentType())
                     .orElse("application/octet-stream");
             long contentLength = metadata.contentLength();
+            MediaType mediaType = MediaType.parseMediaType(contentType);
+            String contentDisposition = MediaType.APPLICATION_PDF.isCompatibleWith(mediaType)
+                    ? "inline"
+                    : "attachment";
 
             Resource resource = fileStorageService.downloadAsResource(fileName);
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + decodedFileName + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition + "; filename=\"" + decodedFileName + "\"")
                     .contentLength(contentLength)
-                    .contentType(MediaType.parseMediaType(contentType))
+                    .contentType(mediaType)
                     .body(resource);
         }
     }

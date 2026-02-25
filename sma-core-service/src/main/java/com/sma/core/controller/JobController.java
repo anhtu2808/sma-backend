@@ -137,6 +137,16 @@ public class JobController {
                 .build();
     }
 
+    @GetMapping("/applied")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<PagingResponse<BaseJobResponse>> getAppliedJob(
+            @RequestParam Integer page, @RequestParam Integer size) {
+        return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
+                .message("Get my applied job successfully")
+                .data(jobService.getAllMyAppliedJob(page, size))
+                .build();
+    }
+
     @GetMapping("/my-jobs")
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
     public ApiResponse<PagingResponse<BaseJobResponse>> getMyCompanyJobs(@ParameterObject JobFilterRequest request) {

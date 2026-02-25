@@ -45,4 +45,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
 
     @EntityGraph(attributePaths = {"resume", "resume.experiences", "resume.skillGroups", "resume.evaluations"})
     Page<Application> findAll(Specification<Application> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"job", "resume"})
+    List<Application> findByCandidate_Id(Integer candidateId);
 }

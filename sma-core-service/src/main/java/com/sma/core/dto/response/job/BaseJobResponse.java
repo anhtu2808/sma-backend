@@ -3,6 +3,7 @@ package com.sma.core.dto.response.job;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.question.JobQuestionResponse;
 import com.sma.core.dto.response.skill.SkillResponse;
+import com.sma.core.enums.ApplicationStatus;
 import com.sma.core.enums.JobLevel;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.WorkingModel;
@@ -38,4 +39,8 @@ public class BaseJobResponse {
     Set<DomainResponse> domains;
     Set<BenefitResponse> benefits;
     Set<JobQuestionResponse> questions;
+    Boolean isApplied;
+    LocalDateTime lastApplyAt;
+    ApplicationStatus applicationStatus;
+    String appliedResumeUrl;
 }
