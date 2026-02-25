@@ -38,4 +38,5 @@ public class BaseJobResponse {
     Set<DomainResponse> domains;
     Set<BenefitResponse> benefits;
     Set<JobQuestionResponse> questions;
+    Boolean isApplied;
 }

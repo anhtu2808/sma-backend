@@ -55,7 +55,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public JobDetailResponse getJobById(Integer id) {
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                               .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
 
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == null || role.equals(Role.CANDIDATE)) {
@@ -69,9 +69,9 @@ public class JobServiceImpl implements JobService {
                 long totalAttempts = applicationRepository.countByCandidateIdAndJobId(currentCandidateId, id);
                 response.setAppliedAttempt((int) totalAttempts);
                 applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(currentCandidateId, id)
-                        .ifPresent(lastApp -> {
-                            response.setLastApplicationStatus(lastApp.getStatus());
-                        });
+                                     .ifPresent(lastApp -> {
+                                         response.setLastApplicationStatus(lastApp.getStatus());
+                                     });
                 response.setCanApply(totalAttempts < 2);
             }
             return response;
@@ -106,7 +106,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public JobDetailResponse saveExistingJob(Integer id, DraftJobRequest request) {
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                               .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         return jobMapper.toJobInternalResponse(bindJobRelations(
                 jobMapper.toJob(request, job),
                 request.getExpertiseId(),
@@ -123,7 +123,7 @@ public class JobServiceImpl implements JobService {
     @Override
     public JobDetailResponse publishExistingJob(Integer id, PublishJobRequest request) {
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                               .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         EnumSet<JobStatus> allowedStatus = EnumSet.of(JobStatus.DRAFT, JobStatus.CLOSED);
         if (!allowedStatus.contains(job.getStatus()))
             throw new AppException(ErrorCode.CAN_NOT_PUBLISH);
@@ -144,7 +144,7 @@ public class JobServiceImpl implements JobService {
     @Transactional
     public JobDetailResponse updateJobStatus(Integer id, UpdateJobStatusRequest request) {
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                               .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
 
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == null) {
@@ -154,7 +154,7 @@ public class JobServiceImpl implements JobService {
         if (role == Role.RECRUITER) {
             Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
             Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
-                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+                                                     .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
 
             boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
             boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
@@ -199,9 +199,17 @@ public class JobServiceImpl implements JobService {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = null;
         LocalDateTime date = null;
+        Set<Integer> appliedJobIds = null;
         if (role == null || role.equals(Role.CANDIDATE)) {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
             date = LocalDateTime.now();
+            Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+            if (candidateId != null) {
+                List<Application> applications = applicationRepository.findByCandidate_Id(candidateId);
+                appliedJobIds = applications.stream()
+                                            .map(app -> app.getJob().getId())
+                                            .collect(Collectors.toSet());
+            }
         } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
             if (request.getStatus() != null && !request.getStatus().isEmpty())
                 allowedStatus = request.getStatus();
@@ -212,20 +220,26 @@ public class JobServiceImpl implements JobService {
                 request.setCompanyId(recruiter.getCompany().getId());
             }
         }
-        return PagingResponse
-                .fromPage(jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable)
-                        .map(jobMapper::toBaseJobResponse));
+        Page<Job> jobPage = jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable);
+        List<BaseJobResponse> jobResponses = jobPage.getContent().stream().map(jobMapper::toBaseJobResponse).toList();
+
+        if (appliedJobIds != null && !appliedJobIds.isEmpty()) {
+            for (BaseJobResponse baseJobResponse : jobResponses) {
+                if (appliedJobIds.contains(baseJobResponse.getId())) baseJobResponse.setIsApplied(true);
+            }
+        }
+        return PagingResponse.fromPage(jobPage, jobResponses);
     }
 
     @Override
     public Boolean markJob(Integer jobId) {
         Integer userId = JwtTokenProvider.getCurrentUserId();
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+                                  .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                               .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         JobMark jobMark = jobMarkRepository.findByUser_IdAndJob_Id(userId, jobId)
-                .orElse(null);
+                                           .orElse(null);
         if (jobMark != null) {
             jobMarkRepository.delete(jobMark);
             return false;
@@ -263,8 +277,8 @@ public class JobServiceImpl implements JobService {
                          Integer rootId,
                          boolean isSaved) {
         Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
-                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-        if (jobId != null){
+                                                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        if (jobId != null) {
             if (!recruiter.getCompany().getId().equals(job.getCompany().getId())) {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
@@ -307,7 +321,7 @@ public class JobServiceImpl implements JobService {
 
         if (rootId != null) {
             Job rootJob = jobRepository.findById(rootId)
-                    .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                                       .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
             rootJob.setStatus(JobStatus.CLOSED);
             jobRepository.save(rootJob);
             job.setRootJob(rootJob);
@@ -335,7 +349,7 @@ public class JobServiceImpl implements JobService {
     public PagingResponse<BaseJobResponse> getJobsByCurrentCompany(JobFilterRequest request) {
         Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
         Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
-                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+                                                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
 
         request.setCompanyId(recruiter.getCompany().getId());
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
@@ -358,7 +372,7 @@ public class JobServiceImpl implements JobService {
     @Transactional
     public JobDetailResponse updateAiSettings(Integer jobId, JobAiSettingsRequest request) {
         Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+                               .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
 
         verifyPermission(job);
         validateAndCheckAiQuota(job, request.getEnableAiScoring(), request.getAutoRejectThreshold());
@@ -374,7 +388,7 @@ public class JobServiceImpl implements JobService {
         if (role == Role.RECRUITER) {
             Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
             Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
-                    .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+                                                     .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
 
             if (!recruiter.getCompany().getId().equals(job.getCompany().getId())) {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
@@ -391,8 +405,8 @@ public class JobServiceImpl implements JobService {
             }
 
             double totalWeight = job.getScoringCriterias().stream()
-                    .mapToDouble(ScoringCriteria::getWeight)
-                    .sum();
+                                    .mapToDouble(ScoringCriteria::getWeight)
+                                    .sum();
 
             if (Math.abs(totalWeight - 100.0) > 0.001) {
                 throw new AppException(ErrorCode.INVALID_SCORING_WEIGHT);
@@ -411,9 +425,9 @@ public class JobServiceImpl implements JobService {
             String AI_FEATURE_KEY = "AI_SCORING";
 
             UsageLimit aiLimit = sub.getPlan().getUsageLimits().stream()
-                    .filter(limit -> limit.getFeature().getFeatureKey().equals(AI_FEATURE_KEY))
-                    .findFirst()
-                    .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_SUPPORTED));
+                                    .filter(limit -> limit.getFeature().getFeatureKey().equals(AI_FEATURE_KEY))
+                                    .findFirst()
+                                    .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_SUPPORTED));
 
             Long usedAmount = usageEventRepository.sumTotal(sub.getId(), aiLimit.getFeature().getId());
 

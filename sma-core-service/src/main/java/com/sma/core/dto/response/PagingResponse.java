@@ -15,19 +15,6 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
 public class PagingResponse<T> {
-
-    public static <T> PagingResponse<T> fromPage(Page<T> page) {
-        return PagingResponse.<T>builder()
-                .content(page.getContent())
-                .pageNumber(page.getNumber())
-                .pageSize(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .first(page.isFirst())
-                .last(page.isLast())
-                .build();
-    }
-
     // Danh sách dữ liệu của page hiện tại
     List<T> content;
 
@@ -48,4 +35,28 @@ public class PagingResponse<T> {
 
     // Có phải trang cuối không
     boolean last;
+
+    public static <T> PagingResponse<T> fromPage(Page<T> page) {
+        return PagingResponse.<T>builder()
+                .content(page.getContent())
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+    }
+
+    public static <T> PagingResponse<T> fromPage(Page<?> page, List<T> content) {
+        return PagingResponse.<T>builder()
+                .content(content)
+                .pageNumber(page.getNumber())
+                .pageSize(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .first(page.isFirst())
+                .last(page.isLast())
+                .build();
+    }
 }
