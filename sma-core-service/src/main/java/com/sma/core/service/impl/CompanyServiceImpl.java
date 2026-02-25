@@ -186,4 +186,20 @@ public class CompanyServiceImpl implements CompanyService {
                         }));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public CompanyDetailResponse getMyCompanyInfo() {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+        Company company = recruiter.getCompany();
+        if (company == null) {
+            throw new AppException(ErrorCode.COMPANY_NOT_FOUND);
+        }
+        CompanyDetailResponse response = companyMapper.toInternalCompanyResponse(company);
+        response.setTotalJobs(jobRepository.countByCompanyId(company.getId()));
+
+        return response;
+    }
 }
