@@ -69,7 +69,7 @@ public class ResumeServiceImpl implements ResumeService {
             }
         } else if (currentRole == Role.RECRUITER || currentRole == Role.ADMIN) {
             resume = resumeRepository.findById(resumeId)
-                    .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+                                     .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         } else {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         }
@@ -210,15 +210,29 @@ public class ResumeServiceImpl implements ResumeService {
         resumeRepository.flush();
     }
 
+    @Override
+    public ResumeResponse createResumeBuilder() {
+        Candidate candidate = candidateRepository.findById(JwtTokenProvider.getCurrentCandidateId())
+                                                 .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
+        Resume resume = Resume.builder()
+                .type(ResumeType.TEMPLATE)
+                .status(ResumeStatus.ACTIVE)
+                .isDeleted(Boolean.FALSE)
+                .candidate(candidate)
+                .build();
+        resume = resumeRepository.save(resume);
+        return resumeMapper.toResponse(resume);
+    }
+
     private Candidate getCurrentCandidate() {
         return candidateRepository.findById(JwtTokenProvider.getCurrentCandidateId())
-                .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
+                                  .orElseThrow(() -> new AppException(ErrorCode.CANDIDATE_NOT_EXISTED));
     }
 
     private Resume getOwnedResume(Integer resumeId) {
         Candidate candidate = getCurrentCandidate();
         Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+                                        .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
 
         if (resume.getCandidate() == null || !resume.getCandidate().getId().equals(candidate.getId())) {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);

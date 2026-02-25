@@ -18,4 +18,5 @@ public interface ResumeService {
     String getResumeStatus(Integer resumeId);
     String getResumeParseStatus(Integer resumeId);
     void deleteResume(Integer resumeId);
+    ResumeResponse createResumeBuilder();
 }

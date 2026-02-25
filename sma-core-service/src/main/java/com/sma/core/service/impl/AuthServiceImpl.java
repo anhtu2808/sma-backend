@@ -93,7 +93,6 @@ public class AuthServiceImpl implements AuthService {
                 .profileCompleteness(0)
                 .build();
         Resume resume = Resume.builder()
-                .candidate(candidate)
                 .type(com.sma.core.enums.ResumeType.PROFILE)
                 .status(com.sma.core.enums.ResumeStatus.ACTIVE)
                 .isDeleted(Boolean.FALSE)
