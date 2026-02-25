@@ -70,7 +70,7 @@ public class Job {
     private JobStatus status;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "job_level", columnDefinition = "job_level_type")
+    @Column(name = "job_level", columnDefinition = "job_level")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private JobLevel jobLevel;
 
