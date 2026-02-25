@@ -8,6 +8,7 @@ import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
+import com.sma.core.dto.response.company.CompanyLocationResponse;
 import com.sma.core.enums.Role;
 import com.sma.core.service.CompanyService;
 import com.sma.core.service.SubscriptionService;
@@ -20,6 +21,8 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @Slf4j
@@ -76,6 +79,14 @@ public class CompanyController {
         return ApiResponse.<String>builder()
                 .message("Create company subscription successfully")
                 .data(subscriptionService.createSubscription(companyId, request, Role.RECRUITER))
+                .build();
+    }
+
+    @GetMapping("/locations")
+    public ApiResponse<List<CompanyLocationResponse>> getCompanyLocations() {
+        return ApiResponse.<List<CompanyLocationResponse>>builder()
+                .message("Get company locations successfully")
+                .data(companyService.getCompanyLocation())
                 .build();
     }
 

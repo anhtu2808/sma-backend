@@ -6,6 +6,9 @@ import com.sma.core.dto.request.company.UpdateCompanyRequest;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
+import com.sma.core.dto.response.company.CompanyLocationResponse;
+
+import java.util.List;
 
 public interface CompanyService {
 
@@ -16,4 +19,5 @@ public interface CompanyService {
     CompanyDetailResponse getCompanyById(Integer id);
 
     CompanyDetailResponse updateCompany(Integer id, UpdateCompanyRequest request);
+    List<CompanyLocationResponse> getCompanyLocation();
 }

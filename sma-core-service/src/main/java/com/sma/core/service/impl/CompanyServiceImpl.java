@@ -3,16 +3,18 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.company.CompanyFilterRequest;
 import com.sma.core.dto.request.company.UpdateCompanyRequest;
 import com.sma.core.dto.response.PagingResponse;
-import com.sma.core.dto.response.company.BaseCompanyResponse;
-import com.sma.core.dto.response.company.CompanyDetailResponse;
+import com.sma.core.dto.response.company.*;
 import com.sma.core.dto.request.company.CompanyVerificationRequest;
 import com.sma.core.entity.Company;
 import com.sma.core.entity.CompanyImage;
+import com.sma.core.entity.CompanyLocation;
 import com.sma.core.entity.Recruiter;
 import com.sma.core.enums.CompanyStatus;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.mapper.company.CompanyLocationMapper;
+import com.sma.core.repository.CompanyLocationRepository;
 import com.sma.core.repository.CompanyRepository;
 import com.sma.core.repository.JobRepository;
 import com.sma.core.repository.RecruiterRepository;
@@ -50,6 +52,8 @@ public class CompanyServiceImpl implements CompanyService {
     RecruiterRepository recruiterRepository;
     CompanyMapper companyMapper;
     JobRepository jobRepository;
+    CompanyLocationRepository companyLocationRepository;
+    CompanyLocationMapper companyLocationMapper;
 
     @Override
     @Transactional
@@ -147,6 +151,14 @@ public class CompanyServiceImpl implements CompanyService {
         company = companyMapper.updateToCompany(request, company);
         companyRepository.save(company);
         return companyMapper.toInternalCompanyResponse(company);
+    }
+
+    @Override
+    public List<CompanyLocationResponse> getCompanyLocation() {
+        Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        List<CompanyLocation> locations = companyLocationRepository.findByCompanyId(recruiter.getCompany().getId());
+        return locations.stream().map(companyLocationMapper::toResponse).toList();
     }
 
     @Override

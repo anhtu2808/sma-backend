@@ -96,7 +96,7 @@ public enum ErrorCode {
     FEATURE_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "Feature not supported for this plan"),
     AI_QUOTA_EXHAUSTED(HttpStatus.BAD_REQUEST, "AI quota exhausted"),
     MISSING_SCORING_CRITERIA(HttpStatus.BAD_REQUEST, "Missing scoring criteria"),
-
+    COMPANY_LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Company location not found"),
     
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
