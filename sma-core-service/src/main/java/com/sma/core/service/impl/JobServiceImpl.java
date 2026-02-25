@@ -51,6 +51,7 @@ public class JobServiceImpl implements JobService {
     final BannedKeywordServiceImpl bannedKeywordService;
     final SubscriptionRepository subscriptionRepository;
     final UsageEventRepository usageEventRepository;
+    final CompanyLocationRepository companyLocationRepository;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -100,6 +101,7 @@ public class JobServiceImpl implements JobService {
                 request.getScoringCriterias(),
                 null,
                 request.getRootId(),
+                request.getLocationIds(),
                 true));
     }
 
@@ -117,6 +119,7 @@ public class JobServiceImpl implements JobService {
                 request.getScoringCriterias(),
                 id,
                 request.getRootId(),
+                request.getLocationIds(),
                 true));
     }
 
@@ -137,6 +140,7 @@ public class JobServiceImpl implements JobService {
                 request.getScoringCriterias(),
                 id,
                 request.getRootId(),
+                request.getLocationIds(),
                 false));
     }
 
@@ -162,7 +166,7 @@ public class JobServiceImpl implements JobService {
             if (!sameCompany || !isRoot) {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
-            if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED) {
+            if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED || job.getStatus().equals(JobStatus.SUSPENDED)) {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
         }
@@ -261,6 +265,7 @@ public class JobServiceImpl implements JobService {
                          Set<AddJobScoringCriteriaRequest> scoringCriteriaRequests,
                          Integer jobId,
                          Integer rootId,
+                         List<Integer> locationIds,
                          boolean isSaved) {
         Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
@@ -303,6 +308,17 @@ public class JobServiceImpl implements JobService {
 
         if (!isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
             validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
+        }
+
+        if (locationIds != null && !locationIds.isEmpty()) {
+            Set<CompanyLocation> locations = new HashSet<>();
+            for (Integer locationId : locationIds) {
+                CompanyLocation location = companyLocationRepository
+                        .findByIdAndCompanyId(locationId, recruiter.getCompany().getId())
+                        .orElseThrow(() -> new AppException(ErrorCode.COMPANY_LOCATION_NOT_FOUND));
+                locations.add(location);
+            }
+            job.setLocations(locations);
         }
 
         if (rootId != null) {
