@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,14 @@ import java.util.stream.Collectors;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
+    private static final Comparator<Application> LATEST_APPLICATION_COMPARATOR = Comparator
+            .comparing(Application::getAttempt, Comparator.nullsFirst(Integer::compareTo))
+            .thenComparing(Application::getAppliedAt, Comparator.nullsFirst(LocalDateTime::compareTo));
+    private static final Comparator<Application> APPLIED_JOB_PAGE_SORT_COMPARATOR = (current, next) -> {
+        int comparedAppliedAt = Comparator.nullsFirst(LocalDateTime::compareTo).compare(next.getAppliedAt(), current.getAppliedAt());
+        if (comparedAppliedAt != 0) return comparedAppliedAt;
+        return Comparator.nullsFirst(Integer::compareTo).compare(next.getAttempt(), current.getAttempt());
+    };
 
     final JobRepository jobRepository;
     final JobMapper jobMapper;
@@ -199,16 +208,13 @@ public class JobServiceImpl implements JobService {
         Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
         EnumSet<JobStatus> allowedStatus = null;
         LocalDateTime date = null;
-        Set<Integer> appliedJobIds = null;
+        Map<Integer, Application> latestApplicationsByJobId = Collections.emptyMap();
         if (role == null || role.equals(Role.CANDIDATE)) {
             allowedStatus = EnumSet.of(JobStatus.PUBLISHED);
             date = LocalDateTime.now();
             Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
             if (candidateId != null) {
-                List<Application> applications = applicationRepository.findByCandidate_Id(candidateId);
-                appliedJobIds = applications.stream()
-                                            .map(app -> app.getJob().getId())
-                                            .collect(Collectors.toSet());
+                latestApplicationsByJobId = getLatestApplicationsByJobId(candidateId);
             }
         } else if (role.equals(Role.RECRUITER) || role.equals(Role.ADMIN)) {
             if (request.getStatus() != null && !request.getStatus().isEmpty())
@@ -222,12 +228,7 @@ public class JobServiceImpl implements JobService {
         }
         Page<Job> jobPage = jobRepository.findAll(JobSpecification.withFilter(request, allowedStatus, date), pageable);
         List<BaseJobResponse> jobResponses = jobPage.getContent().stream().map(jobMapper::toBaseJobResponse).toList();
-
-        if (appliedJobIds != null && !appliedJobIds.isEmpty()) {
-            for (BaseJobResponse baseJobResponse : jobResponses) {
-                if (appliedJobIds.contains(baseJobResponse.getId())) baseJobResponse.setIsApplied(true);
-            }
-        }
+        enrichApplyInfo(jobResponses, latestApplicationsByJobId);
         return PagingResponse.fromPage(jobPage, jobResponses);
     }
 
@@ -263,7 +264,66 @@ public class JobServiceImpl implements JobService {
         }
         Page<JobMark> jobMarks = jobMarkRepository.findByUser_Id(userId, pageable);
         Page<Job> jobs = jobMarks.map(JobMark::getJob);
-        return PagingResponse.fromPage(jobs.map(jobMapper::toBaseJobResponse));
+        List<BaseJobResponse> jobResponses = jobs.getContent().stream().map(jobMapper::toBaseJobResponse).toList();
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        Map<Integer, Application> latestApplicationsByJobId = candidateId == null
+                ? Collections.emptyMap()
+                : getLatestApplicationsByJobId(candidateId);
+        enrichApplyInfo(jobResponses, latestApplicationsByJobId);
+        return PagingResponse.fromPage(jobs, jobResponses);
+    }
+
+    @Override
+    public PagingResponse<BaseJobResponse> getAllMyAppliedJob(Integer page, Integer size) {
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        if (candidateId == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Map<Integer, Application> latestApplicationsByJobId = getLatestApplicationsByJobId(candidateId);
+        List<Application> latestApplications = latestApplicationsByJobId.values()
+                                                                        .stream()
+                                                                        .sorted(APPLIED_JOB_PAGE_SORT_COMPARATOR)
+                                                                        .toList();
+
+        int start = Math.min((int) pageable.getOffset(), latestApplications.size());
+        int end = Math.min(start + pageable.getPageSize(), latestApplications.size());
+
+        List<Job> pagedJobs = latestApplications.subList(start, end)
+                                                .stream()
+                                                .map(Application::getJob)
+                                                .toList();
+        Page<Job> jobPage = new PageImpl<>(pagedJobs, pageable, latestApplications.size());
+
+        List<BaseJobResponse> jobResponses = pagedJobs.stream().map(jobMapper::toBaseJobResponse).toList();
+        enrichApplyInfo(jobResponses, latestApplicationsByJobId);
+        return PagingResponse.fromPage(jobPage, jobResponses);
+    }
+
+    private Map<Integer, Application> getLatestApplicationsByJobId(Integer candidateId) {
+        return applicationRepository.findByCandidate_Id(candidateId).stream()
+                                    .filter(app -> app.getJob() != null && app.getJob().getId() != null)
+                                    .collect(Collectors.toMap(
+                                            app -> app.getJob().getId(),
+                                            Function.identity(),
+                                            (current, next) -> LATEST_APPLICATION_COMPARATOR.compare(next, current) > 0 ? next : current
+                                    ));
+    }
+
+    private void enrichApplyInfo(List<BaseJobResponse> jobResponses, Map<Integer, Application> latestApplicationsByJobId) {
+        if (latestApplicationsByJobId == null || latestApplicationsByJobId.isEmpty()) return;
+        for (BaseJobResponse jobResponse : jobResponses) {
+            Application latestApplication = latestApplicationsByJobId.get(jobResponse.getId());
+            if (latestApplication != null) {
+                jobResponse.setIsApplied(true);
+                jobResponse.setLastApplyAt(latestApplication.getAppliedAt());
+                jobResponse.setApplicationStatus(latestApplication.getStatus());
+                jobResponse.setAppliedResumeUrl(
+                        latestApplication.getResume() != null ? latestApplication.getResume().getResumeUrl() : null
+                );
+            }
+        }
     }
 
     Job bindJobRelations(Job job,
