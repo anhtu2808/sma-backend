@@ -90,4 +90,13 @@ public class CompanyController {
                 .build();
     }
 
+    @GetMapping("/my-company")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<CompanyDetailResponse> getMyCompany() {
+        return ApiResponse.<CompanyDetailResponse>builder()
+                .message("Get my company info successfully")
+                .data(companyService.getMyCompanyInfo())
+                .build();
+    }
+
 }

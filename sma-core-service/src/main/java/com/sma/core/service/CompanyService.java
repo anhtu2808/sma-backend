@@ -20,4 +20,5 @@ public interface CompanyService {
 
     CompanyDetailResponse updateCompany(Integer id, UpdateCompanyRequest request);
     List<CompanyLocationResponse> getCompanyLocation();
+    CompanyDetailResponse getMyCompanyInfo();
 }

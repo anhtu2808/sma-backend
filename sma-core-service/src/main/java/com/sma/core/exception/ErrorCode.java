@@ -100,6 +100,7 @@ public enum ErrorCode {
     CANNOT_DELETE_NON_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot delete non-sample job"),
     NOT_A_SAMPLE_JOB(HttpStatus.BAD_REQUEST, "Not a sample job"),
     CAN_NOT_APPLY_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot apply to sample job"),
+    COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "Company not found"),
 
     
     //500 - Server Error
