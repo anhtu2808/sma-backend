@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,12 +26,10 @@ public class UpdateCompanyRequest {
     @Email
     String companyEmail;
     String phone;
-    String address;
-    String district;
-    String city;
     String country;
     String taxIdentificationNumber;
     String erc;
     String companyLink;
+    List<CompanyLocationRequest> locations;
 
 }

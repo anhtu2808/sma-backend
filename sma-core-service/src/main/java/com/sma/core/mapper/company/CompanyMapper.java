@@ -44,8 +44,8 @@ public interface CompanyMapper {
         CompanyDetailResponse toInternalCompanyResponse(Company company);
 
         @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+        @Mapping(target = "locations", ignore = true)
         Company updateToCompany(UpdateCompanyRequest request, @MappingTarget Company company);
-
         default List<String> mapImagesToUrls(Set<CompanyImage> images) {
                 if (images == null)
                         return null;

@@ -1,10 +1,8 @@
 package com.sma.core.service.impl;
 
-import com.sma.core.dto.request.company.CompanyFilterRequest;
-import com.sma.core.dto.request.company.UpdateCompanyRequest;
+import com.sma.core.dto.request.company.*;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.company.*;
-import com.sma.core.dto.request.company.CompanyVerificationRequest;
 import com.sma.core.entity.Company;
 import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.CompanyLocation;
@@ -40,6 +38,8 @@ import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -149,8 +149,42 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.COMPANY_NOT_EXISTED));
         company = companyMapper.updateToCompany(request, company);
+        if (request.getLocations() != null) {
+            Set<Integer> requestIds = request.getLocations().stream()
+                    .map(CompanyLocationRequest::getId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            company.getLocations().removeIf(loc -> loc.getId() != null && !requestIds.contains(loc.getId()));
+
+            for (CompanyLocationRequest locReq : request.getLocations()) {
+                if (locReq.getId() != null) {
+                    company.getLocations().stream()
+                            .filter(l -> l.getId().equals(locReq.getId()))
+                            .findFirst()
+                            .ifPresent(existingLoc -> mapLocationDtoToEntity(locReq, existingLoc));
+                } else {
+                    CompanyLocation newLoc = new CompanyLocation();
+                    mapLocationDtoToEntity(locReq, newLoc);
+                    newLoc.setCompany(company);
+                    company.getLocations().add(newLoc);
+                }
+            }
+        }
         companyRepository.save(company);
         return companyMapper.toInternalCompanyResponse(company);
+    }
+
+    private void mapLocationDtoToEntity(CompanyLocationRequest dto, CompanyLocation entity) {
+        entity.setName(dto.getName());
+        entity.setAddress(dto.getAddress());
+        entity.setDistrict(dto.getDistrict());
+        entity.setCity(dto.getCity());
+        entity.setCountry(dto.getCountry());
+        entity.setDescription(dto.getDescription());
+        entity.setLongitude(dto.getLongitude());
+        entity.setLatitude(dto.getLatitude());
+        entity.setGoogleMapLink(dto.getGoogleMapLink());
     }
 
     @Override
