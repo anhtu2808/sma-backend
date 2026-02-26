@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.job;
 
+import com.sma.core.dto.response.criteria.CriteriaResponse;
 import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -17,4 +18,5 @@ public class JobScoringCriteriaResponse {
     Integer id;
     String context;
     Double weight;
+    CriteriaResponse criteria;
 }
