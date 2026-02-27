@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Status Update</title>
+</head>
+<body style="font-family: 'Inter', Arial, sans-serif; background-color: #F3F4F6; padding: 20px; margin: 0; -webkit-font-smoothing: antialiased;">
+<div style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);">
+
+    <div style="background: #FF6B35; height: 8px;"></div>
+
+    <div style="padding: 40px 30px 5px 30px;">
+        <div style="margin-bottom: 32px; display: flex; align-items: center;">
+            <img src="https://i.ibb.co/S45VXDYF/Thi-t-k-ch-a-c-t-n.png" alt="SmartRecruit Logo"
+                 style="height: 40px; width: auto; margin-right: 12px; border-radius: 8px;">
+            <span style="font-size: 22px; font-weight: 800; color: #111827; letter-spacing: -0.5px; line-height: 40px;">
+                SmartRecruit
+            </span>
+        </div>
+
+        <h2 style="color: #111827; margin-top: 0; font-size: 24px; font-weight: 700; line-height: 1.2;">
+            Update on Your Application
+        </h2>
+
+        <p style="color: #4B5563; font-size: 16px; line-height: 1.6; margin-top: 16px;">
+            Dear <strong th:text="${fullName}">Candidate</strong>,
+        </p>
+
+        <p style="color: #4B5563; font-size: 16px; line-height: 1.6;">
+            Thank you for applying for the <strong th:text="${jobName}">Job</strong> position at
+            <strong th:text="${companyName}">Company</strong> via the SmartRecruit Portal.
+        </p>
+
+        <div style="background-color: #F3F4F6; padding: 24px; border-radius: 12px; margin: 32px 0; border: 1px solid #E5E7EB;">
+            <p
+                    style="margin: 0; color: #9CA3AF; font-size: 13px; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;">
+                Your application is currently: <strong style = "color: black" th:text="${status}"></strong>
+            </p>
+            <p th:if="${rejectReason}"
+               style="margin-top: 15px; margin-bottom: 0px; color: #64748B; font-size: 14px; font-style: italic;"
+               th:text="${'Note: ' + rejectReason}">
+            </p>
+        </div>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+            The recruitment team at
+            <strong th:text="${companyName}">Company</strong> has updated the status of your application. Log in to your SmartRecruit dashboard to view full details.
+        </p>
+
+        <div style="margin: 25px 0; padding: 20px 20px 0 20px; border-radius: 12px; border: 1px dashed #D1D5DB;">
+            <p style="color: #111827; font-weight: 700; font-size: 15px; margin-top: 0;">From your dashboard, you can:</p>
+            <ul style="padding-left: 0; list-style: none; color: #4B5563; font-size: 14px; line-height: 2;">
+                <li>• Track your application status</li>
+                <li>• View updates from the employer</li>
+                <li>• Check interview invitations (if any)</li>
+                <li>• Manage your submitted CV and profile</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 32px;">
+            <a href="https://smartrecruit.tech/"
+               style="background-color: #FF6B35; color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">
+                Go to SmartRecruit
+            </a>
+        </div>
+
+        <p style="color: #64748B; font-size: 13px; line-height: 1.7; margin-top: 32px;">
+            SmartRecruit facilitates connections between IT professionals and top companies.
+            Decisions are made solely by <strong th:text="${companyName}">Company</strong>. If you have any questions regarding this position, please reach out to the employer through the contact
+            details provided in the job posting.
+        </p>
+
+        <p style="color: #111827; font-size: 15px; font-weight: 700; margin-top: 30px; margin-bottom: 0;">
+            Best regards,<br>
+            <span style="color: #FF6B35; font-size: 13px;">SmartRecruit Support Team</span>
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 40px 0 20px 0;">
+
+        <p style="font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.8;">
+            This is an automated message. Please do not reply.<br>
+            <strong>SmartRecruit – AI-Powered IT Recruitment Platform</strong>
+        </p>
+    </div>
+
+    <div style="background: #111827; padding: 24px; text-align: center;">
+        <p style="margin: 0; color: #D1D5DB; font-size: 12px; font-weight: 500;">
+            SmartRecruit - 2026 &copy; All rights reserved.
+        </p>
+    </div>
+</div>
+</body>
+</html>
