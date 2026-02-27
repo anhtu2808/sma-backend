@@ -18,6 +18,7 @@ import com.sma.core.mapper.ApplicationMapper;
 import com.sma.core.mapper.resume.ResumeDetailMapper;
 import com.sma.core.repository.*;
 import com.sma.core.service.ApplicationService;
+import com.sma.core.service.EmailService;
 import com.sma.core.utils.JwtTokenProvider;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -40,6 +41,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import jakarta.persistence.criteria.Predicate;
+import org.thymeleaf.context.Context;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +57,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     ApplicationMapper applicationMapper;
     RecruiterRepository recruiterRepository;
     ResumeDetailMapper resumeDetailMapper;
+    EmailService emailService;
 
     @Override
     @Transactional
@@ -314,6 +318,16 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         applicationRepository.save(application);
+        List<ApplicationStatus> notifyStatuses = List.of(
+                ApplicationStatus.APPLIED,
+                ApplicationStatus.SHORTLISTED,
+                ApplicationStatus.AUTO_REJECTED,
+                ApplicationStatus.NOT_SUITABLE
+        );
+
+        if (notifyStatuses.contains(newStatus)) {
+            sendNotificationEmail(application);
+        }
         log.info("Application {} updated from {} to {}", applicationId, currentStatus, newStatus);
     }
 
@@ -329,5 +343,26 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (!job.getCompany().getId().equals(recruiter.getCompany().getId())) {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         }
+    }
+
+    private String formatStatus(ApplicationStatus status) {
+        if (status == null) return "";
+        return status.toString().replace("_", " ");
+    }
+
+    private void sendNotificationEmail(Application app) {
+        Context context = new Context();
+        context.setVariable("fullName", app.getFullName() != null ? app.getFullName() : "Candidate");
+        context.setVariable("jobName", app.getJob().getName());
+        context.setVariable("companyName", app.getJob().getCompany().getName());
+        context.setVariable("status", formatStatus(app.getStatus()));
+        context.setVariable("rejectReason", app.getRejectReason());
+
+        emailService.sendEmailWithTemplate(
+                app.getEmail(),
+                "Application Update: " + app.getJob().getName(),
+                "application",
+                context
+        );
     }
 }
