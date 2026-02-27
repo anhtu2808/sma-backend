@@ -327,12 +327,12 @@ public class ResumeController {
                 .build();
     }
 
-    @PostMapping("/{resumeId}/re-parse")
+    @PostMapping("/{resumeId}/parse")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<ResumeResponse> reparseResume(@PathVariable Integer resumeId) {
+    public ApiResponse<ResumeResponse> parseResume(@PathVariable Integer resumeId) {
         return ApiResponse.<ResumeResponse>builder()
-                .message("Re-parse resume enqueued successfully")
-                .data(resumeService.reparseResume(resumeId))
+                .message("Parse resume enqueued successfully")
+                .data(resumeService.parseResume(resumeId))
                 .build();
     }
 
@@ -340,7 +340,7 @@ public class ResumeController {
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<String> getResumeStatus(@PathVariable Integer resumeId) {
         return ApiResponse.<String>builder()
-                .message("Get resume parsing status successfully")
+                .message("Get resume status successfully")
                 .data(resumeService.getResumeStatus(resumeId))
                 .build();
     }
@@ -360,31 +360,6 @@ public class ResumeController {
         resumeService.deleteResume(resumeId);
         return ApiResponse.<Void>builder()
                 .message("Delete resume successfully")
-                .build();
-    }
-
-    @PostMapping("/{resumeId}/builder")
-    @PreAuthorize("hasRole('CANDIDATE')")
-    @Operation(
-            summary = "Tạo Resume Builder từ resume có sẵn",
-            description = "Clone resume PDF thành dạng TEMPLATE để chỉnh sửa trong Resume Builder"
-    )
-    public ApiResponse<ResumeResponse> cloneResumeBuilder(@PathVariable Integer resumeId) {
-        return ApiResponse.<ResumeResponse>builder()
-                .message("Create resume builder")
-                .data(resumeService.cloneResume(resumeId, ResumeType.TEMPLATE))
-                .build();
-    }
-
-    @PostMapping("/builder")
-    @PreAuthorize("hasRole('CANDIDATE')")
-    @Operation(
-            summary = "Tạo mới 1 Resume Builder trống"
-    )
-    public ApiResponse<ResumeResponse> createResumeBuilder() {
-        return ApiResponse.<ResumeResponse>builder()
-                .message("Create resume builder")
-                .data(resumeService.createResumeBuilder())
                 .build();
     }
 }

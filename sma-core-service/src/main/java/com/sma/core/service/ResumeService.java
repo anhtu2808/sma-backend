@@ -12,9 +12,9 @@ public interface ResumeService {
     List<ResumeResponse> getMyResumes(String keyword, ResumeType type);
     ResumeDetailResponse getResumeDetail(Integer resumeId);
     ResumeResponse uploadResume(UploadResumeRequest request);
+    ResumeResponse parseResume(Integer resumeId);
     ResumeResponse updateResume(Integer resumeId, UpdateResumeRequest request);
     ResumeResponse cloneResume(Integer resumeId, ResumeType targetType);
-    ResumeResponse reparseResume(Integer resumeId);
     String getResumeStatus(Integer resumeId);
     String getResumeParseStatus(Integer resumeId);
     void deleteResume(Integer resumeId);
