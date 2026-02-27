@@ -327,12 +327,12 @@ public class ResumeController {
                 .build();
     }
 
-    @PostMapping("/{resumeId}/re-parse")
+    @PostMapping("/{resumeId}/parse")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<ResumeResponse> reparseResume(@PathVariable Integer resumeId) {
+    public ApiResponse<ResumeResponse> parseResume(@PathVariable Integer resumeId) {
         return ApiResponse.<ResumeResponse>builder()
-                .message("Re-parse resume enqueued successfully")
-                .data(resumeService.reparseResume(resumeId))
+                .message("Parse resume enqueued successfully")
+                .data(resumeService.parseResume(resumeId))
                 .build();
     }
 

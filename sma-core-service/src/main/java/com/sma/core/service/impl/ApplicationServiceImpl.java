@@ -73,12 +73,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (!resume.getCandidate().getId().equals(currentCandidateId)) {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         }
-        if (resume.getParseStatus() == ResumeParseStatus.FAIL) {
-            throw new AppException(ErrorCode.RESUME_PARSE_FAILED);
-        }
-        if (resume.getParseStatus() == ResumeParseStatus.WAITING) {
-            throw new AppException(ErrorCode.RESUME_STILL_PARSING);
-        }
         Candidate candidate = candidateRepository.findById(currentCandidateId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
         Application application = applicationRepository

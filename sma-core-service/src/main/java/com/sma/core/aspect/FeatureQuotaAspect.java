@@ -72,7 +72,8 @@ public class FeatureQuotaAspect {
             switch (usageType) {
                 case BOOLEAN -> assertBooleanEntitlement(eligibleSubscriptions, feature.getId());
                 case STATE -> assertStateQuota(check, ownerContext, eligibleSubscriptions, feature, spelContext);
-                case EVENT -> eventReservations.add(reserveEventQuota(check, eligibleSubscriptions, feature, spelContext, now));
+                case EVENT ->
+                        eventReservations.add(reserveEventQuota(check, eligibleSubscriptions, feature, spelContext, now));
             }
         }
 
@@ -168,8 +169,11 @@ public class FeatureQuotaAspect {
     }
 
     private AppException buildQuotaExceeded(Feature feature) {
-        String featureName = feature != null && feature.getName() != null ? feature.getName() : "này";
-        String message = "Xin lỗi, bạn đã hết quota cho tính năng " + featureName;
+        String featureName = feature != null && feature.getName() != null
+                ? feature.getName()
+                : "this feature";
+
+        String message = "Sorry, you have reached the usage limit for " + featureName + ".";
         return new AppException(ErrorCode.FEATURE_QUOTA_EXCEEDED, message);
     }
 

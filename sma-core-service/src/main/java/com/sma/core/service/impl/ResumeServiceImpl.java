@@ -32,8 +32,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @Slf4j
@@ -81,8 +83,11 @@ public class ResumeServiceImpl implements ResumeService {
             featureKey = FeatureKey.CV_UPLOAD_LIMIT,
             stateChecker = ResumeUploadLimitStateChecker.class
     )
-    @CheckFeatureQuota(featureKey = FeatureKey.RESUME_PARSING)
     public ResumeResponse uploadResume(UploadResumeRequest request) {
+        if (!hasSupportedResumeExtension(request)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Only PDF, DOC, and DOCX files are supported");
+        }
+
         Resume resume = resumeMapper.toEntity(request);
         Candidate candidate = getCurrentCandidate();
 
@@ -98,12 +103,24 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setCandidate(candidate);
         resume = resumeRepository.save(resume);
 
+        return resumeMapper.toResponse(resume);
+    }
+
+    @Override
+    @CheckFeatureQuota(featureKey = FeatureKey.RESUME_PARSING)
+    public ResumeResponse parseResume(Integer resumeId) {
+        Resume resume = getOwnedResume(resumeId);
+
+        resume.setStatus(ResumeStatus.DRAFT);
+        resume.setParseStatus(ResumeParseStatus.WAITING);
+        resume = resumeRepository.save(resume);
+
         try {
             resumeParsingRequestPublisher.publish(resume.getId(), resume.getResumeUrl(), resume.getFileName(), resume.getResumeName());
             resume.setParseStatus(ResumeParseStatus.PARTIAL);
             resumeRepository.save(resume);
         } catch (Exception e) {
-            log.error("Failed to enqueue resume parsing request for resumeId={}", resume.getId(), e);
+            log.error("Failed to enqueue resume parsing request for resumeId={}", resumeId, e);
             resume.setParseStatus(ResumeParseStatus.FAIL);
             resumeRepository.save(resume);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
@@ -132,6 +149,10 @@ public class ResumeServiceImpl implements ResumeService {
             return resumeMapper.toResponse(source);
         }
 
+        if (targetType == ResumeType.PROFILE && source.getParseStatus() != ResumeParseStatus.FINISH) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Only parsed resumes can be set as profile");
+        }
+
         if (targetType == ResumeType.PROFILE) {
             Resume existingProfile = resumeRepository
                     .findFirstByCandidate_IdAndTypeOrderByIdDesc(source.getCandidate().getId(), ResumeType.PROFILE)
@@ -148,28 +169,6 @@ public class ResumeServiceImpl implements ResumeService {
 
         Resume saved = resumeRepository.save(clone);
         return resumeMapper.toResponse(saved);
-    }
-
-    @Override
-    @CheckFeatureQuota(featureKey = FeatureKey.RESUME_PARSING)
-    public ResumeResponse reparseResume(Integer resumeId) {
-        Resume resume = getOwnedResume(resumeId);
-        resume.setStatus(ResumeStatus.DRAFT);
-        resume.setParseStatus(ResumeParseStatus.WAITING);
-        resume = resumeRepository.save(resume);
-
-        try {
-            resumeParsingRequestPublisher.publish(resume.getId(), resume.getResumeUrl(), resume.getFileName(), resume.getResumeName());
-            resume.setParseStatus(ResumeParseStatus.PARTIAL);
-            resumeRepository.save(resume);
-        } catch (Exception e) {
-            log.error("Failed to re-enqueue resume parsing request for resumeId={}", resumeId, e);
-            resume.setParseStatus(ResumeParseStatus.FAIL);
-            resumeRepository.save(resume);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
-        }
-
-        return resumeMapper.toResponse(resume);
     }
 
     @Override
@@ -239,6 +238,35 @@ public class ResumeServiceImpl implements ResumeService {
         }
 
         return resume;
+    }
+
+    private boolean hasSupportedResumeExtension(UploadResumeRequest request) {
+        if (request == null) {
+            return false;
+        }
+
+        String valueToCheck = null;
+        if (StringUtils.hasText(request.getFileName())) {
+            valueToCheck = request.getFileName();
+        } else if (StringUtils.hasText(request.getResumeName())) {
+            valueToCheck = request.getResumeName();
+        } else if (StringUtils.hasText(request.getResumeUrl())) {
+            valueToCheck = request.getResumeUrl();
+        }
+
+        if (!StringUtils.hasText(valueToCheck)) {
+            return false;
+        }
+
+        String normalized = valueToCheck.trim().toLowerCase(Locale.ROOT);
+        int queryIndex = normalized.indexOf('?');
+        if (queryIndex >= 0) {
+            normalized = normalized.substring(0, queryIndex);
+        }
+
+        return normalized.endsWith(".pdf")
+                || normalized.endsWith(".doc")
+                || normalized.endsWith(".docx");
     }
 
 }
