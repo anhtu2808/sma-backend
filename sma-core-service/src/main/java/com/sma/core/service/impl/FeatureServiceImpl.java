@@ -3,6 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.feature.FeatureRequest;
 import com.sma.core.dto.response.feature.FeatureResponse;
 import com.sma.core.entity.Feature;
+import com.sma.core.enums.FeatureKey;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.feature.FeatureMapper;
@@ -52,7 +53,7 @@ public class FeatureServiceImpl implements FeatureService {
     @Override
     public FeatureResponse updateFeature(Integer id, FeatureRequest request) {
         Feature feature = featureRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_FOUND));
+                                           .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_FOUND));
 
         String featureKey = request.getFeatureKey().name();
         if (!featureKey.equals(feature.getFeatureKey())
@@ -69,5 +70,11 @@ public class FeatureServiceImpl implements FeatureService {
             feature.setIsActive(true);
         }
         return featureMapper.toResponse(featureRepository.save(feature));
+    }
+
+    @Override
+    public Feature getActiveFeature(FeatureKey featureKey) {
+        return featureRepository.findByFeatureKeyAndIsActiveTrue(featureKey.name())
+                                .orElseThrow(() -> new AppException(ErrorCode.FEATURE_DISABLED));
     }
 }

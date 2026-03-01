@@ -2,7 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.featureusage.FeatureUsageResponse;
-import com.sma.core.service.FeatureUsageService;
+import com.sma.core.service.UsageService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,13 +19,13 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FeatureUsageController {
 
-    FeatureUsageService featureUsageService;
+    UsageService usageService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('CANDIDATE','RECRUITER')")
     public ApiResponse<List<FeatureUsageResponse>> getCurrentUsage() {
         return ApiResponse.<List<FeatureUsageResponse>>builder()
-                .data(featureUsageService.getCurrentUsage())
+                .data(usageService.getCurrentUsage())
                 .build();
     }
 }

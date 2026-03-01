@@ -1,6 +1,5 @@
 package com.sma.core.service.impl;
 
-import com.sma.core.annotation.CheckFeatureQuota;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
@@ -9,6 +8,7 @@ import com.sma.core.entity.Candidate;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.entity.Resume;
 import com.sma.core.enums.ResumeParseStatus;
+import com.sma.core.enums.UsageEntityType;
 import com.sma.core.enums.ResumeStatus;
 import com.sma.core.enums.ResumeType;
 import com.sma.core.enums.Role;
@@ -22,7 +22,7 @@ import com.sma.core.repository.CandidateRepository;
 import com.sma.core.repository.ResumeRepository;
 import com.sma.core.service.ResumeService;
 import com.sma.core.service.ResumeCloneService;
-import com.sma.core.service.quota.impl.ResumeUploadLimitStateChecker;
+import com.sma.core.service.QuotaService;
 import com.sma.core.specification.ResumeSpecification;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -50,6 +50,7 @@ public class ResumeServiceImpl implements ResumeService {
     final ResumeDetailMapper resumeDetailMapper;
     final ResumeParsingRequestPublisher resumeParsingRequestPublisher;
     final ResumeCloneService resumeCloneService;
+    final QuotaService quotaService;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,11 +80,8 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
-    @CheckFeatureQuota(
-            featureKey = FeatureKey.CV_UPLOAD_LIMIT,
-            stateChecker = ResumeUploadLimitStateChecker.class
-    )
     public ResumeResponse uploadResume(UploadResumeRequest request) {
+        quotaService.validateStateQuota(FeatureKey.CV_UPLOAD_LIMIT, null);
         if (!hasSupportedResumeExtension(request)) {
             throw new AppException(ErrorCode.BAD_REQUEST, "Only PDF, DOC, and DOCX files are supported");
         }
@@ -107,9 +105,17 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
-    @CheckFeatureQuota(featureKey = FeatureKey.RESUME_PARSING)
     public ResumeResponse parseResume(Integer resumeId) {
+        // Get resume first to have the ID for context
         Resume resume = getOwnedResume(resumeId);
+
+        // Consume quota with resume as context
+        quotaService.consumeEventQuota(
+                FeatureKey.RESUME_PARSING,
+                1,
+                UsageEntityType.RESUME,
+                resume.getId()
+        );
 
         resume.setStatus(ResumeStatus.DRAFT);
         resume.setParseStatus(ResumeParseStatus.WAITING);

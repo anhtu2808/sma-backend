@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.dto.request.subscription.CreateSubscriptionRequest;
 import com.sma.core.entity.*;
 import com.sma.core.enums.PaymentMethod;
@@ -22,6 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -132,6 +136,67 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription = bindCandidate(subscription, candidateId);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscriptionRepository.save(subscription);
+    }
+
+    @Override
+    public List<Subscription> findEligibleSubscriptions(QuotaOwnerContext ownerContext, LocalDateTime now) {
+        List<Subscription> subscriptions;
+        if (ownerContext.getRole() == Role.CANDIDATE) {
+            subscriptions = subscriptionRepository.findEligibleByCandidateId(
+                    ownerContext.getCandidateId(),
+                    SubscriptionStatus.ACTIVE,
+                    now
+            );
+        } else if (ownerContext.getRole() == Role.RECRUITER) {
+            subscriptions = subscriptionRepository.findEligibleByCompanyId(
+                    ownerContext.getCompanyId(),
+                    SubscriptionStatus.ACTIVE,
+                    now
+            );
+        } else {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            throw new AppException(ErrorCode.FEATURE_NOT_INCLUDED);
+        }
+        return subscriptions.stream()
+                            .sorted(Comparator
+                                    .comparingInt((Subscription s) -> isAddonPlan(s) ? 0 : 1)
+                                    .thenComparing(Subscription::getPurchasedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                                    .thenComparing(Subscription::getId))
+                            .toList();
+    }
+
+    @Override
+    public List<Subscription> findAllSubscriptions(QuotaOwnerContext ownerContext) {
+        List<Subscription> subscriptions;
+        if (ownerContext.getRole() == Role.CANDIDATE) {
+            subscriptions = subscriptionRepository.findAllByCandidate_Id(ownerContext.getCandidateId());
+        } else if (ownerContext.getRole() == Role.RECRUITER) {
+            subscriptions = subscriptionRepository.findAllByCompany_Id(ownerContext.getCompanyId());
+        } else {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return subscriptions.stream()
+                            .sorted(Comparator
+                                    .comparingInt((Subscription s) -> isAddonPlan(s) ? 0 : 1)
+                                    .thenComparing(Subscription::getPurchasedAt, Comparator.nullsLast(Comparator.naturalOrder()))
+                                    .thenComparing(Subscription::getId))
+                            .toList();
+    }
+
+
+    private boolean isAddonPlan(Subscription subscription) {
+        if (subscription == null || subscription.getPlan() == null || subscription.getPlan().getPlanType() == null) {
+            return false;
+        }
+        PlanType planType = subscription.getPlan().getPlanType();
+        return planType == PlanType.ADDONS_FEATURE || planType == PlanType.ADDONS_QUOTA;
     }
 
     private void expireActiveMainSubscriptions(Subscription subscription, LocalDateTime now, Integer excludeId) {

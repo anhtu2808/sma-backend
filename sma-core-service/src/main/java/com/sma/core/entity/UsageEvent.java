@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "usage_events")
@@ -31,6 +33,10 @@ public class UsageEvent {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @OneToMany(mappedBy = "usageEvent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<UsageEventContext> contexts = new HashSet<>();
 
     @PrePersist
     protected void onCreate() {
