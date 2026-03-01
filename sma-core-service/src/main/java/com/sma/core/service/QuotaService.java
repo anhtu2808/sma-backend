@@ -3,7 +3,7 @@ package com.sma.core.service;
 import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.FeatureKey;
-import com.sma.core.enums.UsageEntityType;
+import com.sma.core.enums.EventSource;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +28,7 @@ public interface QuotaService {
     /**
      * Commit reservation with context information
      */
-    void commitReservation(EventReservation reservation, UsageEntityType entityType, Integer entityId);
+    void commitReservation(EventReservation reservation, EventSource entityType, Integer entityId);
 
     /**
      * Validate boolean entitlement (on/off feature)
@@ -44,7 +44,12 @@ public interface QuotaService {
     /**
      * Consume event quota with context (reserve + commit in one call)
      */
-    void consumeEventQuota(FeatureKey featureKey, int amount, UsageEntityType entityType, Integer entityId);
+    void consumeEventQuota(FeatureKey featureKey, int amount, EventSource entityType, Integer entityId);
+
+    /**
+     * Check if event quota is available without consuming it
+     */
+    void checkEventQuotaAvailability(FeatureKey featureKey);
 
     record EventReservation(Integer subscriptionId, Integer featureId, Integer amount) {
     }

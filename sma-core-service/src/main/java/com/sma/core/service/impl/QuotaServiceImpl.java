@@ -3,7 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.entity.*;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.Role;
-import com.sma.core.enums.UsageEntityType;
+import com.sma.core.enums.EventSource;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.repository.CandidateRepository;
@@ -156,21 +156,14 @@ public class QuotaServiceImpl implements QuotaService {
     }
 
     @Override
-    public void commitReservation(EventReservation reservation, UsageEntityType entityType, Integer entityId) {
+    public void commitReservation(EventReservation reservation, EventSource entityType, Integer entityId) {
         UsageEvent usageEvent = UsageEvent.builder()
                 .subscription(subscriptionRepository.getReferenceById(reservation.subscriptionId()))
                 .feature(featureRepository.getReferenceById(reservation.featureId()))
                 .amount(reservation.amount())
+                .eventSource(entityType)
+                .sourceId(entityId)
                 .build();
-
-        if (entityType != null && entityId != null) {
-            UsageEventContext context = UsageEventContext.builder()
-                    .usageEvent(usageEvent)
-                    .entityType(entityType)
-                    .entityId(entityId)
-                    .build();
-            usageEvent.getContexts().add(context);
-        }
 
         usageEventRepository.save(usageEvent);
     }
@@ -207,7 +200,7 @@ public class QuotaServiceImpl implements QuotaService {
     }
 
     @Override
-    public void consumeEventQuota(FeatureKey featureKey, int amount, UsageEntityType entityType, Integer entityId) {
+    public void consumeEventQuota(FeatureKey featureKey, int amount, EventSource entityType, Integer entityId) {
         LocalDateTime now = LocalDateTime.now();
         QuotaOwnerContext ownerContext = resolveOwnerContext();
         List<Subscription> subscriptions = subscriptionService.findEligibleSubscriptions(ownerContext, now);
@@ -217,6 +210,41 @@ public class QuotaServiceImpl implements QuotaService {
         EventReservation reservation = reserveEventQuota(subscriptions, feature.getId(), amount, now);
 
         commitReservation(reservation, entityType, entityId);
+    }
+
+    @Override
+    public void checkEventQuotaAvailability(FeatureKey featureKey) {
+        LocalDateTime now = LocalDateTime.now();
+        QuotaOwnerContext ownerContext = resolveOwnerContext();
+        List<Subscription> subscriptions = subscriptionService.findEligibleSubscriptions(ownerContext, now);
+
+        if (subscriptions.isEmpty()) {
+            throw new AppException(ErrorCode.FEATURE_NOT_INCLUDED);
+        }
+
+        Feature feature = featureService.getActiveFeature(featureKey);
+        List<Integer> planIds = extractDistinctPlanIds(subscriptions);
+
+        UsageLimit usageLimit = usageLimitRepository.findAllByPlanIdInAndFeatureId(planIds, feature.getId())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_INCLUDED));
+
+        if (usageLimit.getMaxQuota() == null) {
+            throw new AppException(ErrorCode.FEATURE_NOT_INCLUDED);
+        }
+
+        long usedAmount = eventUsageCalculator.calculate(
+                subscriptions,
+                feature.getId(),
+                usageLimit.getLimitUnit(),
+                null,
+                null
+        );
+
+        if (usedAmount >= usageLimit.getMaxQuota()) {
+            throw buildQuotaExceeded(feature);
+        }
     }
 
     private StateQuotaChecker getStateChecker(FeatureKey featureKey) {

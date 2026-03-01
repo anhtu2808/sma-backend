@@ -2,25 +2,25 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.model.QuotaAggregate;
 import com.sma.core.dto.model.QuotaOwnerContext;
+import com.sma.core.dto.request.usage.UsageHistoryFilterRequest;
 import com.sma.core.dto.response.featureusage.FeatureUsageResponse;
-import com.sma.core.dto.response.quota.QuotaConsumptionResponse;
+import com.sma.core.dto.response.usage.UsageEventResponse;
 import com.sma.core.entity.Feature;
 import com.sma.core.entity.Subscription;
 import com.sma.core.entity.UsageLimit;
-import com.sma.core.enums.FeatureKey;
-import com.sma.core.enums.Role;
-import com.sma.core.enums.SubscriptionStatus;
-import com.sma.core.enums.UsageEntityType;
-import com.sma.core.exception.AppException;
-import com.sma.core.exception.ErrorCode;
+import com.sma.core.mapper.UsageEventMapper;
+import com.sma.core.repository.UsageEventRepository;
 import com.sma.core.repository.UsageLimitRepository;
 import com.sma.core.service.FeatureService;
 import com.sma.core.service.SubscriptionService;
 import com.sma.core.service.QuotaService;
 import com.sma.core.service.UsageService;
+import com.sma.core.specification.UsageEventSpecification;
 import com.sma.core.service.quota.EventUsageCalculator;
 import com.sma.core.service.quota.QuotaAggregationEngine;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,10 +39,12 @@ public class UsageServiceImpl implements UsageService {
 
     private final QuotaService quotaService;
     private final SubscriptionService subscriptionService;
+    private final UsageEventRepository usageEventRepository;
     private final UsageLimitRepository usageLimitRepository;
     private final QuotaAggregationEngine quotaEngine;
     private final EventUsageCalculator eventUsageCalculator;
     private final FeatureService featureService;
+    private final UsageEventMapper usageEventMapper;
 
     @Override
     public List<FeatureUsageResponse> getCurrentUsage() {
@@ -95,5 +97,33 @@ public class UsageServiceImpl implements UsageService {
         }
 
         return responses;
+    }
+
+    @Override
+    public Page<UsageEventResponse> getUsageHistory(UsageHistoryFilterRequest request) {
+        QuotaOwnerContext ownerContext = quotaService.resolveOwnerContext();
+        List<Subscription> subscriptions = subscriptionService.findAllSubscriptions(ownerContext);
+
+        if (subscriptions.isEmpty()) {
+            return Page.empty(PageRequest.of(request.getPage(), request.getSize()));
+        }
+
+        var subscriptionIds = subscriptions.stream()
+                .map(Subscription::getId)
+                .toList();
+
+        PageRequest pageRequest = PageRequest.of(request.getPage(), request.getSize());
+
+        var specification = UsageEventSpecification.filterBy(
+                request.getFeatureKey(),
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getEventSource(),
+                request.getSourceId(),
+                subscriptionIds
+        );
+
+        return usageEventRepository.findAll(specification, pageRequest)
+                .map(usageEventMapper::toResponse);
     }
 }

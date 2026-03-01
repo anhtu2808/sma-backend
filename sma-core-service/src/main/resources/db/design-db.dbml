@@ -673,6 +673,8 @@ Table Usage_Events {
   subscription_id int [not null]
   feature_id int [not null]
   amount int [not null]
+  event_source enum('JOB', 'APPLICATION', 'RESUME', 'EXPORT_RECORD')
+  source_id int
   created_at datetime [default: `now()`]
 }
 

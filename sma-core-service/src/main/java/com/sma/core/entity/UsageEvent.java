@@ -1,11 +1,10 @@
 package com.sma.core.entity;
 
+import com.sma.core.enums.EventSource;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Table(name = "usage_events")
@@ -34,9 +33,12 @@ public class UsageEvent {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "usageEvent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @Builder.Default
-    private Set<UsageEventContext> contexts = new HashSet<>();
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_source", length = 50)
+    private EventSource eventSource;
+
+    @Column(name = "source_id")
+    private Integer sourceId;
 
     @PrePersist
     protected void onCreate() {

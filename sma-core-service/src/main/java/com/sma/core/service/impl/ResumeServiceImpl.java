@@ -8,7 +8,7 @@ import com.sma.core.entity.Candidate;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.entity.Resume;
 import com.sma.core.enums.ResumeParseStatus;
-import com.sma.core.enums.UsageEntityType;
+import com.sma.core.enums.EventSource;
 import com.sma.core.enums.ResumeStatus;
 import com.sma.core.enums.ResumeType;
 import com.sma.core.enums.Role;
@@ -113,7 +113,7 @@ public class ResumeServiceImpl implements ResumeService {
         quotaService.consumeEventQuota(
                 FeatureKey.RESUME_PARSING,
                 1,
-                UsageEntityType.RESUME,
+                EventSource.RESUME,
                 resume.getId()
         );
 

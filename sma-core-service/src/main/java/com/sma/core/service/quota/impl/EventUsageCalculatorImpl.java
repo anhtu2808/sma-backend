@@ -1,7 +1,7 @@
 package com.sma.core.service.quota.impl;
 
 import com.sma.core.entity.Subscription;
-import com.sma.core.enums.UsageEntityType;
+import com.sma.core.enums.EventSource;
 import com.sma.core.enums.UsageLimitUnit;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -24,7 +24,7 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
             List<Subscription> subscriptions,
             Integer featureId,
             UsageLimitUnit unit,
-            UsageEntityType entityType,
+            EventSource eventSource,
             Integer entityId
     ) {
         LocalDateTime now = LocalDateTime.now();
@@ -39,12 +39,12 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
             switch (unit) {
 
                 case TOTAL -> {
-                    usage = entityType == null && entityId == null
+                    usage = eventSource == null && entityId == null
                             ? usageEventRepository.sumTotal(subscription.getId(), featureId)
                             : usageEventRepository.sumTotalByContext(
                             subscription.getId(),
                             featureId,
-                            entityType,
+                            eventSource,
                             entityId
                     );
                 }
@@ -52,7 +52,7 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
                 case PER_MONTH -> {
                     var window = windowResolver.resolveAnchoredMonthlyWindow(subscription, now);
 
-                    usage = entityType == null && entityId == null
+                    usage = eventSource == null && entityId == null
                             ? usageEventRepository.sumInPeriod(
                             subscription.getId(),
                             featureId,
@@ -64,7 +64,7 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
                             featureId,
                             window.periodStart(),
                             window.periodEnd(),
-                            entityType,
+                            eventSource,
                             entityId
                     );
                 }

@@ -1,6 +1,6 @@
 package com.sma.core.enums;
 
-public enum UsageEntityType {
+public enum EventSource {
     JOB,
     APPLICATION,
     RESUME,
