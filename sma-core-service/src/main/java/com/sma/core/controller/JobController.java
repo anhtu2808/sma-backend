@@ -88,11 +88,21 @@ public class JobController {
 
     @PutMapping("/{id}/threshold")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> updateJobThreshold(@RequestBody UpdateJobStatusRequest request,
+    public ApiResponse<JobDetailResponse> updateJobThreshold(@RequestBody UpdateThresholdRequest request,
                                                           @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update job status successfully")
-                .data(jobService.updateJobStatus(id, request))
+                .data(jobService.updateThreshold(id, request))
+                .build();
+    }
+
+    @PutMapping("/{id}/expired-date")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<JobDetailResponse> updateJobExpiredDate(@RequestBody UpdateJobExpDateRequest request,
+                                                             @PathVariable Integer id) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Update job expired date successfully")
+                .data(jobService.updateJobExpiredDate(id, request))
                 .build();
     }
 

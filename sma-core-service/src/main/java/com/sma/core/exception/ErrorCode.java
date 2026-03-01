@@ -23,7 +23,7 @@ public enum ErrorCode {
     CANT_DELETE_RESUME_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete resume that is in use"),
     EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
     INVALID_SEPAY_CONTENT_FORMAT(HttpStatus.BAD_REQUEST, "Invalid sepay content format"),
-
+    INVALID_EXPIRED_DATE(HttpStatus.BAD_REQUEST, "Invalid expired date"),
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),

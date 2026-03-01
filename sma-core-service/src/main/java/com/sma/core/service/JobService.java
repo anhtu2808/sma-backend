@@ -27,4 +27,7 @@ public interface JobService {
     PagingResponse<BaseJobResponse> getSampleJobs(JobFilterRequest request);
     JobDetailResponse updateSampleJob(Integer id, AdminJobSampleRequest request);
     void deleteSampleJob(Integer id);
+    JobDetailResponse updateJobExpiredDate(Integer id, UpdateJobExpDateRequest request);
+    JobDetailResponse updateThreshold(Integer id, UpdateThresholdRequest request);
+
 }

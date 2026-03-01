@@ -587,4 +587,32 @@ public class JobServiceImpl implements JobService {
 
         jobRepository.delete(job);
     }
+
+    @Override
+    public JobDetailResponse updateJobExpiredDate(Integer id, UpdateJobExpDateRequest request) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        verifyPermission(job);
+        if (request.getExpDate() != null) {
+            if (request.getExpDate().isBefore(LocalDateTime.now())) {
+                throw new AppException(ErrorCode.INVALID_EXPIRED_DATE);
+            }
+            job.setExpDate(request.getExpDate());
+            jobRepository.save(job);
+        }
+        return jobMapper.toJobInternalResponse(job);
+    }
+
+    @Override
+    public JobDetailResponse updateThreshold(Integer id, UpdateThresholdRequest request) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        verifyPermission(job);
+        if (request.getScoringCriteria() != null && !request.getScoringCriteria().isEmpty()) {
+            job.setScoringCriterias(scoringCriteriaService
+                    .saveJobScoringCriteria(job, request.getScoringCriteria()));
+            jobRepository.save(job);
+        }
+        return jobMapper.toJobInternalResponse(job);
+    }
 }
