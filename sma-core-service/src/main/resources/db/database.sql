@@ -582,6 +582,8 @@ CREATE TABLE usage_events (
   subscription_id int NOT NULL,
   feature_id int NOT NULL,
   amount int NOT NULL,
+  event_source varchar(50),
+  source_id int,
   created_at TIMESTAMP DEFAULT now()
 );
 
