@@ -19,10 +19,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -116,6 +113,8 @@ public class JobServiceImpl implements JobService {
                 null,
                 request.getRootId(),
                 request.getLocationIds(),
+                request.getAutoRejectThreshold(),
+                request.getEnableAiScoring(),
                 true, false));
     }
 
@@ -134,6 +133,8 @@ public class JobServiceImpl implements JobService {
                 id,
                 request.getRootId(),
                 request.getLocationIds(),
+                request.getAutoRejectThreshold(),
+                request.getEnableAiScoring(),
                 true, false));
     }
 
@@ -155,6 +156,8 @@ public class JobServiceImpl implements JobService {
                 id,
                 request.getRootId(),
                 request.getLocationIds(),
+                request.getAutoRejectThreshold(),
+                request.getEnableAiScoring(),
                 false, false));
     }
 
@@ -214,7 +217,8 @@ public class JobServiceImpl implements JobService {
     @Override
     public PagingResponse<BaseJobResponse> getAllJob(JobFilterRequest request) {
         Role role = JwtTokenProvider.getCurrentRole();
-        Pageable pageable = PageRequest.of(request.getPage(), request.getSize());
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
+                Sort.by(Sort.Direction.DESC, "uploadTime"));
         EnumSet<JobStatus> allowedStatus = null;
         LocalDateTime date = null;
         Map<Integer, Application> latestApplicationsByJobId = Collections.emptyMap();
@@ -349,6 +353,8 @@ public class JobServiceImpl implements JobService {
                          Integer jobId,
                          Integer rootId,
                          List<Integer> locationIds,
+                         Double autoRejectThreshold,
+                         boolean enableAi,
                          boolean isSaved,
                          boolean isSample) {
         if (!isSample) {
@@ -401,11 +407,12 @@ public class JobServiceImpl implements JobService {
             job.setQuestions(new HashSet<>(jobQuestions));
         }
 
-        if (scoringCriteriaRequests != null && !scoringCriteriaRequests.isEmpty()) {
+        if (enableAi && scoringCriteriaRequests != null && !scoringCriteriaRequests.isEmpty()) {
             job.setScoringCriterias(scoringCriteriaService
                     .saveJobScoringCriteria(job, scoringCriteriaRequests));
         }
-
+        job.setEnableAiScoring(enableAi);
+        job.setAutoRejectThreshold(autoRejectThreshold);
         if (!isSample && !isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
             validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
         }
@@ -535,6 +542,8 @@ public class JobServiceImpl implements JobService {
                 null,
                 null,
                 null,
+                request.getAutoRejectThreshold(),
+                request.getEnableAiScoring(),
                 true, true
         ));
     }
@@ -571,6 +580,8 @@ public class JobServiceImpl implements JobService {
                 id,
                 null,
                 null,
+                request.getAutoRejectThreshold(),
+                request.getEnableAiScoring(),
                 true, true
         ));
     }
@@ -611,8 +622,9 @@ public class JobServiceImpl implements JobService {
         if (request.getScoringCriteria() != null && !request.getScoringCriteria().isEmpty()) {
             job.setScoringCriterias(scoringCriteriaService
                     .saveJobScoringCriteria(job, request.getScoringCriteria()));
-            jobRepository.save(job);
         }
+        job.setAutoRejectThreshold(request.getRejectThreshold());
+        jobRepository.save(job);
         return jobMapper.toJobInternalResponse(job);
     }
 }

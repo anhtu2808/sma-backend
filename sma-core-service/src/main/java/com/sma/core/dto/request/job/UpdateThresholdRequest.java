@@ -14,6 +14,7 @@ import java.util.Set;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateThresholdRequest {
 
+    Double rejectThreshold;
     Set<AddJobScoringCriteriaRequest> scoringCriteria;
 
 }
