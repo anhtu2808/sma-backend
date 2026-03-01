@@ -49,6 +49,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
                                                @Param("status") SubscriptionStatus status,
                                                @Param("now") LocalDateTime now);
 
+    List<Subscription> findAllByCandidate_Id(Integer candidateId);
+
+    List<Subscription> findAllByCompany_Id(Integer companyId);
+
     boolean existsByCandidateIdAndStatusAndPlan_PlanTypeAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Integer candidateId,
             SubscriptionStatus status,

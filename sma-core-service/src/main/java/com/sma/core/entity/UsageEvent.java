@@ -1,5 +1,6 @@
 package com.sma.core.entity;
 
+import com.sma.core.enums.EventSource;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,6 +32,13 @@ public class UsageEvent {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "event_source", length = 50)
+    private EventSource eventSource;
+
+    @Column(name = "source_id")
+    private Integer sourceId;
 
     @PrePersist
     protected void onCreate() {

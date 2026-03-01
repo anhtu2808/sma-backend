@@ -2,7 +2,6 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.request.question.UpsertQuestionRequest;
-import com.sma.core.dto.request.question.JobQuestionFilterRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
@@ -20,8 +19,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
-
-import static org.springframework.security.authorization.AuthorityReactiveAuthorizationManager.hasAnyRole;
 
 @RestController
 @Slf4j
@@ -62,14 +59,13 @@ public class JobController {
     public ApiResponse<JobDetailResponse> saveExistingJob(@RequestBody DraftJobRequest request, @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Save job successfully")
-                .data(jobService.saveExistingJob(id ,request))
+                .data(jobService.saveExistingJob(id, request))
                 .build();
     }
 
     @PutMapping("/{id}/publish")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody @Valid PublishJobRequest request,
-            @PathVariable Integer id) {
+    public ApiResponse<JobDetailResponse> publishExistingJob(@RequestBody @Valid PublishJobRequest request, @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Publish job successfully")
                 .data(jobService.publishExistingJob(id, request))
@@ -78,8 +74,7 @@ public class JobController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
-    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody UpdateJobStatusRequest request,
-                                                          @PathVariable Integer id) {
+    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody UpdateJobStatusRequest request, @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update job status successfully")
                 .data(jobService.updateJobStatus(id, request))
@@ -88,8 +83,7 @@ public class JobController {
 
     @PutMapping("/{id}/threshold")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobDetailResponse> updateJobThreshold(@RequestBody UpdateJobStatusRequest request,
-                                                          @PathVariable Integer id) {
+    public ApiResponse<JobDetailResponse> updateJobThreshold(@RequestBody UpdateJobStatusRequest request, @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update job status successfully")
                 .data(jobService.updateJobStatus(id, request))
@@ -98,9 +92,7 @@ public class JobController {
 
     @PostMapping("/{jobId}/job-questions")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<JobQuestionResponse> create(
-            @PathVariable Integer jobId,
-            @RequestBody @Valid UpsertQuestionRequest request) {
+    public ApiResponse<JobQuestionResponse> create(@PathVariable Integer jobId, @RequestBody @Valid UpsertQuestionRequest request) {
         return ApiResponse.<JobQuestionResponse>builder()
                 .data(jobQuestionService.create(jobId, request))
                 .message("Question created successfully")
@@ -109,8 +101,7 @@ public class JobController {
 
     @GetMapping("/{jobId}/job-questions")
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN', 'CANDIDATE')")
-    public ApiResponse<Set<JobQuestionResponse>> getByJobId(
-            @PathVariable Integer jobId) {
+    public ApiResponse<Set<JobQuestionResponse>> getByJobId(@PathVariable Integer jobId) {
         return ApiResponse.<Set<JobQuestionResponse>>builder()
                 .message("Get job questions by job id successfully")
                 .data(jobQuestionService.getByJobId(jobId))
@@ -119,8 +110,7 @@ public class JobController {
 
     @PostMapping("/{jobId}/mark")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<Boolean> markJob(
-            @PathVariable Integer jobId) {
+    public ApiResponse<Boolean> markJob(@PathVariable Integer jobId) {
         Boolean isMarked = jobService.markJob(jobId);
         return ApiResponse.<Boolean>builder()
                 .message(isMarked ? "Mark job successfully" : "Unmark job successfully")
@@ -129,8 +119,7 @@ public class JobController {
 
     @GetMapping("/marked")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<PagingResponse<BaseJobResponse>> getMarkedJob(
-            @RequestParam Integer page, @RequestParam Integer size) {
+    public ApiResponse<PagingResponse<BaseJobResponse>> getMarkedJob(@RequestParam Integer page, @RequestParam Integer size) {
         return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
                 .message("Get my marked job successfully")
                 .data(jobService.getAllMyFavoriteJob(page, size))
@@ -139,8 +128,7 @@ public class JobController {
 
     @GetMapping("/applied")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<PagingResponse<BaseJobResponse>> getAppliedJob(
-            @RequestParam Integer page, @RequestParam Integer size) {
+    public ApiResponse<PagingResponse<BaseJobResponse>> getAppliedJob(@RequestParam Integer page, @RequestParam Integer size) {
         return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
                 .message("Get my applied job successfully")
                 .data(jobService.getAllMyAppliedJob(page, size))
@@ -158,52 +146,11 @@ public class JobController {
 
     @PatchMapping("/{id}/ai-settings")
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
-    public ApiResponse<JobDetailResponse> updateAiSettings(
-            @PathVariable Integer id,
-            @RequestBody @Valid JobAiSettingsRequest request) {
+    public ApiResponse<JobDetailResponse> updateAiSettings(@PathVariable Integer id, @RequestBody @Valid JobAiSettingsRequest request) {
 
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update AI scoring settings successfully")
                 .data(jobService.updateAiSettings(id, request))
                 .build();
     }
-
-    @PostMapping("/samples")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<JobDetailResponse> createSampleJob(@RequestBody @Valid AdminJobSampleRequest request) {
-        return ApiResponse.<JobDetailResponse>builder()
-                .message("Create sample job successfully")
-                .data(jobService.createSampleJob(request))
-                .build();
-    }
-
-    @GetMapping("/samples")
-    @PreAuthorize("hasAnyRole('ADMIN', 'CANDIDATE')")
-    public ApiResponse<PagingResponse<BaseJobResponse>> getSampleJobs(JobFilterRequest filterRequest) {
-        return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
-                .message("Get sample jobs successfully")
-                .data(jobService.getSampleJobs(filterRequest))
-                .build();
-    }
-
-    @PutMapping("/samples/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<JobDetailResponse> updateSampleJob(
-            @PathVariable Integer id,
-            @RequestBody @Valid AdminJobSampleRequest request) {
-        return ApiResponse.<JobDetailResponse>builder()
-                .message("Update sample job successfully")
-                .data(jobService.updateSampleJob(id, request))
-                .build();
-    }
-
-    @DeleteMapping("/samples/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<Void> deleteSampleJob(@PathVariable Integer id) {
-        jobService.deleteSampleJob(id);
-        return ApiResponse.<Void>builder()
-                .message("Delete sample job successfully")
-                .build();
-    }
-
 }

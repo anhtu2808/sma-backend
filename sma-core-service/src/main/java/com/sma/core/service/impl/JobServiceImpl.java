@@ -5,9 +5,9 @@ import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.entity.*;
+import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.JobStatus;
 import com.sma.core.enums.Role;
-import com.sma.core.enums.SubscriptionStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.job.JobMapper;
@@ -58,8 +58,8 @@ public class JobServiceImpl implements JobService {
     final JobMarkRepository jobMarkRepository;
     final ApplicationRepository applicationRepository;
     final BannedKeywordServiceImpl bannedKeywordService;
-    final SubscriptionRepository subscriptionRepository;
-    final UsageEventRepository usageEventRepository;
+    final QuotaService quotaService;
+
     final CompanyLocationRepository companyLocationRepository;
 
     @Override
@@ -498,29 +498,9 @@ public class JobServiceImpl implements JobService {
             if (Math.abs(totalWeight - 100.0) > 0.001) {
                 throw new AppException(ErrorCode.INVALID_SCORING_WEIGHT);
             }
-            List<Subscription> activeSubs = subscriptionRepository.findEligibleByCompanyId(
-                    job.getCompany().getId(),
-                    SubscriptionStatus.ACTIVE,
-                    LocalDateTime.now()
-            );
 
-            if (activeSubs.isEmpty()) {
-                throw new AppException(ErrorCode.NO_ACTIVE_SUBSCRIPTION);
-            }
-
-            Subscription sub = activeSubs.get(0);
-            String AI_FEATURE_KEY = "AI_SCORING";
-
-            UsageLimit aiLimit = sub.getPlan().getUsageLimits().stream()
-                                    .filter(limit -> limit.getFeature().getFeatureKey().equals(AI_FEATURE_KEY))
-                                    .findFirst()
-                                    .orElseThrow(() -> new AppException(ErrorCode.FEATURE_NOT_SUPPORTED));
-
-            Long usedAmount = usageEventRepository.sumTotal(sub.getId(), aiLimit.getFeature().getId());
-
-            if (usedAmount >= aiLimit.getMaxQuota()) {
-                throw new AppException(ErrorCode.AI_QUOTA_EXHAUSTED);
-            }
+            // Use QuotaService to check quota availability (without consuming)
+            quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE);
         }
     }
 
