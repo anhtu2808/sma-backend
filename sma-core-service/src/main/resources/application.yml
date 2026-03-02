@@ -84,6 +84,12 @@ app:
     resume-parsing:
       request-queue: ${RABBITMQ_RESUME_PARSING_REQUEST_QUEUE:resume.parsing.request}
       result-queue: ${RABBITMQ_RESUME_PARSING_RESULT_QUEUE:resume.parsing.result}
+    matching:
+      request-queue: ${RABBITMQ_MATCHING_REQUEST_QUEUE:resume.matching.request}
+      result-queue: ${RABBITMQ_MATCHING_RESULT_QUEUE:resume.matching.result}
+    criteria-context:
+      request-queue: ${RABBITMQ_CRITERIA_CONTEXT_REQUEST_QUEUE:criteria.context.request}
+      result-queue: ${RABBITMQ_CRITERIA_CONTEXT_RESULT_QUEUE:criteria.context.result}
 
 sepay:
   link: ${SEPAY_LINK}

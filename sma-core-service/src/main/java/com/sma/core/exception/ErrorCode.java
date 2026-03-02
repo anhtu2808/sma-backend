@@ -101,6 +101,8 @@ public enum ErrorCode {
     NOT_A_SAMPLE_JOB(HttpStatus.BAD_REQUEST, "Not a sample job"),
     CAN_NOT_APPLY_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot apply to sample job"),
     COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "Company not found"),
+    EVALUATION_NOT_EXISTED(HttpStatus.NOT_FOUND, "Evaluation does not exist"),
+    RESUME_NOT_PARSED(HttpStatus.BAD_REQUEST, "Resume has not been parsed yet, please wait for parsing to complete"),
 
     
     //500 - Server Error

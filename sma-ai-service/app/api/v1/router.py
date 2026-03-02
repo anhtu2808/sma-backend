@@ -10,3 +10,5 @@ api_router = APIRouter(prefix="/v1")
 
 # Include resume endpoints
 api_router.include_router(resume.router)
+
+

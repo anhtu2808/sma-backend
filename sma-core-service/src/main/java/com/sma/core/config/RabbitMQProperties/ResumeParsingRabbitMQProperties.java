@@ -1,4 +1,4 @@
-package com.sma.core.config;
+package com.sma.core.config.RabbitMQProperties;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

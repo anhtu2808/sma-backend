@@ -1,0 +1,63 @@
+package com.sma.core.mapper.evaluation;
+
+import com.sma.core.dto.message.matching.MatchingResultData;
+import com.sma.core.entity.*;
+import org.mapstruct.*;
+
+@Mapper(componentModel = "spring")
+public interface MatchingResultMapper {
+
+    // ---- Top-level evaluation mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "resume", ignore = true)
+    @Mapping(target = "job", ignore = true)
+    @Mapping(target = "evaluationStatus", constant = "FINISH")
+    @Mapping(target = "recruiterOverallScore", ignore = true)
+    @Mapping(target = "criteriaScores", ignore = true)
+    @Mapping(target = "gaps", ignore = true)
+    @Mapping(target = "weaknesses", ignore = true)
+    void mapToEvaluation(MatchingResultData data, @MappingTarget ResumeEvaluation evaluation);
+
+    // ---- Criteria score mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "evaluation", ignore = true)
+    @Mapping(target = "scoringCriteria", ignore = true)
+    @Mapping(target = "manualScore", ignore = true)
+    @Mapping(target = "manualExplanation", ignore = true)
+    @Mapping(target = "hardSkills", ignore = true)
+    @Mapping(target = "softSkills", ignore = true)
+    @Mapping(target = "experienceDetails", ignore = true)
+    EvaluationCriteriaScore toCriteriaScore(MatchingResultData.CriteriaScoreData data);
+
+    // ---- Hard skill mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "evaluationCriteriaScore", ignore = true)
+    EvaluationHardSkill toHardSkill(MatchingResultData.HardSkillData data);
+
+    // ---- Soft skill mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "evaluationCriteriaScore", ignore = true)
+    EvaluationSoftSkill toSoftSkill(MatchingResultData.SoftSkillData data);
+
+    // ---- Experience detail mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "evaluationCriteriaScore", ignore = true)
+    EvaluationExperienceDetail toExperienceDetail(MatchingResultData.ExperienceDetailData data);
+
+    // ---- Gap mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "evaluation", ignore = true)
+    EvaluationGap toGap(MatchingResultData.GapData data);
+
+    // ---- Weakness mapping ----
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "evaluation", ignore = true)
+    EvaluationWeakness toWeakness(MatchingResultData.WeaknessData data);
+}

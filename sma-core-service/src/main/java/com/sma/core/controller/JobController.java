@@ -45,7 +45,16 @@ public class JobController {
                 .build();
     }
 
-    @PostMapping
+    @PostMapping("/publish")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<JobDetailResponse> publishJob(@RequestBody PublishJobRequest request) {
+        return ApiResponse.<JobDetailResponse>builder()
+                .message("Save job successfully")
+                .data(jobService.publishJob(request))
+                .build();
+    }
+
+    @PostMapping("/save")
     @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<JobDetailResponse> saveJob(@RequestBody DraftJobRequest request) {
         return ApiResponse.<JobDetailResponse>builder()

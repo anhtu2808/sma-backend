@@ -1,6 +1,6 @@
 package com.sma.core.messaging.resume;
 
-import com.sma.core.config.ResumeParsingRabbitMQProperties;
+import com.sma.core.config.RabbitMQProperties.ResumeParsingRabbitMQProperties;
 import com.sma.core.dto.message.resume.ResumeParsingRequestMessage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
