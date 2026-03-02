@@ -12,5 +12,6 @@ public interface UsageEventMapper {
     @Mapping(source = "sourceId", target = "entityId")
     @Mapping(source = "feature.featureKey", target = "featureKey")
     @Mapping(source = "feature.name", target = "featureName")
+    @Mapping(source = "subscription.plan.name", target = "planName")
     UsageEventResponse toResponse(UsageEvent entity);
 }
