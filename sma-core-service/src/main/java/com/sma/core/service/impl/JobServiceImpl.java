@@ -4,6 +4,8 @@ import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
+import com.sma.core.dto.response.job.JobStatusCountResponse;
+import com.sma.core.dto.response.job.JobStatusSummaryResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.JobStatus;
@@ -459,6 +461,34 @@ public class JobServiceImpl implements JobService {
         );
 
         return PagingResponse.fromPage(jobPage.map(jobMapper::toBaseJobResponse));
+    }
+
+    @Override
+    public JobStatusSummaryResponse getMyCompanyJobStatusCount() {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                                                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+        Map<JobStatus, Long> countByStatus = jobRepository.countJobsByStatusByCompanyId(recruiter.getCompany().getId())
+                                                          .stream()
+                                                          .collect(Collectors.toMap(
+                                                                  JobStatusCountResponse::getStatus,
+                                                                  JobStatusCountResponse::getCount));
+
+        List<JobStatusCountResponse> statusCounts = Arrays.stream(JobStatus.values())
+                                                          .map(status -> JobStatusCountResponse.builder()
+                                                                                               .status(status)
+                                                                                               .count(countByStatus.getOrDefault(status, 0L))
+                                                                                               .build())
+                                                          .toList();
+        long all = statusCounts.stream()
+                               .mapToLong(JobStatusCountResponse::getCount)
+                               .sum();
+
+        return JobStatusSummaryResponse.builder()
+                                       .all(all)
+                                       .statuses(statusCounts)
+                                       .build();
     }
 
 
