@@ -8,6 +8,7 @@ import com.sma.core.entity.CompanyImage;
 import com.sma.core.entity.CompanyLocation;
 import com.sma.core.entity.Recruiter;
 import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -22,6 +23,7 @@ import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.enums.Role;
 import com.sma.core.mapper.company.CompanyMapper;
+import com.sma.core.service.NotificationService;
 import com.sma.core.specification.CompanySpecification;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -54,6 +56,7 @@ public class CompanyServiceImpl implements CompanyService {
     JobRepository jobRepository;
     CompanyLocationRepository companyLocationRepository;
     CompanyLocationMapper companyLocationMapper;
+    NotificationService notificationService;
 
     @Override
     @Transactional
@@ -82,6 +85,8 @@ public class CompanyServiceImpl implements CompanyService {
             recruiter.setIsVerified(false);
             recruiter.getUser().setStatus(UserStatus.INACTIVE);
         }
+
+        notificationService.markAsProcessed(companyId, NotificationType.COMPANY_REGISTRATION);
     }
 
     private CompanyStatus getCompanyStatus(CompanyVerificationRequest request, Company company) {

@@ -5,6 +5,7 @@ import com.sma.core.dto.request.user.CreateRecruiterMemberRequest;
 import com.sma.core.dto.response.myinfo.RecruiterMyInfoResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
 import com.sma.core.exception.AppException;
@@ -14,6 +15,7 @@ import com.sma.core.repository.CompanyLocationRepository;
 import com.sma.core.repository.CompanyRepository;
 import com.sma.core.repository.RecruiterRepository;
 import com.sma.core.repository.UserRepository;
+import com.sma.core.service.NotificationService;
 import com.sma.core.service.RecruiterService;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -38,6 +40,7 @@ public class RecruiterServiceImpl implements RecruiterService {
     private final CompanyLocationRepository companyLocationRepository;
     private final PasswordEncoder passwordEncoder;
     private final RecruiterMapper recruiterMapper;
+    private final NotificationService notificationService;
 
     @Override
     public void registerRecruiter(RecruiterRegisterRequest request) {
@@ -89,6 +92,16 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .isRootRecruiter(true)
                 .build();
         recruiterRepository.save(recruiter);
+
+        Notification noti = Notification.builder()
+                .notificationType(NotificationType.COMPANY_REGISTRATION)
+                .title("New Company Registration")
+                .message("A new company '" + company.getName() + "' has registered and is awaiting verification.")
+                .relatedEntityType("COMPANY")
+                .relatedEntityId(company.getId())
+                .isRead(false)
+                .build();
+        notificationService.sendAdminNotification(noti);
     }
 
     @Override
