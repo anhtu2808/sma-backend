@@ -3,15 +3,10 @@ package com.sma.core.service.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.sma.core.dto.message.resume.ResumeParsingResultMessage;
 import com.sma.core.entity.*;
-import com.sma.core.enums.DegreeType;
-import com.sma.core.enums.EmploymentType;
-import com.sma.core.enums.ProjectType;
-import com.sma.core.enums.ResumeLanguage;
-import com.sma.core.enums.ResumeParseStatus;
-import com.sma.core.enums.ResumeStatus;
-import com.sma.core.enums.ResumeType;
-import com.sma.core.enums.WorkingModel;
+import com.sma.core.entity.SkillCategory;
+import com.sma.core.enums.*;
 import com.sma.core.repository.*;
+import com.sma.core.service.NotificationService;
 import com.sma.core.service.ResumeParsingResultService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +44,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     ProjectSkillRepository projectSkillRepository;
     ResumeCertificationRepository resumeCertificationRepository;
     ConcurrentMap<String, Object> skillUpsertLocks = new ConcurrentHashMap<>();
+    NotificationService notificationService;
 
     @Override
     public void processParsingResult(ResumeParsingResultMessage message) {
@@ -83,6 +79,14 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             resume.setParseStatus(messageStatus);
             if (messageStatus == ResumeParseStatus.FAIL) {
                 resume.setStatus(ResumeStatus.DRAFT);
+                notificationService.sendCandidateNotification(
+                        resume.getCandidate().getUser(),
+                        NotificationType.CV_PARSE_FAILED,
+                        "CV Parsing Failed",
+                        "We couldn't read your CV file: " + resume.getFileName() + ". Please re-upload a clear file.",
+                        "RESUME",
+                        resume.getId()
+                );
             }
             resumeRepository.save(resume);
             return;
@@ -121,6 +125,14 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             resume.setStatus(ResumeStatus.DRAFT);
             resume.setParseStatus(ResumeParseStatus.FAIL);
             resumeRepository.save(resume);
+            notificationService.sendCandidateNotification(
+                    resume.getCandidate().getUser(),
+                    NotificationType.CV_PARSE_FAILED,
+                    "CV Processing Error",
+                    "An error occurred while processing your resume data. Please try again.",
+                    "RESUME",
+                    resume.getId()
+            );
             throw e;
         }
     }

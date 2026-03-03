@@ -189,4 +189,27 @@ public class NotificationServiceImpl implements NotificationService {
                 signal
         );
     }
+
+    @Override
+    public void sendCandidateNotification(User user, NotificationType type, String title, String message, String entityType, Integer entityId) {
+        Notification noti = Notification.builder()
+                .user(user)
+                .notificationType(type)
+                .title(title)
+                .message(message)
+                .relatedEntityType(entityType)
+                .relatedEntityId(entityId)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Notification saved = notificationRepository.save(noti);
+        NotificationResponse response = notificationMapper.toResponse(saved);
+
+        messagingTemplate.convertAndSendToUser(
+                user.getId().toString(),
+                USER_QUEUE,
+                response
+        );
+    }
 }
