@@ -1,5 +1,6 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
 import com.sma.core.service.ResumeEvaluationService;
@@ -7,6 +8,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,15 +20,32 @@ public class ResumeEvaluationController {
 
     ResumeEvaluationService resumeEvaluationService;
 
-    @PostMapping
-    public ApiResponse<Void> processMatching(@RequestParam Integer jobId, @RequestParam Integer resumeId){
-        resumeEvaluationService.processMatching(jobId, resumeId);
-        return ApiResponse.<Void>builder()
+    @PostMapping("/overall")
+    public ApiResponse<Integer> processMatching(@RequestParam Integer jobId, @RequestParam Integer resumeId){
+        return ApiResponse.<Integer>builder()
                 .message("Matching is processing")
+                .data(resumeEvaluationService.processMatchingOverview(jobId, resumeId))
+                .build();
+    }
+
+    @PostMapping("/detail")
+    public ApiResponse<Integer> processMatchingDetail(@RequestParam Integer jobId, @RequestParam Integer resumeId){
+        return ApiResponse.<Integer>builder()
+                .message("Matching detail is processing")
+                .data(resumeEvaluationService.processMatching(jobId, resumeId))
+                .build();
+    }
+
+    @GetMapping
+    public ApiResponse<ResumeEvaluationResponse> getResumeEvaluation(@RequestParam Integer jobId, @RequestParam Integer resumeId){
+        return ApiResponse.<ResumeEvaluationResponse>builder()
+                .message("Get resume evaluation by job id and resume id successfully")
+                .data(resumeEvaluationService.getResumeEvaluation(jobId, resumeId))
                 .build();
     }
 
     @GetMapping("/{resumeEvaluationId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<ResumeEvaluationResponse> getMatchingResult(@PathVariable Integer resumeEvaluationId){
         return ApiResponse.<ResumeEvaluationResponse>builder()
                 .message("Get matching result successfully")
@@ -56,5 +75,13 @@ public class ResumeEvaluationController {
                 .build();
     }
 
-}
+    @PutMapping("/{id}/score-manual")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<ResumeEvaluationResponse> scoreManual(@PathVariable Integer id, @RequestBody ManualScoreMatchingRequest request){
+        return ApiResponse.<ResumeEvaluationResponse>builder()
+                .message("Score manual successfully")
+                .data(resumeEvaluationService.scoreManual(id, request))
+                .build();
+    }
 
+}

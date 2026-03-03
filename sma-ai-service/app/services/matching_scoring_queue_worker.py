@@ -13,6 +13,7 @@ from loguru import logger
 
 from app.core.config import settings
 from app.services.matching_service import analyze_matching
+from app.services.matching_overview_service import analyze_matching_overview
 
 
 class EvaluationStatus(str, Enum):
@@ -148,15 +149,20 @@ class MatchingScoringQueueWorker:
             if evaluation_id is None:
                 raise ValueError("Invalid message payload: evaluationId is required")
 
+            matching_type = payload.get("matchingType", "DETAIL")
             logger.info(
-                "Received matching scoring task for evaluationId={}, jobId={}, resumeId={}",
+                "Received matching scoring task for evaluationId={}, jobId={}, resumeId={}, matchingType={}",
                 evaluation_id,
                 payload.get("jobId"),
                 payload.get("resumeId"),
+                matching_type,
             )
 
-            # Run the async matching analysis
-            matching_result = asyncio.run(analyze_matching(payload))
+            # Route to appropriate matching analysis based on type
+            if matching_type == "OVERVIEW":
+                matching_result = asyncio.run(analyze_matching_overview(payload))
+            else:
+                matching_result = asyncio.run(analyze_matching(payload))
 
             # Publish success result
             self._publish_result(
@@ -166,8 +172,9 @@ class MatchingScoringQueueWorker:
                 error_message=None,
             )
             logger.info(
-                "Completed matching scoring for evaluationId={}, score={}",
+                "Completed matching scoring for evaluationId={}, matchingType={}, score={}",
                 evaluation_id,
+                matching_type,
                 matching_result.aiOverallScore,
             )
         except Exception as matching_error:

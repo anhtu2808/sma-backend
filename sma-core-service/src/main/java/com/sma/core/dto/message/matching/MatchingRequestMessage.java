@@ -26,5 +26,6 @@ public class MatchingRequestMessage {
     Set<ResumeHardSkillRequest> hardSkills;
     Set<ResumeSoftSkillRequest> softSkills;
     Set<ResumeEducationRequest> educations;
+    String matchingType; // "OVERVIEW" or "DETAIL"
 
 }

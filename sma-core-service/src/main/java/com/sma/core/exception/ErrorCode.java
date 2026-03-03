@@ -102,6 +102,7 @@ public enum ErrorCode {
     CAN_NOT_APPLY_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot apply to sample job"),
     COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "Company not found"),
     EVALUATION_NOT_EXISTED(HttpStatus.NOT_FOUND, "Evaluation does not exist"),
+    EVALUATION_CRITERIA_SCORE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Evaluation criteria score does not exist"),
     RESUME_NOT_PARSED(HttpStatus.BAD_REQUEST, "Resume has not been parsed yet, please wait for parsing to complete"),
 
     

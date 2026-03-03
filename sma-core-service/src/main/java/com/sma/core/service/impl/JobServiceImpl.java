@@ -58,8 +58,6 @@ public class JobServiceImpl implements JobService {
     final ApplicationRepository applicationRepository;
     final BannedKeywordServiceImpl bannedKeywordService;
     final QuotaService quotaService;
-    final CriteriaContextRequestPublisher criteriaContextRequestPublisher;
-
     final CompanyLocationRepository companyLocationRepository;
 
     @Override
@@ -455,8 +453,8 @@ public class JobServiceImpl implements JobService {
         }
         job.setUploadTime(LocalDateTime.now());
         jobRepository.save(job);
-        if (!isSample && !isSaved && Boolean.TRUE.equals(enableAi)) {
-            generateAndSetCriteriaContext(job);
+        if (!isSample && !isSaved && Boolean.TRUE.equals(enableAi) && job.getStatus().equals(JobStatus.PUBLISHED)) {
+            scoringCriteriaService.generateAndSetCriteriaContext(job);
         }
         return job;
     }
@@ -497,7 +495,7 @@ public class JobServiceImpl implements JobService {
         return jobMapper.toJobInternalResponse(jobRepository.save(job));
     }
 
-    private void verifyPermission(Job job) {
+    void verifyPermission(Job job) {
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == Role.ADMIN) return;
 
@@ -514,7 +512,7 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    private void validateAndCheckAiQuota(Job job, Boolean enableAiScoring, Double threshold) {
+    void validateAndCheckAiQuota(Job job, Boolean enableAiScoring, Double threshold) {
         if (Boolean.TRUE.equals(enableAiScoring)) {
             if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) {
                 throw new AppException(ErrorCode.MISSING_SCORING_CRITERIA);
@@ -628,43 +626,5 @@ public class JobServiceImpl implements JobService {
         job.setAutoRejectThreshold(request.getRejectThreshold());
         jobRepository.save(job);
         return jobMapper.toJobInternalResponse(job);
-    }
-
-    private void generateAndSetCriteriaContext(Job job) {
-        if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) return;
-
-        List<String> enabledTypes = new ArrayList<>();
-        Map<String, Integer> typeToId = new HashMap<>();
-
-        for (ScoringCriteria sc : job.getScoringCriterias()) {
-            if (sc.getCriteria() != null && sc.getCriteria().getCriteriaType() != null) {
-                String typeName = sc.getCriteria().getCriteriaType().name();
-                enabledTypes.add(typeName);
-                typeToId.put(typeName, sc.getId());
-            }
-        }
-
-        if (enabledTypes.isEmpty()) return;
-
-        CriteriaContextRequestMessage message = CriteriaContextRequestMessage.builder()
-                .jobId(job.getId())
-                .jobName(job.getName())
-                .about(job.getAbout())
-                .responsibilities(job.getResponsibilities())
-                .requirement(job.getRequirement())
-                .jobLevel(job.getJobLevel() != null ? job.getJobLevel().name() : null)
-                .experienceTime(job.getExperienceTime())
-                .workingModel(job.getWorkingModel() != null ? job.getWorkingModel().name() : null)
-                .skills(job.getSkills() != null
-                        ? job.getSkills().stream().map(Skill::getName).collect(Collectors.toList())
-                        : Collections.emptyList())
-                .domains(job.getDomains() != null
-                        ? job.getDomains().stream().map(Domain::getName).collect(Collectors.toList())
-                        : Collections.emptyList())
-                .criteriaTypes(enabledTypes)
-                .criteriaTypeToScoringCriteriaId(typeToId)
-                .build();
-
-        criteriaContextRequestPublisher.publish(message);
     }
 }

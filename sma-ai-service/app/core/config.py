@@ -47,7 +47,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
     OPENAI_RESUME_MODEL: str = "gpt-4o-mini"  # Cheaper model for resume parsing
-    OPENAI_MATCHING_MODEL: str = "gpt-4.1"  # Model for matching analysis
+    OPENAI_MATCHING_MODEL: str = "gpt-4.1"
+    OPENAI_MATCHING_OVERVIEW_MODEL: str = "gpt-4o-mini"# Model for matching analysis
     OPENAI_CRITERIA_CONTEXT_MODEL: str = "gpt-4o"  # Model for criteria context generation
     OPENAI_REQUEST_TIMEOUT: int = 60  # Timeout in seconds
 

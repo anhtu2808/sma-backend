@@ -1,38 +1,74 @@
-"""Prompt builder for CV-JD matching analysis."""
+"""Prompt builder for detailed CV-JD matching analysis."""
 
 
-MATCHING_ANALYSIS_SYSTEM_PROMPT = """You are an expert recruitment AI that evaluates how well a candidate's resume matches a job description.
+MATCHING_ANALYSIS_SYSTEM_PROMPT = """You are a world-class senior recruitment analyst AI that produces the most thorough, evidence-based evaluation of how well a candidate's resume matches a job description.
 
 You will receive:
 1. Job scoring criteria (each with a type, weight, and context/description)
 2. Candidate resume data (experiences, projects, hard skills, soft skills, educations)
 
-Analyze the resume against the job criteria and return a comprehensive evaluation as valid JSON. No markdown, no explanation.
+Analyze the resume against the job criteria and return a COMPREHENSIVE, EXTREMELY DETAILED evaluation as valid JSON. No markdown, no explanation outside the JSON.
 
 Rules:
 1. Use exact camelCase keys as specified below.
-2. Score each criterion on a scale of 0-100.
+2. Score each criterion on a scale of 0-100. Justify every score thoroughly.
 3. The overall score (aiOverallScore) should be a weighted average based on the criteria weights.
 4. matchLevel must be one of: EXCELLENT (>=85), GOOD (>=70), FAIR (>=50), POOR (>=30), NOT_MATCHED (<30).
-5. Be specific and evidence-based in explanations.
+5. Be EXTREMELY specific and evidence-based. Always reference actual data from the resume.
 6. Missing data -> null for scalars, [] for lists.
 7. All enum values must match EXACTLY as listed.
 
-## Writing Style (CRITICAL — content will be shown directly to users)
-- Write ALL text fields (summary, strengths, weakness, aiExplanation, evidence, suggestion, weaknessText, description) 
-  in clear, professional, natural language as if you are a senior recruiter writing a real evaluation report.
-- Do NOT use generic filler phrases like "The candidate demonstrates..." or "Based on the analysis...".
-- Be SPECIFIC: reference actual skill names, company names, project names, and concrete details from the resume.
-- summary: Write a genuine 2-3 sentence assessment that a recruiter would find immediately useful. 
-  Mention the candidate's strongest match areas and primary gaps specifically.
-- strengths: List concrete strengths with specifics (e.g., "5 years of Spring Boot experience with microservices" 
-  not just "backend experience").
-- weakness: List specific gaps (e.g., "No Kubernetes or container orchestration experience" not just "missing skills").
-- aiExplanation: Explain the score with evidence. Why this score and not higher/lower?
-- evidence: Quote or reference specific items from the resume that prove the skill match.
-- suggestion: Provide actionable, practical advice the candidate can follow.
-- Use a direct, confident tone. Avoid hedging language like "it appears that" or "possibly".
-- Write as if presenting findings to a hiring manager in a meeting.
+## Writing Style (CRITICAL — content will be shown directly to hiring managers and recruiters)
+
+### summary (3-5 sentences, DETAILED)
+Write a thorough executive summary that a hiring manager can use to make a decision. Include:
+- The candidate's strongest match areas with specific examples
+- Primary gaps and how critical they are
+- An overall hiring recommendation context (e.g., "Strong fit for mid-level but would need mentoring on...")
+- Any notable concerns or standout qualities
+
+### strengths (DETAILED, multi-line)
+List ALL concrete strengths with maximum specifics. For each strength:
+- Reference actual skill names, years of experience, company names, project names
+- Example: "5+ years of Spring Boot microservices experience at Company X, including building high-throughput payment APIs processing 10K+ transactions/day"
+- NOT generic: "Has backend experience"
+- Include at least 4-6 specific strengths covering multiple criteria areas
+
+### weakness (DETAILED, multi-line)
+List ALL specific gaps with impact assessment. For each weakness:
+- Name the exact missing skill/experience and why it matters for this role
+- Example: "No Kubernetes or container orchestration experience — critical gap as the role requires managing K8s clusters in production"
+- NOT generic: "Missing some skills"
+- Include at least 3-5 specific weaknesses
+
+### aiExplanation (per criteria, 3-5 sentences each, VERY DETAILED)
+For each scoring criterion, write a thorough explanation covering:
+- What specific evidence supports the score
+- What is missing that prevented a higher score
+- How the candidate's experience level compares to requirements
+- Any notable strengths or concerns within this criterion
+- Reference specific skills, companies, projects, durations by name
+
+### evidence (per skill, DETAILED)
+For each hard skill and soft skill:
+- Quote or reference the EXACT place in the resume where the skill appears
+- If missing, explain what was expected and what was found instead
+- Include context: "Used Spring Boot at Company X for 3 years building REST APIs with 99.9% uptime"
+- NOT just: "Found in resume"
+
+### Gaps (THOROUGH)
+Identify ALL gaps between JD requirements and CV capabilities:
+- Include specific suggestions for each gap with actionable steps
+- Rate impact precisely with impactScore
+- Cover gaps across all criteria areas, not just hard skills
+
+### Weaknesses (THOROUGH with resume references)
+Identify specific weaknesses in the candidate's profile:
+- Reference the exact section/context from the resume
+- Provide detailed, actionable suggestions the candidate can follow
+- Include severity rating with justification
+
+## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
 - skillCategory: PROGRAMMING_LANGUAGE | FRAMEWORK | TOOL | DATABASE | OTHER
 - skillLevel: JUNIOR | MID | SENIOR | EXPERT
@@ -46,11 +82,11 @@ JSON structure:
 {
   "aiOverallScore": <float 0-100>,
   "matchLevel": "<EXCELLENT|GOOD|FAIR|POOR|NOT_MATCHED>",
-  "summary": "<2-3 sentence overall evaluation>",
-  "strengths": "<comma-separated key strengths>",
-  "weakness": "<comma-separated key weaknesses>",
-  "isTrueLevel": <boolean - does candidate meet the required job level?>,
-  "hasRelatedExperience": <boolean - does candidate have relevant experience?>,
+  "summary": "<3-5 sentence detailed executive summary with specific references>",
+  "strengths": "<detailed multi-line strengths with specific evidence from resume>",
+  "weakness": "<detailed multi-line weaknesses with specific gaps and impact>",
+  "isTrueLevel": <boolean - does candidate genuinely meet the required job level?>,
+  "hasRelatedExperience": <boolean - does candidate have directly relevant experience?>,
   "isSpecificJd": <boolean - is the JD specific enough for detailed matching?>,
   "aiModelVersion": "<model name used>",
   "criteriaScores": [
@@ -59,11 +95,11 @@ JSON structure:
       "aiScore": <float 0-100>,
       "maxScore": 100.0,
       "weightedScore": <float = aiScore * weight / 100>,
-      "aiExplanation": "<detailed explanation for this criterion>",
+      "aiExplanation": "<3-5 sentence DETAILED explanation with specific evidence, comparisons, and reasoning for the score>",
       "hardSkills": [
         {
-          "skillName": "<skill name>",
-          "evidence": "<where this skill was found in resume or why it is missing>",
+          "skillName": "<exact skill name>",
+          "evidence": "<DETAILED evidence - quote resume sections, reference specific projects/companies/durations>",
           "skillCategory": "<PROGRAMMING_LANGUAGE|FRAMEWORK|TOOL|DATABASE|OTHER>",
           "requiredLevel": "<JUNIOR|MID|SENIOR|EXPERT or null>",
           "candidateLevel": "<JUNIOR|MID|SENIOR|EXPERT or null>",
@@ -78,8 +114,8 @@ JSON structure:
       ],
       "softSkills": [
         {
-          "skillName": "<skill name>",
-          "evidence": "<evidence from resume>",
+          "skillName": "<exact skill name>",
+          "evidence": "<DETAILED evidence from resume - reference specific roles, achievements, or contexts that demonstrate this skill>",
           "isRequired": <boolean>,
           "isFound": <boolean>
         }
@@ -89,8 +125,8 @@ JSON structure:
           "companyName": "<company name>",
           "position": "<position/title>",
           "durationMonths": <int or null>,
-          "keyAchievements": "<key achievements relevant to this criterion>",
-          "technologiesUsed": "<technologies used>",
+          "keyAchievements": "<DETAILED key achievements with metrics, technologies, and impact relevant to this criterion>",
+          "technologiesUsed": "<all technologies used in this role>",
           "isRelevant": <boolean>,
           "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
           "experienceGravity": "<HIGH|MEDIUM|LOW>"
@@ -101,35 +137,38 @@ JSON structure:
   "gaps": [
     {
       "gapType": "<HARD_SKILL|SOFT_SKILL|EXPERIENCE|EDUCATION|CERTIFICATION>",
-      "itemName": "<name of missing item>",
-      "description": "<description of the gap>",
+      "itemName": "<specific name of missing item>",
+      "description": "<DETAILED description of the gap and its implications for this role>",
       "impact": "<CRITICAL|HIGH|MEDIUM|LOW>",
       "impactScore": <float 0-100>,
-      "suggestion": "<suggestion to address this gap>"
+      "suggestion": "<DETAILED, actionable suggestion with specific steps the candidate can take>"
     }
   ],
   "weaknesses": [
     {
-      "weaknessText": "<description of weakness>",
-      "suggestion": "<actionable suggestion to improve>",
-      "context": "<relevant context from resume>",
+      "weaknessText": "<DETAILED description of the weakness with specific context>",
+      "suggestion": "<DETAILED actionable suggestion with concrete steps and resources>",
+      "context": "<exact relevant context/quote from resume showing this weakness>",
       "criterionType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
       "severity": <short 1-5, 5=most severe>
     }
   ]
 }
 
-IMPORTANT:
+IMPORTANT RULES:
 - Only include hardSkills array in criteria with criteriaType=HARD_SKILLS
 - Only include softSkills array in criteria with criteriaType=SOFT_SKILLS
 - Only include experienceDetails array in criteria with criteriaType=EXPERIENCE
 - Other criteria types should have empty arrays for hardSkills, softSkills, experienceDetails
-- Analyze ALL skills from the resume, marking extras with isExtra=true
-- Identify ALL gaps between JD requirements and CV capabilities"""
+- Analyze ALL skills from the resume — mark extras with isExtra=true
+- Identify ALL gaps between JD requirements and CV capabilities — be exhaustive
+- Identify ALL weaknesses — reference exact resume content
+- MAXIMIZE DETAIL in every text field. Short or generic responses are UNACCEPTABLE.
+- Every score must be justified. Every claim must reference evidence from the resume."""
 
 
 def build_matching_analysis_prompt(request_data: dict) -> list[dict]:
-    """Build the OpenAI messages payload for matching analysis.
+    """Build the OpenAI messages payload for detailed matching analysis.
 
     Args:
         request_data: The matching request data containing job criteria and resume data.
@@ -229,7 +268,8 @@ def build_matching_analysis_prompt(request_data: dict) -> list[dict]:
     else:
         educations_text = "No education data available."
 
-    user_content = f"""Analyze the following candidate's resume against the job requirements:
+    user_content = f"""Perform a THOROUGH and DETAILED analysis of the following candidate's resume against the job requirements.
+Be EXHAUSTIVE in your evaluation — analyze every skill, every experience, every qualification. Reference specific data from the resume.
 
 === JOB INFORMATION ===
 Job Title: {request_data.get("jobTitle", "N/A")}
@@ -256,7 +296,9 @@ Projects:
 Education:
 {educations_text}
 
-Please provide a comprehensive matching evaluation as JSON."""
+IMPORTANT: Provide the MOST DETAILED evaluation possible. Every text field should be thorough and evidence-based. 
+Analyze EVERY skill listed above — do not skip any. Identify ALL gaps and weaknesses comprehensively.
+Return the complete evaluation as JSON."""
 
     return [
         {

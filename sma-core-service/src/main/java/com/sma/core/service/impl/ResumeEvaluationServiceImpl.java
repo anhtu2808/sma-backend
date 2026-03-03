@@ -3,6 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
+import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
 import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.*;
@@ -47,34 +48,14 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     @Override
     @Transactional
-    public void processMatching(Integer jobId, Integer resumeId) {
-        Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+    public Integer processMatching(Integer jobId, Integer resumeId) {
+        return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL);
+    }
 
-        if (!job.getStatus().equals(JobStatus.PUBLISHED)) {
-            throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
-        }
-        if (!resume.getParseStatus().equals(ResumeParseStatus.FINISH)) {
-            resumeService.parseResume(resumeId);
-            throw new AppException(ErrorCode.RESUME_NOT_PARSED);
-        }
-
-        // Create evaluation with WAITING status
-        ResumeEvaluation evaluation = ResumeEvaluation.builder()
-                .resume(resume)
-                .job(job)
-                .evaluationStatus(EvaluationStatus.WAITING)
-                .build();
-        evaluation = resumeEvaluationRepository.save(evaluation);
-
-        // Build & publish message using mapper
-        MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
-        matchingRequestPublisher.publish(message);
-
-        log.info("Matching request sent for evaluationId={}, jobId={}, resumeId={}",
-                evaluation.getId(), jobId, resumeId);
+    @Override
+    @Transactional
+    public Integer processMatchingOverview(Integer jobId, Integer resumeId) {
+        return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW);
     }
 
     @Override
@@ -88,6 +69,16 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     public ResumeEvaluationResponse getMatchingResult(Integer id) {
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+        return evaluationResponseMapper.toEvaluationResponse(evaluation);
+    }
+
+    @Override
+    public ResumeEvaluationResponse getResumeEvaluation(Integer jobId, Integer resumeId) {
+        ResumeEvaluation evaluation = resumeEvaluationRepository.findByResumeIdAndJobId(resumeId, jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+        if (evaluation.getEvaluationType().equals(EvaluationType.OVERVIEW)) {
+
+        }
         return evaluationResponseMapper.toEvaluationResponse(evaluation);
     }
 
@@ -123,13 +114,11 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             matchingResultMapper.mapToEvaluation(data, evaluation);
             resumeEvaluationRepository.save(evaluation);
 
-            // Save criteria scores with nested entities
+            // Save criteria scores (always saved for both overview and detail)
             saveCriteriaScores(data.getCriteriaScores(), evaluation);
 
-            // Save gaps
+            // Save gaps and weaknesses (null-safe — overview results won't have these)
             saveGaps(data.getGaps(), evaluation);
-
-            // Save weaknesses
             saveWeaknesses(data.getWeaknesses(), evaluation);
 
             log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
@@ -155,7 +144,64 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 id, evaluationWeaknessId);
     }
 
+    @Override
+    @Transactional
+    public ResumeEvaluationResponse scoreManual(Integer id, ManualScoreMatchingRequest request) {
+        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+
+        evaluation.setRecruiterOverallScore(request.getManualScore());
+
+        // Update manual score for each criteria
+        if (request.getScoreCriteriaRequests() != null) {
+            for (var criteriaRequest : request.getScoreCriteriaRequests()) {
+                EvaluationCriteriaScore criteriaScore = evaluationCriteriaScoreRepository
+                        .findById(criteriaRequest.getEvaluationCriteriaScoreId())
+                        .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_CRITERIA_SCORE_NOT_EXISTED));
+                criteriaScore.setManualScore(criteriaRequest.getManualScore());
+                evaluationCriteriaScoreRepository.save(criteriaScore);
+            }
+        }
+
+        resumeEvaluationRepository.save(evaluation);
+        return evaluationResponseMapper.toEvaluationResponse(evaluation);
+    }
+
     // ---- Private helpers ----
+
+    private Integer doProcessMatching(Integer jobId, Integer resumeId, EvaluationType type) {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        if (!job.getStatus().equals(JobStatus.PUBLISHED)) {
+            throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
+        }
+        if (!resume.getParseStatus().equals(ResumeParseStatus.FINISH)) {
+            resumeService.parseResume(resumeId);
+            throw new AppException(ErrorCode.RESUME_NOT_PARSED);
+        }
+
+        // Create evaluation with WAITING status
+        ResumeEvaluation evaluation = ResumeEvaluation.builder()
+                .resume(resume)
+                .job(job)
+                .evaluationStatus(EvaluationStatus.WAITING)
+                .evaluationType(type)
+                .build();
+        resumeEvaluationRepository.save(evaluation);
+
+        // Build & publish message using mapper
+        MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
+        message.setMatchingType(type.toString());
+        matchingRequestPublisher.publish(message);
+
+        log.info("Matching request sent for evaluationId={}, jobId={}, resumeId={}, matchingType={}",
+                evaluation.getId(), jobId, resumeId, type);
+
+        return evaluation.getId();
+    }
 
     private void saveCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
@@ -179,6 +225,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
+            // Save nested details (null-safe — overview results won't have these)
             saveHardSkills(csData.getHardSkills(), criteriaScore);
             saveSoftSkills(csData.getSoftSkills(), criteriaScore);
             saveExperienceDetails(csData.getExperienceDetails(), criteriaScore);
