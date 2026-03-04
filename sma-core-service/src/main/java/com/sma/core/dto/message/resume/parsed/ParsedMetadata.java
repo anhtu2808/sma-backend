@@ -1,0 +1,23 @@
+package com.sma.core.dto.message.resume.parsed;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.sma.core.enums.ResumeLanguage;
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ParsedMetadata {
+    ResumeLanguage resumeLanguage;
+    String sourceType;
+    Double confidenceScore;
+    String parsedBy;
+    String parsedAt;
+    ParsedTokenUsage usage;
+    Double costUsd;
+}

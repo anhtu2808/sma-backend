@@ -84,6 +84,9 @@ app:
     resume-parsing:
       request-queue: ${RABBITMQ_RESUME_PARSING_REQUEST_QUEUE:resume.parsing.request}
       result-queue: ${RABBITMQ_RESUME_PARSING_RESULT_QUEUE:resume.parsing.result}
+  resume-parsing:
+    partial-timeout-minutes: ${RESUME_PARSE_PARTIAL_TIMEOUT_MINUTES:1.5}
+    watchdog-interval-ms: ${RESUME_PARSE_WATCHDOG_INTERVAL_MS:30000}
 
 sepay:
   link: ${SEPAY_LINK}
