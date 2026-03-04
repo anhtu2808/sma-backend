@@ -19,9 +19,10 @@ public class ResumeParsingRequestPublisher {
     RabbitTemplate rabbitTemplate;
     ResumeParsingRabbitMQProperties resumeParsingRabbitMQProperties;
 
-    public void publish(Integer resumeId, String resumeUrl, String fileName, String resumeName) {
+    public void publish(Integer resumeId, String parseAttemptId, String resumeUrl, String fileName, String resumeName) {
         ResumeParsingRequestMessage message = ResumeParsingRequestMessage.builder()
                 .resumeId(resumeId)
+                .parseAttemptId(parseAttemptId)
                 .resumeUrl(resumeUrl)
                 .fileName(fileName)
                 .resumeName(resumeName)

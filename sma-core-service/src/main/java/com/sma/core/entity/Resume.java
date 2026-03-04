@@ -9,6 +9,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -78,6 +79,18 @@ public class Resume {
     @Column(name = "parse_status", columnDefinition = "parse_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private ResumeParseStatus parseStatus;
+
+    @Column(name = "parse_attempt_id")
+    private String parseAttemptId;
+
+    @Column(name = "parse_requested_at")
+    private LocalDateTime parseRequestedAt;
+
+    @Column(name = "parse_updated_at")
+    private LocalDateTime parseUpdatedAt;
+
+    @Column(name = "parse_error_message", columnDefinition = "TEXT")
+    private String parseErrorMessage;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "language", columnDefinition = "resume_language")

@@ -104,7 +104,11 @@ public enum ErrorCode {
     EVALUATION_NOT_EXISTED(HttpStatus.NOT_FOUND, "Evaluation does not exist"),
     EVALUATION_CRITERIA_SCORE_NOT_EXISTED(HttpStatus.NOT_FOUND, "Evaluation criteria score does not exist"),
     RESUME_NOT_PARSED(HttpStatus.BAD_REQUEST, "Resume has not been parsed yet, please wait for parsing to complete"),
-
+    RESUME_PARSE_INVALID_MESSAGE(HttpStatus.BAD_REQUEST, "Invalid resume parsing message"),
+    RESUME_PARSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resume not found"),
+    RESUME_PARSE_STALE_ATTEMPT(HttpStatus.BAD_REQUEST, "Stale parse attempt"),
+    RESUME_PARSE_DUPLICATE_SKILL(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill detected"),
+    RESUME_PARSE_DUPLICATE_CATEGORY(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill category detected"),
     
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");

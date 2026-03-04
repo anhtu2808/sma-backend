@@ -194,7 +194,7 @@ public class QuotaServiceImpl implements QuotaService {
         if (checker != null) {
             long currentUsage = checker.getCurrentUsage(ownerContext, input);
             if (currentUsage >= limit) {
-                throw new AppException(ErrorCode.FEATURE_QUOTA_EXCEEDED, String.format("Feature quota exceeded for '%s': limit=%d, current=%d", featureKey, limit, currentUsage));
+                throw new AppException(ErrorCode.FEATURE_QUOTA_EXCEEDED, String.format("Quota exceeded for '%s': limit=%d, current=%d", feature.getName(), limit, currentUsage));
             }
         }
     }
