@@ -7,5 +7,6 @@ public enum NotificationType {
     FLAGGED_JOB,
     PAYMENT_FAILURE,
     AI_DOWNTIME,
-    SYSTEM
+    SYSTEM,
+    CV_PARSE_FAILED
 }
