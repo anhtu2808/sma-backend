@@ -2,6 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.payment.SePayWebhookRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.enums.PaymentStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.service.PaymentService;
@@ -30,6 +31,14 @@ public class PaymentController {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(paymentService.confirm(authorization, request));
+    }
+
+    @GetMapping("/{id}/status")
+    public ApiResponse<PaymentStatus> getPaymentStatus(@PathVariable Integer id) {
+        return ApiResponse.<PaymentStatus>builder()
+                .message("Get status of payment successfully")
+                .data(paymentService.getPaymentStatus(id))
+                .build();
     }
 
 }

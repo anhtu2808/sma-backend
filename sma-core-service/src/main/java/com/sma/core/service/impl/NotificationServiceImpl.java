@@ -212,4 +212,32 @@ public class NotificationServiceImpl implements NotificationService {
                 response
         );
     }
+
+    @Override
+    public void sendRecruiterNotification(Integer companyId, NotificationType type, String title, String message, String entityType, Integer entityId) {
+        List<User> companyUsers = userRepository.findAllRecruitersByCompanyId(companyId);
+
+        if (companyUsers.isEmpty()) return;
+        List<Notification> notifications = companyUsers.stream()
+                .map(user -> Notification.builder()
+                        .user(user)
+                        .notificationType(type)
+                        .title(title)
+                        .message(message)
+                        .relatedEntityType(entityType)
+                        .relatedEntityId(entityId)
+                        .isRead(false)
+                        .createdAt(LocalDateTime.now())
+                        .build())
+                .toList();
+
+        notificationRepository.saveAll(notifications);
+
+        for (User user : companyUsers) {
+            NotificationResponse response = notificationMapper.toResponse(
+                    notifications.stream().filter(n -> n.getUser().getId().equals(user.getId())).findFirst().get()
+            );
+            messagingTemplate.convertAndSendToUser(user.getId().toString(), USER_QUEUE, response);
+        }
+    }
 }
