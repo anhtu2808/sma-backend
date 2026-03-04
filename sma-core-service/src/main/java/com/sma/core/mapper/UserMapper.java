@@ -1,9 +1,6 @@
 package com.sma.core.mapper;
 
-import com.sma.core.dto.response.user.CandidateDetailResponse;
-import com.sma.core.dto.response.user.RecruiterDetailResponse;
-import com.sma.core.dto.response.user.UserAdminResponse;
-import com.sma.core.dto.response.user.UserDetailResponse;
+import com.sma.core.dto.response.user.*;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.Recruiter;
 import com.sma.core.entity.User;
@@ -58,4 +55,6 @@ public interface UserMapper {
     @Mapping(target = "companyLogo", source = "company.logo")
     @Mapping(target = "jobs", source = "company.jobs")
     RecruiterDetailResponse toRecruiterDetailResponse(Recruiter recruiter);
+
+    BaseUserResponse toBaseUserResponse(User user);
 }

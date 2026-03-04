@@ -47,4 +47,5 @@ public class ResumeDetailResponse {
     List<ResumeExperienceResponse> experiences;
     List<ResumeProjectResponse> projects;
     List<ResumeCertificationDetailResponse> certifications;
+    List<ResumeEvaluationResponse> evaluations;
 }

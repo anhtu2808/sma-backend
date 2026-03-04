@@ -70,5 +70,8 @@ public class Candidate {
     private Set<Resume> resumes = new HashSet<>();
 
     @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Invitation> invitations = new HashSet<>();
+
+    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Application> applications = new HashSet<>();
 }

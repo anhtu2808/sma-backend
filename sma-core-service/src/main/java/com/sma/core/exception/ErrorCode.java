@@ -24,6 +24,7 @@ public enum ErrorCode {
     EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
     INVALID_SEPAY_CONTENT_FORMAT(HttpStatus.BAD_REQUEST, "Invalid sepay content format"),
     INVALID_EXPIRED_DATE(HttpStatus.BAD_REQUEST, "Invalid expired date"),
+    RECRUITER_NOT_HAVE_COMPANY(HttpStatus.BAD_REQUEST, "Current company is not available"),
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
@@ -109,7 +110,7 @@ public enum ErrorCode {
     RESUME_PARSE_STALE_ATTEMPT(HttpStatus.BAD_REQUEST, "Stale parse attempt"),
     RESUME_PARSE_DUPLICATE_SKILL(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill detected"),
     RESUME_PARSE_DUPLICATE_CATEGORY(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill category detected"),
-    
+    INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

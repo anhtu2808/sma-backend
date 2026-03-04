@@ -5,6 +5,7 @@ import com.sma.core.dto.request.job.DraftJobRequest;
 import com.sma.core.dto.request.job.PublishJobRequest;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
+import com.sma.core.dto.response.job.JobInvitationResponse;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.JobQuestion;
 import com.sma.core.mapper.SkillMapper;
@@ -65,4 +66,6 @@ public interface JobMapper {
     @Mapping(target = "enableAiScoring", source = "enableAiScoring")
     @Mapping(target = "autoRejectThreshold", source = "autoRejectThreshold")
     void updateJobFromRequest(AdminJobSampleRequest request, @MappingTarget Job job);
+
+    JobInvitationResponse toJobInvitationResponse(Job job);
 }
