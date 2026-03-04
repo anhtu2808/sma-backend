@@ -28,4 +28,5 @@ class MatchingOverviewResult(BaseModel):
     weakness: Optional[str] = None
     isSpecificJd: Optional[bool] = None
     aiModelVersion: Optional[str] = None
+    processingTimeSecond: Optional[float] = None
     criteriaScores: List[OverviewCriteriaScoreResult] = Field(default_factory=list)

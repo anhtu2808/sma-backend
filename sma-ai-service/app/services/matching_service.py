@@ -55,6 +55,11 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
     gpt_ms = (time.perf_counter() - start_gpt) * 1000
     logger.info(f"GPT matching analysis completed in {gpt_ms:.2f}ms")
 
+    # Add model info and processing time
+    model = getattr(settings, "OPENAI_MATCHING_MODEL", settings.OPENAI_MODEL)
+    parsed_data["aiModelVersion"] = model
+    parsed_data["processingTimeSecond"] = round(time.perf_counter() - start_gpt, 2)
+
     # Step 3: Validate against Pydantic schema
     logger.info("Validating matching result against schema")
     start_validate = time.perf_counter()

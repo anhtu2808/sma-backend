@@ -89,6 +89,7 @@ class MatchingDetailSupplementResult(BaseModel):
 
     isTrueLevel: Optional[bool] = None
     hasRelatedExperience: Optional[bool] = None
+    processingTimeSecond: Optional[float] = None
     criteriaScores: List[CriteriaDetailResult] = Field(default_factory=list)
     gaps: List[GapResult] = Field(default_factory=list)
     weaknesses: List[WeaknessResult] = Field(default_factory=list)

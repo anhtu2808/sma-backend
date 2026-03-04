@@ -75,6 +75,9 @@ async def analyze_matching_detail_supplement(request_data: dict) -> MatchingDeta
             logger.error(f"GPT returned invalid JSON for detail supplement: {e}")
             raise ValueError(f"GPT returned invalid JSON: {str(e)}")
 
+        # Add processing time
+        parsed_data["processingTimeSecond"] = round(time.perf_counter() - start_gpt, 2)
+
         # Log usage
         usage = response.usage
         logger.info(
