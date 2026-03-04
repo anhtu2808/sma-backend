@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.message.criteria.CriteriaContextRequestMessage;
 import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
@@ -13,6 +14,7 @@ import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.job.JobMapper;
+import com.sma.core.messaging.criteria.CriteriaContextRequestPublisher;
 import com.sma.core.repository.*;
 import com.sma.core.service.*;
 import com.sma.core.specification.JobSpecification;
@@ -58,7 +60,6 @@ public class JobServiceImpl implements JobService {
     final ApplicationRepository applicationRepository;
     final BannedKeywordServiceImpl bannedKeywordService;
     final QuotaService quotaService;
-
     final CompanyLocationRepository companyLocationRepository;
 
     @Override
@@ -124,6 +125,24 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    public JobDetailResponse publishJob(PublishJobRequest request) {
+        return jobMapper.toJobInternalResponse(bindJobRelations(
+                jobMapper.toJob(request),
+                request.getExpertiseId(),
+                request.getSkillIds(),
+                request.getDomainIds(),
+                request.getBenefitIds(),
+                request.getQuestionIds(),
+                request.getScoringCriterias(),
+                null,
+                request.getRootId(),
+                request.getLocationIds(),
+                request.getAutoRejectThreshold(),
+                request.getEnableAiScoring(),
+                false, false));
+    }
+
+    @Override
     public JobDetailResponse saveExistingJob(Integer id, DraftJobRequest request) {
         Job job = jobRepository.findById(id)
                                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
@@ -183,9 +202,7 @@ public class JobServiceImpl implements JobService {
                                                      .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
 
             boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
-            boolean isRoot = Boolean.TRUE.equals(recruiter.getIsRootRecruiter());
-
-            if (!sameCompany || !isRoot) {
+            if (!sameCompany) {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
             if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED || job.getStatus().equals(JobStatus.SUSPENDED)) {
@@ -411,16 +428,16 @@ public class JobServiceImpl implements JobService {
             List<JobQuestion> jobQuestions = jobQuestionRepository.findAllById(questionIds);
             job.setQuestions(new HashSet<>(jobQuestions));
         }
-
+        if (!isSample && !isSaved && Boolean.TRUE.equals(enableAi)) {
+            validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
+        }
         if (enableAi && scoringCriteriaRequests != null && !scoringCriteriaRequests.isEmpty()) {
             job.setScoringCriterias(scoringCriteriaService
                     .saveJobScoringCriteria(job, scoringCriteriaRequests));
         }
         job.setEnableAiScoring(enableAi);
         job.setAutoRejectThreshold(autoRejectThreshold);
-        if (!isSample && !isSaved && Boolean.TRUE.equals(job.getEnableAiScoring())) {
-            validateAndCheckAiQuota(job, job.getEnableAiScoring(), job.getAutoRejectThreshold());
-        }
+
         if (rootId != null) {
             Job rootJob = jobRepository.findById(rootId)
                                        .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
@@ -439,9 +456,12 @@ public class JobServiceImpl implements JobService {
                 job.setStatus(hasViolation ? JobStatus.PENDING_REVIEW : JobStatus.PUBLISHED);
             }
         }
-
         job.setUploadTime(LocalDateTime.now());
-        return jobRepository.save(job);
+        jobRepository.save(job);
+        if (!isSample && !isSaved && Boolean.TRUE.equals(enableAi) && job.getStatus().equals(JobStatus.PUBLISHED)) {
+            scoringCriteriaService.generateAndSetCriteriaContext(job);
+        }
+        return job;
     }
 
     @Override
@@ -508,7 +528,7 @@ public class JobServiceImpl implements JobService {
         return jobMapper.toJobInternalResponse(jobRepository.save(job));
     }
 
-    private void verifyPermission(Job job) {
+    void verifyPermission(Job job) {
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == Role.ADMIN) return;
 
@@ -525,7 +545,7 @@ public class JobServiceImpl implements JobService {
         }
     }
 
-    private void validateAndCheckAiQuota(Job job, Boolean enableAiScoring, Double threshold) {
+    void validateAndCheckAiQuota(Job job, Boolean enableAiScoring, Double threshold) {
         if (Boolean.TRUE.equals(enableAiScoring)) {
             if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) {
                 throw new AppException(ErrorCode.MISSING_SCORING_CRITERIA);

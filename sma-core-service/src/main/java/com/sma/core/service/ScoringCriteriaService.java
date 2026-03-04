@@ -9,5 +9,5 @@ import java.util.Set;
 public interface ScoringCriteriaService {
 
     Set<ScoringCriteria> saveJobScoringCriteria(Job job, Set<AddJobScoringCriteriaRequest> requests);
-
+    void generateAndSetCriteriaContext(Job job);
 }

@@ -1,11 +1,11 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.message.criteria.CriteriaContextRequestMessage;
 import com.sma.core.dto.request.job.AddJobScoringCriteriaRequest;
-import com.sma.core.entity.Criteria;
-import com.sma.core.entity.Job;
-import com.sma.core.entity.ScoringCriteria;
+import com.sma.core.entity.*;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.messaging.criteria.CriteriaContextRequestPublisher;
 import com.sma.core.repository.CriteriaRepository;
 import com.sma.core.repository.ScoringCriteriaRepository;
 import com.sma.core.service.ScoringCriteriaService;
@@ -15,8 +15,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -26,6 +26,7 @@ public class ScoringCriteriaServiceImpl implements ScoringCriteriaService {
 
     final CriteriaRepository criteriaRepository;
     final ScoringCriteriaRepository scoringCriteriaRepository;
+    final CriteriaContextRequestPublisher criteriaContextRequestPublisher;
 
     @Override
     public Set<ScoringCriteria> saveJobScoringCriteria(
@@ -77,5 +78,44 @@ public class ScoringCriteriaServiceImpl implements ScoringCriteriaService {
         }
 
         return result;
+    }
+
+    @Override
+    public void generateAndSetCriteriaContext(Job job) {
+        if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) return;
+
+        List<String> enabledTypes = new ArrayList<>();
+        Map<String, Integer> typeToId = new HashMap<>();
+
+        for (ScoringCriteria sc : job.getScoringCriterias()) {
+            if (sc.getCriteria() != null && sc.getCriteria().getCriteriaType() != null) {
+                String typeName = sc.getCriteria().getCriteriaType().name();
+                enabledTypes.add(typeName);
+                typeToId.put(typeName, sc.getId());
+            }
+        }
+
+        if (enabledTypes.isEmpty()) return;
+
+        CriteriaContextRequestMessage message = CriteriaContextRequestMessage.builder()
+                .jobId(job.getId())
+                .jobName(job.getName())
+                .about(job.getAbout())
+                .responsibilities(job.getResponsibilities())
+                .requirement(job.getRequirement())
+                .jobLevel(job.getJobLevel() != null ? job.getJobLevel().name() : null)
+                .experienceTime(job.getExperienceTime())
+                .workingModel(job.getWorkingModel() != null ? job.getWorkingModel().name() : null)
+                .skills(job.getSkills() != null
+                        ? job.getSkills().stream().map(Skill::getName).collect(Collectors.toList())
+                        : Collections.emptyList())
+                .domains(job.getDomains() != null
+                        ? job.getDomains().stream().map(Domain::getName).collect(Collectors.toList())
+                        : Collections.emptyList())
+                .criteriaTypes(enabledTypes)
+                .criteriaTypeToScoringCriteriaId(typeToId)
+                .build();
+
+        criteriaContextRequestPublisher.publish(message);
     }
 }
