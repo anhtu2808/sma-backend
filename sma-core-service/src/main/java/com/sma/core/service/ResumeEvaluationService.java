@@ -3,8 +3,8 @@ package com.sma.core.service;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
 import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
 import com.sma.core.dto.response.PagingResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationDetailResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
 import org.springframework.data.domain.Pageable;
 
 public interface ResumeEvaluationService {

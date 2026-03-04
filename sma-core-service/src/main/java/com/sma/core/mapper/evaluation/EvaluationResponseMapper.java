@@ -1,8 +1,7 @@
 package com.sma.core.mapper.evaluation;
 
-import com.sma.core.dto.response.resume.*;
+import com.sma.core.dto.response.evaluation.*;
 import com.sma.core.entity.*;
-import jdk.jfr.Name;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;

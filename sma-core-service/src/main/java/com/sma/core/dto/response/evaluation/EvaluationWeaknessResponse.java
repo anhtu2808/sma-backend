@@ -1,5 +1,6 @@
-package com.sma.core.dto.response.resume;
+package com.sma.core.dto.response.evaluation;
 
+import com.sma.core.enums.CriteriaType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,10 +13,13 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EvaluationSoftSkillResponse {
+public class EvaluationWeaknessResponse {
     Integer id;
-    String skillName;
-    String evidence;
-    Boolean isRequired;
-    Boolean isFound;
+    String weaknessText;
+    String suggestion;
+    Integer startIndex;
+    Integer endIndex;
+    String context;
+    CriteriaType criterionType;
+    Short severity;
 }

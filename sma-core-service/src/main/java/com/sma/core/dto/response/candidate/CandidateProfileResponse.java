@@ -2,13 +2,11 @@ package com.sma.core.dto.response.candidate;
 
 import com.sma.core.dto.response.resume.ResumeCertificationDetailResponse;
 import com.sma.core.dto.response.resume.ResumeEducationDetailResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
 import com.sma.core.dto.response.resume.ResumeExperienceResponse;
 import com.sma.core.dto.response.resume.ResumeProjectResponse;
 import com.sma.core.dto.response.resume.ResumeSkillGroupResponse;
 import com.sma.core.enums.CandidateShowAs;
 import com.sma.core.enums.ResumeParseStatus;
-import com.sma.core.enums.ResumeStatus;
 import com.sma.core.enums.ResumeType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
