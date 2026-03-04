@@ -5,5 +5,6 @@ public enum JobStatus {
     PENDING_REVIEW,
     PUBLISHED,
     SUSPENDED,
-    CLOSED
+    CLOSED,
+    ARCHIVED
 }
