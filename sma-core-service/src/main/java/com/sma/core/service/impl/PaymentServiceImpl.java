@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.payment.SePayWebhookRequest;
+import com.sma.core.dto.response.payment.CreatePaymentResponse;
 import com.sma.core.entity.PaymentHistory;
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.PaymentMethod;
@@ -47,7 +48,7 @@ public class PaymentServiceImpl implements PaymentService {
     final SubscriptionRepository subscriptionRepository;
 
     @Override
-    public String createQR(Subscription subscription, PaymentMethod method) {
+    public CreatePaymentResponse createQR(Subscription subscription, PaymentMethod method) {
         PaymentHistory paymentHistory = PaymentHistory.builder()
                 .amount(subscription.getPrice())
                 .subscription(subscription)
@@ -62,10 +63,13 @@ public class PaymentServiceImpl implements PaymentService {
             paymentHistory.setPaymentMethod(method);
             paymentRepository.saveAndFlush(paymentHistory);
             description += paymentHistory.getId();
-            return String.format(sePayLink, sePayBankAccount, sePayBank, amount,
-                    java.net.URLEncoder.encode(description, java.nio.charset.StandardCharsets.UTF_8));
+            return CreatePaymentResponse.builder()
+                    .id(paymentHistory.getId())
+                    .qr(String.format(sePayLink, sePayBankAccount, sePayBank, amount,
+                            java.net.URLEncoder.encode(description, java.nio.charset.StandardCharsets.UTF_8)))
+                    .build();
         }
-        return "";
+        return null;
     }
 
     @Override
@@ -124,5 +128,12 @@ public class PaymentServiceImpl implements PaymentService {
         }
         paymentRepository.save(paymentHistory);
         return true;
+    }
+
+    @Override
+    public PaymentStatus getPaymentStatus(Integer id) {
+        PaymentHistory paymentHistory = paymentRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
+        return paymentHistory.getPaymentStatus();
     }
 }

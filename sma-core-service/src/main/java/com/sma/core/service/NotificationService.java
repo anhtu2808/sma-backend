@@ -14,4 +14,5 @@ public interface NotificationService {
     void markAsRead(Integer notificationId);
     void markAllMyNotificationsAsRead();
     void sendCandidateNotification(User user, NotificationType type, String title, String message, String entityType, Integer entityId);
+    void sendRecruiterNotification(Integer companyId, NotificationType type, String title, String message, String entityType, Integer entityId);
 }
