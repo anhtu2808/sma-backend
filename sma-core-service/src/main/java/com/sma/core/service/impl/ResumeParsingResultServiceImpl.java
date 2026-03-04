@@ -7,6 +7,7 @@ import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
 import com.sma.core.mapper.resume.ParsedResumeMapper;
 import com.sma.core.repository.*;
+import com.sma.core.service.NotificationService;
 import com.sma.core.service.ResumeParsingResultService;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
@@ -53,6 +54,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     final ConcurrentMap<String, Object> skillLocks = new ConcurrentHashMap<>();
 
     TransactionTemplate newTransactionTemplate;
+    final NotificationService notificationService;
 
     @PostConstruct
     void initTransactionTemplates() {
@@ -197,6 +199,15 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             resume.setParseErrorMessage(normalizeErrorMessage(errorMessage));
             resume.setParseUpdatedAt(resolveProcessedAt(processedAt));
             resumeRepository.save(resume);
+
+            notificationService.sendCandidateNotification(
+                    resume.getCandidate().getUser(),
+                    com.sma.core.enums.NotificationType.CV_PARSE_FAILED,
+                    "CV Parsing Failed",
+                    "We couldn't read your CV file: " + resume.getFileName() + ". Please re-upload a clear file.",
+                    "RESUME",
+                    resumeId
+            );
         });
     }
 
