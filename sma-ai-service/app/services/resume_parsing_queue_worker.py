@@ -5,9 +5,11 @@ import json
 import re
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from contextlib import contextmanager
 
 import pika
 import requests
@@ -24,6 +26,10 @@ class ParseStatus(str, Enum):
     FAIL = "FAIL"
 
 
+# Number of concurrent resume parsing tasks
+MAX_CONCURRENT_PARSES = 5
+
+
 class ResumeParsingQueueWorker:
     """Background RabbitMQ consumer for resume parsing tasks."""
 
@@ -32,6 +38,11 @@ class ResumeParsingQueueWorker:
         self._thread: threading.Thread | None = None
         self._connection: pika.BlockingConnection | None = None
         self._channel: pika.adapters.blocking_connection.BlockingChannel | None = None
+        self._executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_PARSES)
+        self._active_tasks: set[threading.Event] = set()
+        self._tasks_lock = threading.Lock()
+        # Thread-local storage for RabbitMQ connections
+        self._thread_local = threading.local()
 
     def start(self) -> None:
         if not settings.RABBITMQ_ENABLED:
@@ -60,6 +71,20 @@ class ResumeParsingQueueWorker:
             except Exception:
                 logger.exception("Failed to request RabbitMQ consumer stop")
 
+        # Wait for active tasks to complete (with timeout)
+        logger.info("Waiting for {} active parsing tasks to complete", len(self._active_tasks))
+        start_wait = time.time()
+        while self._active_tasks:
+            with self._tasks_lock:
+                # Clear finished events
+                self._active_tasks = {e for e in self._active_tasks if not e.is_set()}
+            if time.time() - start_wait > 30:
+                logger.warning("Timeout waiting for active tasks, forcing shutdown")
+                break
+            time.sleep(0.5)
+
+        self._executor.shutdown(wait=False)
+
         if self._thread:
             self._thread.join(timeout=10)
         logger.info("Stopped resume parsing RabbitMQ worker")
@@ -82,7 +107,7 @@ class ResumeParsingQueueWorker:
                     queue=settings.RABBITMQ_RESUME_PARSING_RESULT_QUEUE,
                     durable=True,
                 )
-                self._channel.basic_qos(prefetch_count=1)
+                self._channel.basic_qos(prefetch_count=MAX_CONCURRENT_PARSES)
                 self._channel.basic_consume(
                     queue=settings.RABBITMQ_RESUME_PARSING_REQUEST_QUEUE,
                     on_message_callback=self._on_message,
@@ -142,6 +167,7 @@ class ResumeParsingQueueWorker:
         properties,
         body: bytes,
     ) -> None:
+        # Parse payload first to validate and get resume info
         try:
             payload = json.loads(body.decode("utf-8"))
             resume_id = payload.get("resumeId")
@@ -150,46 +176,54 @@ class ResumeParsingQueueWorker:
 
             if resume_id is None or not resume_url or not parse_attempt_id:
                 raise ValueError("Invalid message payload: resumeId, parseAttemptId, and resumeUrl are required")
+        except Exception as e:
+            logger.error("Invalid message payload: {}", e)
+            ch.basic_ack(delivery_tag=method.delivery_tag)  # Reject invalid message
+            return
 
-            logger.info("Received resume parsing task for resumeId={}", resume_id)
-            file_bytes = self._download_resume_file(resume_url)
-            parsed_resume = asyncio.run(parse_resume(file_bytes))
-            parsed_payload = self._build_parsed_payload(parsed_resume.model_dump(mode="json"))
+        # Ack message immediately and process in background for parallel processing
+        ch.basic_ack(delivery_tag=method.delivery_tag)
 
-            self._publish_result(
-                status=ParseStatus.FINISH,
-                resume_id=resume_id,
-                parse_attempt_id=parse_attempt_id,
-                parsed_data=parsed_payload,
-                error_message=None,
-            )
-            logger.info("Completed resume parsing task for resumeId={}", resume_id)
-        except Exception as parsing_error:
-            logger.exception("Failed to process resume parsing message")
+        # Submit task to executor for parallel processing
+        task_done_event = threading.Event()
+        with self._tasks_lock:
+            self._active_tasks.add(task_done_event)
 
-            resume_id = None
-            parse_attempt_id = None
+        def process_task():
             try:
-                fallback_payload = json.loads(body.decode("utf-8"))
-                resume_id = fallback_payload.get("resumeId")
-                parse_attempt_id = fallback_payload.get("parseAttemptId")
-            except Exception:
-                pass
+                logger.info("Started processing resume parsing task for resumeId={}", resume_id)
+                file_bytes = self._download_resume_file(resume_url)
+                parsed_resume = asyncio.run(parse_resume(file_bytes))
+                parsed_payload = self._build_parsed_payload(parsed_resume.model_dump(mode="json"))
 
-            try:
                 self._publish_result(
-                    status=ParseStatus.FAIL,
+                    status=ParseStatus.FINISH,
                     resume_id=resume_id,
                     parse_attempt_id=parse_attempt_id,
-                    parsed_data=None,
-                    error_message=str(parsing_error)[:1000],
+                    parsed_data=parsed_payload,
+                    error_message=None,
                 )
-            except Exception:
-                logger.exception("Failed to publish FAILED parsing result, requeue message")
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-                return
+                logger.info("Completed resume parsing task for resumeId={}", resume_id)
+            except Exception as parsing_error:
+                logger.exception("Failed to process resume parsing for resumeId={}", resume_id)
+                try:
+                    self._publish_result(
+                        status=ParseStatus.FAIL,
+                        resume_id=resume_id,
+                        parse_attempt_id=parse_attempt_id,
+                        parsed_data=None,
+                        error_message=str(parsing_error)[:1000],
+                    )
+                except Exception as publish_error:
+                    logger.exception("Failed to publish FAIL result for resumeId={}", resume_id)
+            finally:
+                # Clean up thread-local connection after each task
+                self._close_thread_local_connections()
+                task_done_event.set()
+                with self._tasks_lock:
+                    self._active_tasks.discard(task_done_event)
 
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+        self._executor.submit(process_task)
 
     def _download_resume_file(self, resume_url: str) -> bytes:
         response = requests.get(
@@ -198,6 +232,22 @@ class ResumeParsingQueueWorker:
         )
         response.raise_for_status()
         return response.content
+
+    def _get_publish_connection(self) -> pika.BlockingConnection:
+        """Get or create a thread-local RabbitMQ connection for publishing."""
+        if not hasattr(self._thread_local, 'connection') or self._thread_local.connection is None:
+            self._thread_local.connection = self._create_connection()
+        return self._thread_local.connection
+
+    def _close_thread_local_connections(self) -> None:
+        """Close thread-local connection if exists."""
+        if hasattr(self._thread_local, 'connection') and self._thread_local.connection:
+            try:
+                if self._thread_local.connection.is_open:
+                    self._thread_local.connection.close()
+            except Exception:
+                pass
+            self._thread_local.connection = None
 
     def _publish_result(
         self,
@@ -208,27 +258,48 @@ class ResumeParsingQueueWorker:
         parsed_data: dict[str, Any] | None,
         error_message: str | None,
     ) -> None:
-        if self._channel is None or not self._channel.is_open:
-            raise RuntimeError("RabbitMQ channel is not open for publishing")
+        # Use thread-local connection for publishing
+        try:
+            connection = self._get_publish_connection()
+            channel = connection.channel()
 
-        message = {
-            "resumeId": resume_id,
-            "parseAttemptId": parse_attempt_id,
-            "status": status.value,
-            "errorMessage": error_message,
-            "processedAt": datetime.now(timezone.utc).isoformat(),
-            "parsedData": parsed_data,
-        }
+            message = {
+                "resumeId": resume_id,
+                "parseAttemptId": parse_attempt_id,
+                "status": status.value,
+                "errorMessage": error_message,
+                "processedAt": datetime.now(timezone.utc).isoformat(),
+                "parsedData": parsed_data,
+            }
 
-        self._channel.basic_publish(
-            exchange="",
-            routing_key=settings.RABBITMQ_RESUME_PARSING_RESULT_QUEUE,
-            body=json.dumps(message, ensure_ascii=False).encode("utf-8"),
-            properties=pika.BasicProperties(
-                content_type="application/json",
-                delivery_mode=2,
-            ),
-        )
+            channel.basic_publish(
+                exchange="",
+                routing_key=settings.RABBITMQ_RESUME_PARSING_RESULT_QUEUE,
+                body=json.dumps(message, ensure_ascii=False).encode("utf-8"),
+                properties=pika.BasicProperties(
+                    content_type="application/json",
+                    delivery_mode=2,
+                ),
+            )
+        except Exception as e:
+            # Try to recover by creating a new connection
+            logger.warning("Failed to publish with existing connection, creating new one: {}", e)
+            self._close_thread_local_connections()
+            try:
+                connection = self._get_publish_connection()
+                channel = connection.channel()
+                channel.basic_publish(
+                    exchange="",
+                    routing_key=settings.RABBITMQ_RESUME_PARSING_RESULT_QUEUE,
+                    body=json.dumps(message, ensure_ascii=False).encode("utf-8"),
+                    properties=pika.BasicProperties(
+                        content_type="application/json",
+                        delivery_mode=2,
+                    ),
+                )
+            except Exception as e2:
+                logger.error("Failed to publish result: {}", e2)
+                raise
 
     def _build_parsed_payload(self, parsed_resume_data: dict[str, Any]) -> dict[str, Any]:
         resume = parsed_resume_data.get("resume") or {}
@@ -242,7 +313,6 @@ class ResumeParsingQueueWorker:
                 skill_items.append(
                     {
                         "skillName": skill.get("name"),
-                        "categoryName": skill.get("categoryName") or group_name,
                         "description": skill.get("description"),
                         "yearsOfExperience": skill.get("yearsOfExperience"),
                         "orderIndex": skill.get("orderIndex"),
@@ -279,11 +349,9 @@ class ResumeParsingQueueWorker:
                 transformed_detail_skills: list[dict[str, Any]] = []
                 for skill_entry in detail.get("skills") or []:
                     skill_value = skill_entry.get("skill") or {}
-                    category = skill_value.get("category") or {}
                     transformed_detail_skills.append(
                         {
                             "skillName": skill_value.get("name"),
-                            "categoryName": category.get("name"),
                             "description": skill_entry.get("description") or skill_value.get("description"),
                         }
                     )
@@ -318,11 +386,9 @@ class ResumeParsingQueueWorker:
             transformed_project_skills: list[dict[str, Any]] = []
             for skill_entry in project.get("skills") or []:
                 skill_value = skill_entry.get("skill") or {}
-                category = skill_value.get("category") or {}
                 transformed_project_skills.append(
                     {
                         "skillName": skill_value.get("name"),
-                        "categoryName": category.get("name"),
                         "description": skill_entry.get("description") or skill_value.get("description"),
                     }
                 )

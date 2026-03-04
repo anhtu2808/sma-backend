@@ -13,6 +13,5 @@ import lombok.experimental.FieldDefaults;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ParsedExperienceSkill {
     String skillName;
-    String categoryName;
     String description;
 }

@@ -23,18 +23,11 @@ EmploymentType = Literal[
 ]
 
 
-class SkillCategory(BaseModel):
-    """Maps to skill_categories entity."""
-
-    name: Optional[str] = None
-
-
 class Skill(BaseModel):
     """Maps to skills entity."""
 
     name: str
     description: Optional[str] = None
-    category: Optional[SkillCategory] = None
 
 
 class Resume(BaseModel):
@@ -83,11 +76,32 @@ class ResumeEducation(BaseModel):
     institution: str
     degree: Optional[DegreeType] = None
     majorField: Optional[str] = None
-    gpa: Optional[float] = None
+    gpa: Optional[str | float] = None
     startDate: Optional[str] = None  # YYYY-MM-DD
     endDate: Optional[str] = None  # YYYY-MM-DD
     isCurrent: Optional[bool] = False
     orderIndex: Optional[int] = Field(default=None, ge=1)
+
+    @field_validator("gpa", mode="before")
+    @classmethod
+    def normalize_gpa(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            # Handle "3.07/4.0" -> 3.07
+            if "/" in value:
+                parts = value.split("/")
+                try:
+                    return float(parts[0].strip())
+                except ValueError:
+                    return None
+            try:
+                return float(value.strip())
+            except ValueError:
+                return None
+        return None
 
 
 class ExperienceSkill(BaseModel):
