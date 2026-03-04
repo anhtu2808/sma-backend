@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     RABBITMQ_VHOST: str = "/"
     RABBITMQ_RESUME_PARSING_REQUEST_QUEUE: str = "resume.parsing.request"
     RABBITMQ_RESUME_PARSING_RESULT_QUEUE: str = "resume.parsing.result"
+    RABBITMQ_MATCHING_REQUEST_QUEUE: str = "resume.matching.request"
+    RABBITMQ_MATCHING_RESULT_QUEUE: str = "resume.matching.result"
+    RABBITMQ_CRITERIA_CONTEXT_REQUEST_QUEUE: str = "criteria.context.request"
+    RABBITMQ_CRITERIA_CONTEXT_RESULT_QUEUE: str = "criteria.context.result"
     RABBITMQ_RECONNECT_DELAY_SECONDS: int = 5
 
 
@@ -43,6 +47,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4-turbo-preview"
     OPENAI_RESUME_MODEL: str = "gpt-4o-mini"  # Cheaper model for resume parsing
+    OPENAI_MATCHING_MODEL: str = "gpt-4.1"
+    OPENAI_MATCHING_OVERVIEW_MODEL: str = "gpt-4.1"# Model for matching analysis
+    OPENAI_CRITERIA_CONTEXT_MODEL: str = "gpt-4o"  # Model for criteria context generation
     OPENAI_REQUEST_TIMEOUT: int = 60  # Timeout in seconds
 
     # Qdrant

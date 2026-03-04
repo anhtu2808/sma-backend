@@ -1,6 +1,7 @@
 package com.sma.core.entity;
 
 import com.sma.core.enums.EvaluationStatus;
+import com.sma.core.enums.EvaluationType;
 import com.sma.core.enums.MatchLevel;
 import jakarta.persistence.*;
 import lombok.*;
@@ -56,6 +57,11 @@ public class ResumeEvaluation {
     @Column(name = "evaluation_status", columnDefinition = "evaluation_status_type")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private EvaluationStatus evaluationStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "evaluation_type", columnDefinition = "evaluation_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private EvaluationType evaluationType;
 
     @Column(name = "processing_time_second")
     private Float processingTimeSecond;
