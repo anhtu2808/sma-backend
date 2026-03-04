@@ -13,7 +13,6 @@ import lombok.experimental.FieldDefaults;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ParsedResumeSkill {
     String skillName;
-    String categoryName;
     String description;
     Integer yearsOfExperience;
     Integer orderIndex;

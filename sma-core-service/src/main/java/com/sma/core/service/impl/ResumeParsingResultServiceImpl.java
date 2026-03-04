@@ -300,11 +300,10 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
 
             List<ParsedResumeSkill> skills = group == null ? List.of() : orEmptyList(group.getSkills());
             for (ParsedResumeSkill skillItem : skills) {
-                String categoryName = firstNonBlank(skillItem.getCategoryName(), groupName);
                 Skill skill = findOrCreateSkill(
                         skillItem.getSkillName(),
                         skillItem.getDescription(),
-                        categoryName,
+                        null,
                         skillCategoryByName,
                         skillByName
                 );
@@ -372,7 +371,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                     Skill skill = findOrCreateSkill(
                             detailSkill.getSkillName(),
                             detailSkill.getDescription(),
-                            detailSkill.getCategoryName(),
+                            null,
                             skillCategoryByName,
                             skillByName
                     );
@@ -414,7 +413,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                 Skill skill = findOrCreateSkill(
                         parsedProjectSkill.getSkillName(),
                         parsedProjectSkill.getDescription(),
-                        parsedProjectSkill.getCategoryName(),
+                        null,
                         skillCategoryByName,
                         skillByName
                 );
