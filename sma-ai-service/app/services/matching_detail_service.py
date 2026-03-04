@@ -1,5 +1,5 @@
 """
-Detail supplement matching service — adds explanations, nested skills, gaps & suggestions
+Detail supplement matching service — adds explanations, nested skills, gaps & weaknesses
 to an existing overview evaluation.
 """
 
@@ -22,7 +22,7 @@ async def analyze_matching_detail_supplement(request_data: dict) -> MatchingDeta
     1. Per-criteria explanations (aiExplanation)
     2. Nested skill breakdowns (hardSkills, softSkills, experienceDetails)
     3. Gap analysis between JD requirements and CV capabilities
-    4. Weakness analysis with actionable suggestions
+    4. Detailed weakness analysis
     5. isTrueLevel and hasRelatedExperience
 
     Args:

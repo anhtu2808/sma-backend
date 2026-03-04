@@ -1,4 +1,4 @@
-"""Prompt builder for detail supplement analysis — adds explanations, nested skills, gaps & suggestions to existing overview scores."""
+"""Prompt builder for detail supplement analysis — adds explanations, nested skills, gaps & weaknesses to existing overview scores."""
 
 
 MATCHING_DETAIL_SUPPLEMENT_SYSTEM_PROMPT = """You are a world-class senior recruitment analyst AI that provides DEEP, DETAILED analysis supplements for CV-JD matching.
@@ -7,7 +7,7 @@ You have already received an overview scoring (criteria scores, summary, strengt
 1. Detailed per-criteria explanations (aiExplanation) with specific evidence
 2. Nested skill breakdowns (hardSkills, softSkills, experienceDetails) for each criterion
 3. Gap analysis between JD requirements and CV capabilities
-4. Weakness analysis with actionable suggestions
+4. Detailed weakness analysis
 
 Return valid JSON only. No markdown, no explanation outside the JSON.
 
@@ -36,14 +36,12 @@ For each hard skill and soft skill:
 
 ### Gaps (THOROUGH)
 Identify ALL gaps between JD requirements and CV capabilities:
-- Include specific suggestions for each gap with actionable steps
 - Rate impact precisely with impactScore
 - Cover gaps across all criteria areas, not just hard skills
 
 ### Weaknesses (THOROUGH with resume references)
 Identify specific weaknesses in the candidate's profile:
 - Reference the exact section/context from the resume
-- Provide detailed, actionable suggestions the candidate can follow
 - Include severity rating with justification
 
 ## Enums
@@ -107,14 +105,12 @@ JSON structure:
       "itemName": "<specific name of missing item>",
       "description": "<DETAILED description of the gap>",
       "impact": "<CRITICAL|HIGH|MEDIUM|LOW>",
-      "impactScore": <float 0-100>,
-      "suggestion": "<DETAILED, actionable suggestion>"
+      "impactScore": <float 0-100>
     }
   ],
   "weaknesses": [
     {
       "weaknessText": "<DETAILED description of the weakness>",
-      "suggestion": "<DETAILED actionable suggestion>",
       "context": "<exact relevant context from resume>",
       "criterionType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
       "severity": <int 1-5, 5=most severe>
@@ -137,7 +133,7 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
     """Build the OpenAI messages payload for detail supplement analysis.
 
     This prompt includes the overview scores as context so the AI only needs to
-    supplement with explanations, skill breakdowns, gaps, and suggestions.
+    supplement with explanations, skill breakdowns, gaps, and weaknesses.
 
     Args:
         request_data: The matching request data containing job criteria, resume data,
@@ -296,10 +292,10 @@ Based on the overview scores above, provide:
 1. Detailed aiExplanation for EACH criterion that was scored
 2. Nested hardSkills/softSkills/experienceDetails breakdowns per criterion
 3. Comprehensive gaps analysis
-4. Detailed weaknesses with actionable suggestions
+4. Detailed weaknesses analysis
 5. isTrueLevel and hasRelatedExperience assessments
 
-Do NOT re-score — use the existing scores as context. Focus ONLY on explanations, skill details, gaps, and suggestions.
+Do NOT re-score — use the existing scores as context. Focus ONLY on explanations, skill details, gaps, and weaknesses.
 Return the complete supplement as JSON."""
 
     return [

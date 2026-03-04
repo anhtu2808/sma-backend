@@ -71,14 +71,12 @@ class GapResult(BaseModel):
     description: Optional[str] = None
     impact: Optional[ImpactType] = None
     impactScore: Optional[float] = Field(default=None, ge=0, le=100)
-    suggestion: Optional[str] = None
 
 
 class WeaknessResult(BaseModel):
     """A weakness identified in the candidate's profile."""
 
     weaknessText: str
-    suggestion: Optional[str] = None
     context: Optional[str] = None
     criterionType: Optional[CriteriaType] = None
     severity: Optional[int] = Field(default=None, ge=1, le=5)

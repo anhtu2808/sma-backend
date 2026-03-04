@@ -90,6 +90,9 @@ app:
     criteria-context:
       request-queue: ${RABBITMQ_CRITERIA_CONTEXT_REQUEST_QUEUE:criteria.context.request}
       result-queue: ${RABBITMQ_CRITERIA_CONTEXT_RESULT_QUEUE:criteria.context.result}
+    suggest:
+      request-queue: ${RABBITMQ_SUGGESTION_REQUEST_QUEUE:criteria.context.request}
+      result-queue: ${RABBITMQ_SUGGESTION_RESULT_QUEUE:criteria.context.result}
   resume-parsing:
     partial-timeout-minutes: ${RESUME_PARSE_PARTIAL_TIMEOUT_MINUTES:1.5}
     watchdog-interval-ms: ${RESUME_PARSE_WATCHDOG_INTERVAL_MS:30000}

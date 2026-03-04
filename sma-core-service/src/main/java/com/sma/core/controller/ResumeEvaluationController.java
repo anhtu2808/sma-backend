@@ -25,6 +25,7 @@ public class ResumeEvaluationController {
     ResumeEvaluationService resumeEvaluationService;
 
     @PostMapping("/overall")
+    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<Integer> processMatching(@RequestParam Integer jobId, @RequestParam Integer resumeId){
         return ApiResponse.<Integer>builder()
                 .message("Matching is processing")
@@ -33,6 +34,7 @@ public class ResumeEvaluationController {
     }
 
     @PostMapping("/detail")
+    @PreAuthorize("hasAnyRole('RECRUITER', 'CANDIDATE')")
     public ApiResponse<Integer> processMatchingDetail(@RequestParam Integer jobId, @RequestParam Integer resumeId){
         return ApiResponse.<Integer>builder()
                 .message("Matching detail is processing")
@@ -41,6 +43,7 @@ public class ResumeEvaluationController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'CANDIDATE')")
     public ApiResponse<PagingResponse<ResumeEvaluationOverviewResponse>> getAllEvaluations(
             @RequestParam(defaultValue = "0") Integer page,
             @RequestParam(defaultValue = "10") Integer size){
@@ -52,6 +55,7 @@ public class ResumeEvaluationController {
     }
 
     @GetMapping("/job/{jobId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     public ApiResponse<PagingResponse<ResumeEvaluationOverviewResponse>> getEvaluationsByJob(
             @PathVariable Integer jobId,
             @RequestParam(defaultValue = "0") Integer page,
@@ -64,6 +68,7 @@ public class ResumeEvaluationController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'CANDIDATE')")
     public ApiResponse<ResumeEvaluationDetailResponse> getEvaluationDetail(@PathVariable Integer id){
         return ApiResponse.<ResumeEvaluationDetailResponse>builder()
                 .message("Get evaluation detail successfully")
@@ -72,6 +77,7 @@ public class ResumeEvaluationController {
     }
 
     @PostMapping("/{resumeEvaluationId}/suggestion")
+    @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<Void> generateSuggestion(@PathVariable Integer resumeEvaluationId, @RequestParam Integer suggestionId){
         if (suggestionId == null) {
             resumeEvaluationService.generateSuggestion(resumeEvaluationId);
@@ -86,6 +92,7 @@ public class ResumeEvaluationController {
     }
 
     @GetMapping("/{resumeEvaluationId}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'CANDIDATE')")
     public ApiResponse<String> getMatchingStatus(@PathVariable Integer resumeEvaluationId){
         return ApiResponse.<String>builder()
                 .message("Get matching status successfully")

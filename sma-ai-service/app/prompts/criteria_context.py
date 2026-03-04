@@ -15,8 +15,8 @@ specific evaluation context for each scoring criterion.
    - If the job mentions "microservices", you can infer experience with distributed systems.
 4. **Clearly distinguish** between explicitly stated requirements and inferred ones.
    Use phrases like "Explicitly required: ..." and "Implied by the role: ..." to separate them.
-5. If the job description lacks information for a criteria type, state that clearly rather than 
-   making up requirements. For example: "The job posting does not specify educational requirements."
+5. If the job description lacks information for a criteria type, return `null` for that criteria type rather than 
+   making up requirements or stating that it is missing.
 
 For each requested criteria type, you must extract and summarize the RELEVANT information 
 from the job description that an AI scorer should focus on when evaluating a candidate's resume.
@@ -36,7 +36,7 @@ from the job description that an AI scorer should focus on when evaluating a can
   Only infer experience depth from explicitly stated job level and responsibilities.
 
 - **EDUCATION**: Extract educational requirements — degrees, certifications, majors, or equivalent 
-  experience. Include any preferred qualifications. If none stated, explicitly note this.
+  experience. Include any preferred qualifications. If none stated, return null.
 
 - **JOB_TITLE**: Describe the exact role title, similar acceptable titles, and the key 
   responsibilities that define this position. What makes someone qualified for this specific title?
@@ -47,13 +47,14 @@ from the job description that an AI scorer should focus on when evaluating a can
 
 ## Response Format
 
-Return a JSON object with criteria types as keys and context strings as values.
+Return a JSON object with criteria types as keys and context strings (or null) as values.
 Only include the criteria types that were requested.
 
 Example:
 {
   "HARD_SKILLS": "Explicitly required: Java, Spring Boot, PostgreSQL, Docker. Implied by the role: RESTful API design, SQL optimization. Nice to have: Kubernetes, AWS.",
-  "EXPERIENCE": "Explicitly required: Minimum 3 years in backend development. Implied by senior level: experience leading technical decisions and mentoring junior developers."
+  "EXPERIENCE": "Explicitly required: Minimum 3 years in backend development. Implied by senior level: experience leading technical decisions and mentoring junior developers.",
+  "EDUCATION": null
 }
 
 Keep each context concise but comprehensive (2-4 sentences). Write in English.
@@ -96,7 +97,7 @@ def build_criteria_context_prompt(job_data: dict, criteria_types: list[str]) -> 
 
 {job_info}
 
-Return a JSON object with the requested criteria types as keys and their evaluation context as values."""
+Return a JSON object with the requested criteria types as keys and their evaluation context (or null if missing) as values."""
 
     return [
         {"role": "system", "content": system_prompt},

@@ -3,6 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
+import com.sma.core.dto.message.suggest.SuggestionRequestMessage;
 import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
@@ -11,11 +12,14 @@ import com.sma.core.entity.*;
 import com.sma.core.enums.*;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.mapper.evaluation.EvaluationMapper;
 import com.sma.core.mapper.evaluation.EvaluationResponseMapper;
 import com.sma.core.mapper.evaluation.MatchingRequestMapper;
 import com.sma.core.mapper.evaluation.MatchingResultMapper;
 import com.sma.core.messaging.matching.MatchingRequestPublisher;
+import com.sma.core.messaging.suggest.SuggestionRequestPublisher;
 import com.sma.core.repository.*;
+import com.sma.core.service.QuotaService;
 import com.sma.core.service.ResumeEvaluationService;
 import com.sma.core.service.ResumeService;
 import lombok.AccessLevel;
@@ -49,6 +53,9 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     MatchingRequestMapper matchingRequestMapper;
     MatchingResultMapper matchingResultMapper;
     EvaluationResponseMapper evaluationResponseMapper;
+    QuotaService quotaService;
+    SuggestionRequestPublisher suggestionRequestPublisher;
+    EvaluationMapper evaluationMapper;
 
     @Override
     @Transactional
@@ -59,31 +66,34 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
 
         validateForMatching(job, resume);
+        if (job.getEnableAiScoring()) {
+            quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE, Role.RECRUITER, job.getCompany().getId());
+            // Check if an overview evaluation already exists for this (job, resume) pair
+            Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
+                    .findByResumeIdAndJobId(resumeId, jobId);
 
-        // Check if an overview evaluation already exists for this (job, resume) pair
-        Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
-                .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.OVERVIEW);
+            if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+                // Supplement mode: reuse overview record, only request gaps/explanations/skills
+                ResumeEvaluation evaluation = existingOverview.get();
+                evaluation.setEvaluationType(EvaluationType.DETAIL);
+                evaluation.setEvaluationStatus(EvaluationStatus.WAITING);
+                resumeEvaluationRepository.save(evaluation);
 
-        if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
-            // Supplement mode: reuse overview record, only request gaps/explanations/skills
-            ResumeEvaluation evaluation = existingOverview.get();
-            evaluation.setEvaluationType(EvaluationType.DETAIL);
-            evaluation.setEvaluationStatus(EvaluationStatus.WAITING);
-            resumeEvaluationRepository.save(evaluation);
+                // Build message with overview scores as context for AI
+                MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
+                message.setMatchingType(EvaluationType.DETAIL.toString());
+                message.setOverviewScores(buildOverviewScoresMap(evaluation));
+                matchingRequestPublisher.publish(message);
 
-            // Build message with overview scores as context for AI
-            MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
-            message.setMatchingType(EvaluationType.DETAIL.toString());
-            message.setOverviewScores(buildOverviewScoresMap(evaluation));
-            matchingRequestPublisher.publish(message);
-
-            log.info("Detail supplement request sent for evaluationId={}, jobId={}, resumeId={}",
-                    evaluation.getId(), jobId, resumeId);
-            return evaluation.getId();
-        } else {
-            // Full detail mode: no overview exists, create new record and do full matching
-            return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL, resume, job);
+                log.info("Detail supplement request sent for evaluationId={}, jobId={}, resumeId={}",
+                        evaluation.getId(), jobId, resumeId);
+                return evaluation.getId();
+            } else {
+                // Full detail mode: no overview exists, create new record and do full matching
+                return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL, resume, job);
+            }
         }
+        return null;
     }
 
     @Override
@@ -93,8 +103,13 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-
         validateForMatching(job, resume);
+        quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE);
+        Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
+                .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.DETAIL);
+        if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+            return existingOverview.get().getId();
+        }
         return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW, resume, job);
     }
 
@@ -173,7 +188,10 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     @Override
     public void generateSuggestion(Integer id) {
-        // TODO: Implement suggestion generation using AI in a future iteration
+        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+        SuggestionRequestMessage message = evaluationMapper.toSuggestionRequestMessage(evaluation);
+        suggestionRequestPublisher.publish(message);
         log.info("generateSuggestion called for evaluationId={} - not yet implemented", id);
     }
 
