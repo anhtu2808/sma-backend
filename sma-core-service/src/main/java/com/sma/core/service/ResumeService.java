@@ -14,6 +14,7 @@ public interface ResumeService {
     ResumeResponse uploadResume(UploadResumeRequest request);
     ResumeResponse parseResume(Integer resumeId);
     ResumeResponse updateResume(Integer resumeId, UpdateResumeRequest request);
+    ResumeResponse setResumeAsDefault(Integer resumeId);
     ResumeResponse cloneResume(Integer resumeId, ResumeType targetType);
     String getResumeStatus(Integer resumeId);
     String getResumeParseStatus(Integer resumeId);
