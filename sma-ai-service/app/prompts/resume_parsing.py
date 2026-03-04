@@ -23,13 +23,27 @@ Rules:
 15. Each skill may include `yearsOfExperience` as integer (0 means "< 1 year"). If unknown, set null.
 16. `orderIndex` fields are optional positive integers. If unavailable, set null.
 
+Example (skills with multiple groups):
+If resume has:
+  SKILLS
+  Programming Languages: Python (3 years, used in AI/ML), Java, JavaScript
+  Frameworks: React, Spring Boot
+  Tools: Docker, Git
+
+Then output:
+  "resumeSkills": [
+    {"groupName": "Programming Languages", "skills": [{"name": "Python", "yearsOfExperience": 3, "description": "used in AI/ML"}, {"name": "Java"}, {"name": "JavaScript"}]},
+    {"groupName": "Frameworks", "skills": [{"name": "React"}, {"name": "Spring Boot"}]},
+    {"groupName": "Tools", "skills": [{"name": "Docker"}, {"name": "Git"}]}
+  ]
+
 JSON keys:
 {
   "resume": {"resumeName","fileName","addressInResume","phoneInResume","emailInResume","githubLink","linkedinLink","portfolioLink","fullName","avatar","resumeUrl","language"},
   "resumeSkills": [{"groupName","orderIndex","skills":[{"name","description","yearsOfExperience","orderIndex"}]}],
   "resumeEducations": [{"institution","degree","majorField","gpa","startDate","endDate","isCurrent","orderIndex"}],
-  "resumeExperiences": [{"company","startDate","endDate","isCurrent","workingModel","employmentType","orderIndex","details":[{"description","title","startDate","endDate","isCurrent","orderIndex","skills":[{"description","skill":{"name","description","category":{"name"}}}]}]}],
-  "resumeProjects": [{"title","teamSize","position","description","projectType","startDate","endDate","isCurrent","projectUrl","orderIndex","skills":[{"description","skill":{"name","description","category":{"name"}}}]}],
+  "resumeExperiences": [{"company","startDate","endDate","isCurrent","workingModel","employmentType","orderIndex","details":[{"description","title","startDate","endDate","isCurrent","orderIndex","skills":[{"description","skill":{"name","description"}}]}]}],
+  "resumeProjects": [{"title","teamSize","position","description","projectType","startDate","endDate","isCurrent","projectUrl","orderIndex","skills":[{"description","skill":{"name","description"}}]}],
   "resumeCertifications": [{"name","issuer","credentialUrl","image","description"}],
   "metadata": {"resumeLanguage","sourceType","confidenceScore"}
 }"""
