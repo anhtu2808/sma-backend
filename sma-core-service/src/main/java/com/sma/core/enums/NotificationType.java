@@ -8,5 +8,6 @@ public enum NotificationType {
     PAYMENT_FAILURE,
     AI_DOWNTIME,
     SYSTEM,
-    CV_PARSE_FAILED
+    CV_PARSE_FAILED,
+    INVITATION
 }
