@@ -4,7 +4,9 @@ import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
 import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
-import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
+import com.sma.core.dto.response.PagingResponse;
+import com.sma.core.dto.response.resume.ResumeEvaluationDetailResponse;
+import com.sma.core.dto.response.resume.ResumeEvaluationOverviewResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.*;
 import com.sma.core.exception.AppException;
@@ -20,6 +22,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,17 +106,22 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    public ResumeEvaluationResponse getMatchingResult(Integer id) {
+    public ResumeEvaluationDetailResponse getEvaluationDetail(Integer id) {
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        return evaluationResponseMapper.toEvaluationResponse(evaluation);
+        return evaluationResponseMapper.toDetailResponse(evaluation);
     }
 
     @Override
-    public ResumeEvaluationResponse getResumeEvaluation(Integer jobId, Integer resumeId) {
-        ResumeEvaluation evaluation = resumeEvaluationRepository.findByResumeIdAndJobId(resumeId, jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        return evaluationResponseMapper.toEvaluationResponse(evaluation);
+    public PagingResponse<ResumeEvaluationOverviewResponse> getEvaluationsByJob(Integer jobId, Pageable pageable) {
+        Page<ResumeEvaluation> page = resumeEvaluationRepository.findByJobId(jobId, pageable);
+        return PagingResponse.fromPage(page.map(evaluationResponseMapper::toOverviewResponse));
+    }
+
+    @Override
+    public PagingResponse<ResumeEvaluationOverviewResponse> getAllEvaluations(Pageable pageable) {
+        Page<ResumeEvaluation> page = resumeEvaluationRepository.findAll(pageable);
+        return PagingResponse.fromPage(page.map(evaluationResponseMapper::toOverviewResponse));
     }
 
     @Override
@@ -177,7 +186,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     @Override
     @Transactional
-    public ResumeEvaluationResponse scoreManual(Integer id, ManualScoreMatchingRequest request) {
+    public ResumeEvaluationDetailResponse scoreManual(Integer id, ManualScoreMatchingRequest request) {
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
 
@@ -195,7 +204,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         }
 
         resumeEvaluationRepository.save(evaluation);
-        return evaluationResponseMapper.toEvaluationResponse(evaluation);
+        return evaluationResponseMapper.toDetailResponse(evaluation);
     }
 
     // ---- Private helpers ----
