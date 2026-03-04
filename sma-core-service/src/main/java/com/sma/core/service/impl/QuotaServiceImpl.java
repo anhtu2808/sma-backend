@@ -260,7 +260,7 @@ public class QuotaServiceImpl implements QuotaService {
         if (isRecruiterFeature(featureKey)) {
             int threshold = RECRUITER_FEATURE_THRESHOLDS.getOrDefault(featureKey, 5);
 
-            if (true) {
+            if (remainingQuota > 0 && remainingQuota <= threshold) {
                 if (ownerContext.getRole() == Role.RECRUITER) {
                     notificationService.sendRecruiterNotification(
                             ownerContext.getCompanyId(),
