@@ -2,6 +2,7 @@ package com.sma.core.service.impl;
 
 import com.sma.core.entity.*;
 import com.sma.core.enums.FeatureKey;
+import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.EventSource;
 import com.sma.core.exception.AppException;
@@ -13,6 +14,7 @@ import com.sma.core.repository.SubscriptionRepository;
 import com.sma.core.repository.UsageEventRepository;
 import com.sma.core.repository.UsageLimitRepository;
 import com.sma.core.service.FeatureService;
+import com.sma.core.service.NotificationService;
 import com.sma.core.service.QuotaService;
 import com.sma.core.service.SubscriptionService;
 import com.sma.core.service.quota.EventUsageCalculator;
@@ -27,10 +29,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -51,6 +50,21 @@ public class QuotaServiceImpl implements QuotaService {
     EventUsageCalculator eventUsageCalculator;
 
     ApplicationContext applicationContext;
+    NotificationService notificationService;
+
+    static Map<FeatureKey, Integer> RECRUITER_FEATURE_THRESHOLDS = Map.ofEntries(
+            Map.entry(FeatureKey.MATCHING_SCORE, 10),
+            Map.entry(FeatureKey.DETAIL_MATCHING_SCORE, 10),
+            Map.entry(FeatureKey.TALENT_UNLOCK, 5),
+            Map.entry(FeatureKey.API_SCORING, 50),
+            Map.entry(FeatureKey.JOB_POST_LIMIT, 2),
+            Map.entry(FeatureKey.TEAM_MEMBER_LIMIT, 1),
+            Map.entry(FeatureKey.CUSTOM_CAREER_PAGE, 1),
+            Map.entry(FeatureKey.API_PARSING, 50),
+            Map.entry(FeatureKey.TALENT_SEARCH, 10),
+            Map.entry(FeatureKey.EXPORT_SHORTLIST, 5),
+            Map.entry(FeatureKey.RESUME_PARSING, 20)
+    );
 
     @Override
     public QuotaOwnerContext resolveOwnerContext() {
@@ -242,9 +256,43 @@ public class QuotaServiceImpl implements QuotaService {
                 null
         );
 
+        long remainingQuota = usageLimit.getMaxQuota() - usedAmount;
+        if (isRecruiterFeature(featureKey)) {
+            int threshold = RECRUITER_FEATURE_THRESHOLDS.getOrDefault(featureKey, 5);
+
+            if (true) {
+                if (ownerContext.getRole() == Role.RECRUITER) {
+                    notificationService.sendRecruiterNotification(
+                            ownerContext.getCompanyId(),
+                            NotificationType.SYSTEM,
+                            "AI Credits Running Low",
+                            "Your company has only " + remainingQuota + " credits left for " + feature.getName() + ". Please consider upgrading your plan to avoid interruption of service.",
+                            "QUOTA",
+                            feature.getId()
+                    );
+                }
+            }
+        }
+
         if (usedAmount >= usageLimit.getMaxQuota()) {
             throw buildQuotaExceeded(feature);
         }
+    }
+
+    private boolean isRecruiterFeature(FeatureKey key) {
+        return EnumSet.of(
+                FeatureKey.MATCHING_SCORE,
+                FeatureKey.DETAIL_MATCHING_SCORE,
+                FeatureKey.TALENT_UNLOCK,
+                FeatureKey.API_SCORING,
+                FeatureKey.JOB_POST_LIMIT,
+                FeatureKey.TEAM_MEMBER_LIMIT,
+                FeatureKey.CUSTOM_CAREER_PAGE,
+                FeatureKey.API_PARSING,
+                FeatureKey.TALENT_SEARCH,
+                FeatureKey.EXPORT_SHORTLIST,
+                FeatureKey.RESUME_PARSING
+        ).contains(key);
     }
 
     private StateQuotaChecker getStateChecker(FeatureKey featureKey) {
