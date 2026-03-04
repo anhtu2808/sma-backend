@@ -20,6 +20,15 @@ public interface ResumeRepository extends JpaRepository<Resume, Integer>, JpaSpe
 
     Optional<Resume> findFirstByCandidate_IdAndTypeOrderByIdDesc(Integer candidateId, ResumeType type);
 
+    @Modifying
+    @Query("""
+            UPDATE Resume r
+            SET r.isDefault = false
+            WHERE r.candidate.id = :candidateId
+                AND (r.isDeleted = false OR r.isDeleted IS NULL)
+            """)
+    int clearDefaultByCandidateId(@Param("candidateId") Integer candidateId);
+
     @Query("""
             SELECT COUNT(r)
             FROM Resume r

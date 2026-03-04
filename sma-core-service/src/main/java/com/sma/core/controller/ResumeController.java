@@ -327,6 +327,15 @@ public class ResumeController {
                 .build();
     }
 
+    @PostMapping("/{resumeId}/set-default")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<ResumeResponse> setResumeAsDefault(@PathVariable Integer resumeId) {
+        return ApiResponse.<ResumeResponse>builder()
+                .message("Set resume as default successfully")
+                .data(resumeService.setResumeAsDefault(resumeId))
+                .build();
+    }
+
     @PostMapping("/{resumeId}/parse")
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ResumeResponse> parseResume(@PathVariable Integer resumeId) {
