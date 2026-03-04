@@ -101,8 +101,13 @@ public enum ErrorCode {
     NOT_A_SAMPLE_JOB(HttpStatus.BAD_REQUEST, "Not a sample job"),
     CAN_NOT_APPLY_SAMPLE(HttpStatus.BAD_REQUEST, "Cannot apply to sample job"),
     COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "Company not found"),
+    RESUME_PARSE_INVALID_MESSAGE(HttpStatus.BAD_REQUEST, "Invalid resume parsing message"),
+    RESUME_PARSE_NOT_FOUND(HttpStatus.NOT_FOUND, "Resume not found"),
+    RESUME_PARSE_STALE_ATTEMPT(HttpStatus.BAD_REQUEST, "Stale parse attempt"),
+    RESUME_PARSE_DUPLICATE_SKILL(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill detected"),
+    RESUME_PARSE_DUPLICATE_CATEGORY(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill category detected"),
 
-    
+
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

@@ -34,8 +34,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -110,24 +112,37 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = getOwnedResume(resumeId);
 
         // Consume quota with resume as context
-        quotaService.consumeEventQuota(
-                FeatureKey.RESUME_PARSING,
-                1,
-                EventSource.RESUME,
-                resume.getId()
-        );
+//        quotaService.consumeEventQuota(
+//                FeatureKey.RESUME_PARSING,
+//                1,
+//                EventSource.RESUME,
+//                resume.getId()
+//        );
+
+        LocalDateTime now = LocalDateTime.now();
+        String parseAttemptId = UUID.randomUUID().toString();
 
         resume.setStatus(ResumeStatus.DRAFT);
-        resume.setParseStatus(ResumeParseStatus.WAITING);
+        resume.setParseStatus(ResumeParseStatus.PARTIAL);
+        resume.setParseAttemptId(parseAttemptId);
+        resume.setParseRequestedAt(now);
+        resume.setParseUpdatedAt(now);
+        resume.setParseErrorMessage(null);
         resume = resumeRepository.save(resume);
 
         try {
-            resumeParsingRequestPublisher.publish(resume.getId(), resume.getResumeUrl(), resume.getFileName(), resume.getResumeName());
-            resume.setParseStatus(ResumeParseStatus.PARTIAL);
-            resumeRepository.save(resume);
+            resumeParsingRequestPublisher.publish(
+                    resume.getId(),
+                    parseAttemptId,
+                    resume.getResumeUrl(),
+                    resume.getFileName(),
+                    resume.getResumeName()
+            );
         } catch (Exception e) {
             log.error("Failed to enqueue resume parsing request for resumeId={}", resumeId, e);
             resume.setParseStatus(ResumeParseStatus.FAIL);
+            resume.setParseErrorMessage("ENQUEUE_FAILED");
+            resume.setParseUpdatedAt(LocalDateTime.now());
             resumeRepository.save(resume);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
         }

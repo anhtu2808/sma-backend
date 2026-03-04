@@ -1,128 +1,219 @@
 package com.sma.core.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.sma.core.dto.message.resume.ResumeParsingResultMessage;
+import com.sma.core.dto.message.resume.parsed.*;
 import com.sma.core.entity.*;
-import com.sma.core.enums.DegreeType;
-import com.sma.core.enums.EmploymentType;
-import com.sma.core.enums.ProjectType;
-import com.sma.core.enums.ResumeLanguage;
 import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
-import com.sma.core.enums.ResumeType;
-import com.sma.core.enums.WorkingModel;
+import com.sma.core.mapper.resume.ParsedResumeMapper;
 import com.sma.core.repository.*;
 import com.sma.core.service.ResumeParsingResultService;
+import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import com.sma.core.exception.AppException;
+import com.sma.core.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-@Transactional
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResumeParsingResultServiceImpl implements ResumeParsingResultService {
-    ResumeRepository resumeRepository;
-    SkillCategoryRepository skillCategoryRepository;
-    SkillRepository skillRepository;
-    ResumeSkillRepository resumeSkillRepository;
-    ResumeSkillGroupRepository resumeSkillGroupRepository;
-    ResumeEducationRepository resumeEducationRepository;
-    ResumeExperienceRepository resumeExperienceRepository;
-    ResumeExperienceDetailRepository resumeExperienceDetailRepository;
-    ExperienceSkillRepository experienceSkillRepository;
-    ResumeProjectRepository resumeProjectRepository;
-    ProjectSkillRepository projectSkillRepository;
-    ResumeCertificationRepository resumeCertificationRepository;
-    ConcurrentMap<String, Object> skillUpsertLocks = new ConcurrentHashMap<>();
+    static final int MAX_ERROR_MESSAGE_LENGTH = 1000;
+
+    final ResumeRepository resumeRepository;
+    final SkillCategoryRepository skillCategoryRepository;
+    final SkillRepository skillRepository;
+    final ResumeSkillRepository resumeSkillRepository;
+    final ResumeSkillGroupRepository resumeSkillGroupRepository;
+    final ResumeEducationRepository resumeEducationRepository;
+    final ResumeExperienceRepository resumeExperienceRepository;
+    final ResumeExperienceDetailRepository resumeExperienceDetailRepository;
+    final ExperienceSkillRepository experienceSkillRepository;
+    final ResumeProjectRepository resumeProjectRepository;
+    final ProjectSkillRepository projectSkillRepository;
+    final ResumeCertificationRepository resumeCertificationRepository;
+    final PlatformTransactionManager transactionManager;
+    final ParsedResumeMapper parsedResumeMapper;
+
+    final ConcurrentMap<String, Object> skillLocks = new ConcurrentHashMap<>();
+
+    TransactionTemplate newTransactionTemplate;
+
+    @PostConstruct
+    void initTransactionTemplates() {
+        newTransactionTemplate = new TransactionTemplate(transactionManager);
+        newTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     @Override
     public void processParsingResult(ResumeParsingResultMessage message) {
         if (message == null || message.getResumeId() == null) {
-            log.warn("Ignore invalid resume parsing result: {}", message);
-            return;
+            throw new AppException(ErrorCode.RESUME_PARSE_INVALID_MESSAGE);
         }
 
         Integer resumeId = message.getResumeId();
         Resume resume = resumeRepository.findById(resumeId).orElse(null);
         if (resume == null) {
-            log.warn("Ignore resume parsing result because resume not found: resumeId={}", resumeId);
+            throw new AppException(ErrorCode.RESUME_PARSE_NOT_FOUND);
+        }
+
+        String parseAttemptId = normalizeFreeText(message.getParseAttemptId());
+        if (parseAttemptId == null) {
+            markParseFailed(
+                    resumeId,
+                    normalizeFreeText(resume.getParseAttemptId()),
+                    "INVALID_RESULT_MESSAGE: missing parseAttemptId",
+                    message.getProcessedAt()
+            );
             return;
+        }
+
+        if (!isAttemptMatched(resume, parseAttemptId)) {
+            throw new AppException(ErrorCode.RESUME_PARSE_STALE_ATTEMPT);
         }
 
         ResumeParseStatus messageStatus = message.getStatus();
         if (messageStatus == null) {
-            log.warn("Ignore resume parsing result with null status for resumeId={}", resumeId);
-            resume.setParseStatus(ResumeParseStatus.FAIL);
-            resume.setStatus(ResumeStatus.DRAFT);
-            resumeRepository.save(resume);
+            markParseFailed(
+                    resumeId,
+                    parseAttemptId,
+                    "INVALID_RESULT_MESSAGE: missing status",
+                    message.getProcessedAt()
+            );
+            return;
+        }
+
+        if (messageStatus == ResumeParseStatus.FAIL) {
+            markParseFailed(resumeId, parseAttemptId, message.getErrorMessage(), message.getProcessedAt());
             return;
         }
 
         if (messageStatus != ResumeParseStatus.FINISH) {
-            log.warn(
-                    "Resume parsing not finished for resumeId={}, status={}, error={}",
+            markParseFailed(
                     resumeId,
-                    messageStatus,
-                    message.getErrorMessage()
+                    parseAttemptId,
+                    "INVALID_RESULT_STATUS: " + messageStatus,
+                    message.getProcessedAt()
             );
-            resume.setParseStatus(messageStatus);
-            if (messageStatus == ResumeParseStatus.FAIL) {
-                resume.setStatus(ResumeStatus.DRAFT);
-            }
-            resumeRepository.save(resume);
             return;
         }
 
-        JsonNode parsedData = message.getParsedData();
-        if (parsedData == null || parsedData.isNull()) {
-            log.warn("Ignore success result with empty parsedData for resumeId={}", resumeId);
-            resume.setStatus(ResumeStatus.DRAFT);
-            resume.setParseStatus(ResumeParseStatus.FAIL);
-            resumeRepository.save(resume);
+        if (message.getParsedData() == null) {
+            markParseFailed(
+                    resumeId,
+                    parseAttemptId,
+                    "INVALID_RESULT_MESSAGE: missing parsedData for FINISH status",
+                    message.getProcessedAt()
+            );
             return;
         }
-
-        Map<String, SkillCategory> categoryCache = new HashMap<>();
-        Map<String, Skill> skillCache = new HashMap<>();
 
         try {
-            resume.setParseStatus(ResumeParseStatus.PARTIAL);
-            resumeRepository.save(resume);
+            saveParsedData(
+                    resumeId,
+                    parseAttemptId,
+                    message.getParsedData(),
+                    message.getProcessedAt()
+            );
+        } catch (AppException e) {
+            throw e;
+        } catch (Exception exception) {
+            markParseFailed(
+                    resumeId,
+                    parseAttemptId,
+                    exception.getMessage(),
+                    message.getProcessedAt()
+            );
+            throw exception;
+        }
+    }
+
+    private void saveParsedData(
+            Integer resumeId,
+            String parseAttemptId,
+            ParsedResumePayload payload,
+            String processedAt
+    ) {
+        runInNewTransaction(() -> {
+            Resume resume = resumeRepository.findById(resumeId)
+                    .orElseThrow(() -> new AppException(ErrorCode.RESUME_PARSE_NOT_FOUND));
+
+            if (!isAttemptMatched(resume, parseAttemptId)) {
+                throw new AppException(ErrorCode.RESUME_PARSE_STALE_ATTEMPT);
+            }
+
+            Map<String, SkillCategory> skillCategoryByName = new HashMap<>();
+            Map<String, Skill> skillByName = new HashMap<>();
 
             clearExistingParsedData(resumeId);
-            applyResumeFields(resume, parsedData.path("resume"), parsedData.path("metadata"));
-            persistResumeSkills(resume, parsedData.path("resumeSkills"), categoryCache, skillCache);
-            persistResumeEducations(resume, parsedData.path("resumeEducations"));
-            persistResumeExperiences(resume, parsedData.path("resumeExperiences"), categoryCache, skillCache);
-            persistResumeProjects(resume, parsedData.path("resumeProjects"), categoryCache, skillCache);
-            persistResumeCertifications(resume, parsedData.path("resumeCertifications"));
+            updateResumeFromParsed(resume, payload.getResume(), payload.getMetadata());
+            saveResumeSkills(resume, payload.getResumeSkills(), skillCategoryByName, skillByName);
+            saveResumeEducations(resume, payload.getResumeEducations());
+            saveResumeExperiences(resume, payload.getResumeExperiences(), skillCategoryByName, skillByName);
+            saveResumeProjects(resume, payload.getResumeProjects(), skillCategoryByName, skillByName);
+            saveResumeCertifications(resume, payload.getResumeCertifications());
 
             resume.setStatus(ResumeStatus.ACTIVE);
             resume.setParseStatus(ResumeParseStatus.FINISH);
+            resume.setParseErrorMessage(null);
+            resume.setParseUpdatedAt(resolveProcessedAt(processedAt));
             resumeRepository.save(resume);
+        });
+    }
 
-            log.info("Applied resume parsing result successfully for resumeId={}", resumeId);
-        } catch (Exception e) {
+    private void markParseFailed(
+            Integer resumeId,
+            String parseAttemptId,
+            String errorMessage,
+            String processedAt
+    ) {
+        runInNewTransaction(() -> {
+            Resume resume = resumeRepository.findById(resumeId).orElse(null);
+            if (resume == null) {
+                return;
+            }
+
+            if (parseAttemptId != null && !isAttemptMatched(resume, parseAttemptId)) {
+                return;
+            }
+
             resume.setStatus(ResumeStatus.DRAFT);
             resume.setParseStatus(ResumeParseStatus.FAIL);
+            resume.setParseErrorMessage(normalizeErrorMessage(errorMessage));
+            resume.setParseUpdatedAt(resolveProcessedAt(processedAt));
             resumeRepository.save(resume);
-            throw e;
+        });
+    }
+
+    private void runInNewTransaction(Runnable runnable) {
+        newTransactionTemplate.executeWithoutResult(status -> runnable.run());
+    }
+
+    private boolean isAttemptMatched(Resume resume, String parseAttemptId) {
+        if (resume == null) {
+            return false;
         }
+        String currentAttemptId = normalizeFreeText(resume.getParseAttemptId());
+        String incomingAttemptId = normalizeFreeText(parseAttemptId);
+        if (currentAttemptId == null || incomingAttemptId == null) {
+            return false;
+        }
+        return currentAttemptId.equals(incomingAttemptId);
     }
 
     private void clearExistingParsedData(Integer resumeId) {
@@ -137,86 +228,55 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         resumeCertificationRepository.deleteByResumeId(resumeId);
     }
 
-    private void applyResumeFields(Resume resume, JsonNode resumeNode, JsonNode metadataNode) {
-        if (resumeNode == null || resumeNode.isMissingNode() || resumeNode.isNull()) {
+    private void updateResumeFromParsed(
+            Resume resume,
+            ParsedResume parsedResume,
+            ParsedMetadata metadata
+    ) {
+        if (parsedResume == null) {
             return;
         }
 
-        setIfPresentText(resume::setResumeName, text(resumeNode, "resumeName"));
-        setIfPresentText(resume::setFileName, text(resumeNode, "fileName"));
-        setIfPresentText(resume::setRawText, text(resumeNode, "rawText"));
-        setIfPresentText(resume::setAddressInResume, text(resumeNode, "addressInResume"));
-        setIfPresentText(resume::setPhoneInResume, text(resumeNode, "phoneInResume"));
-        setIfPresentText(resume::setEmailInResume, text(resumeNode, "emailInResume"));
-        setIfPresentText(resume::setGithubLink, text(resumeNode, "githubLink"));
-        setIfPresentText(resume::setLinkedinLink, text(resumeNode, "linkedinLink"));
-        setIfPresentText(resume::setPortfolioLink, text(resumeNode, "portfolioLink"));
-        setIfPresentText(resume::setFullName, text(resumeNode, "fullName"));
-        setIfPresentText(resume::setAvatar, text(resumeNode, "avatar"));
-        setIfPresentText(resume::setResumeUrl, text(resumeNode, "resumeUrl"));
+        setIfNotBlank(resume::setResumeName, parsedResume.getResumeName());
+        setIfNotBlank(resume::setFileName, parsedResume.getFileName());
+        setIfNotBlank(resume::setRawText, parsedResume.getRawText());
+        setIfNotBlank(resume::setAddressInResume, parsedResume.getAddressInResume());
+        setIfNotBlank(resume::setPhoneInResume, parsedResume.getPhoneInResume());
+        setIfNotBlank(resume::setEmailInResume, parsedResume.getEmailInResume());
+        setIfNotBlank(resume::setGithubLink, parsedResume.getGithubLink());
+        setIfNotBlank(resume::setLinkedinLink, parsedResume.getLinkedinLink());
+        setIfNotBlank(resume::setPortfolioLink, parsedResume.getPortfolioLink());
+        setIfNotBlank(resume::setFullName, parsedResume.getFullName());
+        setIfNotBlank(resume::setAvatar, parsedResume.getAvatar());
+        setIfNotBlank(resume::setResumeUrl, parsedResume.getResumeUrl());
 
-        ResumeType resumeType = parseEnum(ResumeType.class, text(resumeNode, "type"));
-        if (resumeType == null) {
-            Boolean isOriginal = booleanValue(resumeNode.get("isOriginal"));
-            if (isOriginal != null) {
-                resumeType = isOriginal ? ResumeType.ORIGINAL : ResumeType.TEMPLATE;
-            }
-        }
-        if (resumeType == null && resume.getType() == null) {
-            resumeType = ResumeType.ORIGINAL;
-        }
-        if (resumeType != null) {
-            resume.setType(resumeType);
+        if (parsedResume.getLanguage() != null) {
+            resume.setLanguage(parsedResume.getLanguage());
+        } else if (metadata != null && metadata.getResumeLanguage() != null) {
+            resume.setLanguage(metadata.getResumeLanguage());
         }
 
-        Integer rootResumeId = integerValue(resumeNode.get("rootResumeId"));
-        if (rootResumeId != null && !rootResumeId.equals(resume.getId())) {
-            resumeRepository.findById(rootResumeId).ifPresent(resume::setRootResume);
-        }
-
-        ResumeStatus resumeStatus = parseEnum(ResumeStatus.class, text(resumeNode, "status"));
-        if (resumeStatus != null) {
-            resume.setStatus(resumeStatus);
-        }
-
-        ResumeLanguage language = parseEnum(ResumeLanguage.class, text(resumeNode, "language"));
-        if (language == null) {
-            language = parseEnum(ResumeLanguage.class, text(metadataNode, "resumeLanguage"));
-        }
-        if (language != null) {
-            resume.setLanguage(language);
-        }
-
-        Boolean isDefault = booleanValue(resumeNode.get("isDefault"));
-        if (isDefault != null) {
-            resume.setIsDefault(isDefault);
-        }
-
-        Boolean isDeleted = booleanValue(resumeNode.get("isDeleted"));
-        if (isDeleted != null) {
-            resume.setIsDeleted(isDeleted);
+        if (parsedResume.getIsDefault() != null) {
+            resume.setIsDefault(parsedResume.getIsDefault());
         }
     }
 
-    private void persistResumeSkills(
+    private void saveResumeSkills(
             Resume resume,
-            JsonNode groupedSkillsNode,
-            Map<String, SkillCategory> categoryCache,
-            Map<String, Skill> skillCache
+            List<ParsedResumeSkillGroup> groupedSkills,
+            Map<String, SkillCategory> skillCategoryByName,
+            Map<String, Skill> skillByName
     ) {
-        if (groupedSkillsNode == null || !groupedSkillsNode.isArray()) {
-            return;
-        }
+        Map<String, ResumeSkillGroup> skillGroupByName = new HashMap<>();
+        List<ParsedResumeSkillGroup> groups = orEmptyList(groupedSkills);
 
-        Map<String, ResumeSkillGroup> resumeSkillGroupCache = new HashMap<>();
-
-        for (int groupIndex = 0; groupIndex < groupedSkillsNode.size(); groupIndex++) {
-            JsonNode groupNode = groupedSkillsNode.get(groupIndex);
-            String groupName = firstNonBlank(text(groupNode, "groupName"), text(groupNode, "categoryName"), "Ungrouped");
-            Integer groupOrderIndex = resolveOrderIndex(integerValue(groupNode.get("orderIndex")), groupIndex + 1);
+        for (int groupIndex = 0; groupIndex < groups.size(); groupIndex++) {
+            ParsedResumeSkillGroup group = groups.get(groupIndex);
+            String groupName = firstNonBlank(group != null ? group.getGroupName() : null, "Ungrouped");
+            Integer groupOrderIndex = resolveOrderIndex(group != null ? group.getOrderIndex() : null, groupIndex + 1);
             String groupKey = normalizeLookupKey(groupName);
 
-            ResumeSkillGroup skillGroup = resumeSkillGroupCache.get(groupKey);
+            ResumeSkillGroup skillGroup = skillGroupByName.get(groupKey);
             if (skillGroup == null) {
                 skillGroup = ResumeSkillGroup.builder()
                         .name(groupName)
@@ -224,26 +284,25 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                         .resume(resume)
                         .build();
                 skillGroup = resumeSkillGroupRepository.save(skillGroup);
-                resumeSkillGroupCache.put(groupKey, skillGroup);
+                skillGroupByName.put(groupKey, skillGroup);
             }
 
-            JsonNode skillsNode = groupNode.get("skills");
-            if (skillsNode == null || !skillsNode.isArray()) {
-                continue;
-            }
-
-            for (JsonNode skillNode : skillsNode) {
-                String skillName = text(skillNode, "name");
-                String description = text(skillNode, "description");
-                Integer yearsOfExperience = integerValue(skillNode.get("yearsOfExperience"));
-                String categoryName = firstNonBlank(text(skillNode.path("category"), "name"), groupName);
-                Skill skill = upsertSkill(skillName, description, categoryName, categoryCache, skillCache);
+            List<ParsedResumeSkill> skills = group == null ? List.of() : orEmptyList(group.getSkills());
+            for (ParsedResumeSkill skillItem : skills) {
+                String categoryName = firstNonBlank(skillItem.getCategoryName(), groupName);
+                Skill skill = findOrCreateSkill(
+                        skillItem.getSkillName(),
+                        skillItem.getDescription(),
+                        categoryName,
+                        skillCategoryByName,
+                        skillByName
+                );
                 if (skill == null) {
                     continue;
                 }
 
                 ResumeSkill resumeSkill = ResumeSkill.builder()
-                        .yearsOfExperience(yearsOfExperience)
+                        .yearsOfExperience(skillItem.getYearsOfExperience())
                         .skillGroup(skillGroup)
                         .skill(skill)
                         .build();
@@ -252,94 +311,66 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         }
     }
 
-    private void persistResumeEducations(Resume resume, JsonNode educationsNode) {
-        if (educationsNode == null || !educationsNode.isArray()) {
-            return;
-        }
+    private void saveResumeEducations(Resume resume, List<ParsedResumeEducation> educations) {
+        List<ParsedResumeEducation> values = orEmptyList(educations);
+        for (int index = 0; index < values.size(); index++) {
+            ParsedResumeEducation educationValue = values.get(index);
+            if (educationValue == null) {
+                continue;
+            }
 
-        for (int educationIndex = 0; educationIndex < educationsNode.size(); educationIndex++) {
-            JsonNode educationNode = educationsNode.get(educationIndex);
-            ResumeEducation education = ResumeEducation.builder()
-                    .institution(text(educationNode, "institution"))
-                    .degree(parseEnum(DegreeType.class, text(educationNode, "degree")))
-                    .majorField(text(educationNode, "majorField"))
-                    .gpa(doubleValue(educationNode.get("gpa")))
-                    .startDate(parseDate(text(educationNode, "startDate")))
-                    .endDate(parseDate(text(educationNode, "endDate")))
-                    .isCurrent(booleanValue(educationNode.get("isCurrent")))
-                    .orderIndex(resolveOrderIndex(integerValue(educationNode.get("orderIndex")), educationIndex + 1))
-                    .resume(resume)
-                    .build();
+            ResumeEducation education = parsedResumeMapper.toEducation(educationValue);
+            education.setResume(resume);
+            education.setOrderIndex(resolveOrderIndex(educationValue.getOrderIndex(), index + 1));
             resumeEducationRepository.save(education);
         }
     }
 
-    private void persistResumeExperiences(
+    private void saveResumeExperiences(
             Resume resume,
-            JsonNode experiencesNode,
-            Map<String, SkillCategory> categoryCache,
-            Map<String, Skill> skillCache
+            List<ParsedResumeExperience> experiences,
+            Map<String, SkillCategory> skillCategoryByName,
+            Map<String, Skill> skillByName
     ) {
-        if (experiencesNode == null || !experiencesNode.isArray()) {
-            return;
-        }
-
-        for (int experienceIndex = 0; experienceIndex < experiencesNode.size(); experienceIndex++) {
-            JsonNode experienceNode = experiencesNode.get(experienceIndex);
-            ResumeExperience experience = ResumeExperience.builder()
-                    .company(text(experienceNode, "company"))
-                    .startDate(parseDate(text(experienceNode, "startDate")))
-                    .endDate(parseDate(text(experienceNode, "endDate")))
-                    .isCurrent(booleanValue(experienceNode.get("isCurrent")))
-                    .workingModel(parseEnum(WorkingModel.class, text(experienceNode, "workingModel")))
-                    .employmentType(parseEnum(EmploymentType.class, text(experienceNode, "employmentType")))
-                    .orderIndex(resolveOrderIndex(integerValue(experienceNode.get("orderIndex")), experienceIndex + 1))
-                    .resume(resume)
-                    .build();
-            experience = resumeExperienceRepository.save(experience);
-
-            JsonNode detailsNode = experienceNode.get("details");
-            if (detailsNode == null || !detailsNode.isArray()) {
+        List<ParsedResumeExperience> values = orEmptyList(experiences);
+        for (int experienceIndex = 0; experienceIndex < values.size(); experienceIndex++) {
+            ParsedResumeExperience parsedExperience = values.get(experienceIndex);
+            if (parsedExperience == null) {
                 continue;
             }
 
-            for (int detailIndex = 0; detailIndex < detailsNode.size(); detailIndex++) {
-                JsonNode detailNode = detailsNode.get(detailIndex);
-                ResumeExperienceDetail detail = ResumeExperienceDetail.builder()
-                        .description(text(detailNode, "description"))
-                        .title(firstNonBlank(text(detailNode, "title"), text(detailNode, "position")))
-                        .startDate(parseDate(text(detailNode, "startDate")))
-                        .endDate(parseDate(text(detailNode, "endDate")))
-                        .isCurrent(booleanValue(detailNode.get("isCurrent")))
-                        .orderIndex(resolveOrderIndex(integerValue(detailNode.get("orderIndex")), detailIndex + 1))
-                        .experience(experience)
-                        .build();
-                detail = resumeExperienceDetailRepository.save(detail);
+            ResumeExperience experience = parsedResumeMapper.toExperience(parsedExperience);
+            experience.setResume(resume);
+            experience.setOrderIndex(resolveOrderIndex(parsedExperience.getOrderIndex(), experienceIndex + 1));
+            experience = resumeExperienceRepository.save(experience);
 
-                JsonNode detailSkillsNode = detailNode.get("skills");
-                if (detailSkillsNode == null || !detailSkillsNode.isArray()) {
+            List<ParsedResumeExperienceDetail> details = orEmptyList(parsedExperience.getDetails());
+            for (int detailIndex = 0; detailIndex < details.size(); detailIndex++) {
+                ParsedResumeExperienceDetail parsedDetail = details.get(detailIndex);
+                if (parsedDetail == null) {
                     continue;
                 }
 
-                for (JsonNode detailSkillNode : detailSkillsNode) {
-                    JsonNode skillNode = detailSkillNode.path("skill");
-                    String skillName = text(skillNode, "name");
-                    String skillDescription = text(skillNode, "description");
-                    String categoryName = text(skillNode.path("category"), "name");
+                ResumeExperienceDetail detail = parsedResumeMapper.toExperienceDetail(parsedDetail);
+                detail.setExperience(experience);
+                detail.setOrderIndex(resolveOrderIndex(parsedDetail.getOrderIndex(), detailIndex + 1));
+                detail = resumeExperienceDetailRepository.save(detail);
 
-                    Skill skill = upsertSkill(
-                            skillName,
-                            skillDescription,
-                            categoryName,
-                            categoryCache,
-                            skillCache
+                List<ParsedExperienceSkill> detailSkills = orEmptyList(parsedDetail.getSkills());
+                for (ParsedExperienceSkill detailSkill : detailSkills) {
+                    Skill skill = findOrCreateSkill(
+                            detailSkill.getSkillName(),
+                            detailSkill.getDescription(),
+                            detailSkill.getCategoryName(),
+                            skillCategoryByName,
+                            skillByName
                     );
                     if (skill == null) {
                         continue;
                     }
 
                     ExperienceSkill experienceSkill = ExperienceSkill.builder()
-                            .description(text(detailSkillNode, "description"))
+                            .description(detailSkill.getDescription())
                             .detail(detail)
                             .skill(skill)
                             .build();
@@ -349,108 +380,84 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         }
     }
 
-    private void persistResumeProjects(
+    private void saveResumeProjects(
             Resume resume,
-            JsonNode projectsNode,
-            Map<String, SkillCategory> categoryCache,
-            Map<String, Skill> skillCache
+            List<ParsedResumeProject> projects,
+            Map<String, SkillCategory> skillCategoryByName,
+            Map<String, Skill> skillByName
     ) {
-        if (projectsNode == null || !projectsNode.isArray()) {
-            return;
-        }
-
-        for (int projectIndex = 0; projectIndex < projectsNode.size(); projectIndex++) {
-            JsonNode projectNode = projectsNode.get(projectIndex);
-            ResumeProject project = ResumeProject.builder()
-                    .title(text(projectNode, "title"))
-                    .teamSize(integerValue(projectNode.get("teamSize")))
-                    .position(text(projectNode, "position"))
-                    .description(text(projectNode, "description"))
-                    .projectType(parseEnum(ProjectType.class, text(projectNode, "projectType")))
-                    .startDate(parseDate(text(projectNode, "startDate")))
-                    .endDate(parseDate(text(projectNode, "endDate")))
-                    .isCurrent(booleanValue(projectNode.get("isCurrent")))
-                    .projectUrl(text(projectNode, "projectUrl"))
-                    .orderIndex(resolveOrderIndex(integerValue(projectNode.get("orderIndex")), projectIndex + 1))
-                    .resume(resume)
-                    .build();
-            project = resumeProjectRepository.save(project);
-
-            JsonNode projectSkillsNode = projectNode.get("skills");
-            if (projectSkillsNode == null || !projectSkillsNode.isArray()) {
+        List<ParsedResumeProject> values = orEmptyList(projects);
+        for (int projectIndex = 0; projectIndex < values.size(); projectIndex++) {
+            ParsedResumeProject parsedProject = values.get(projectIndex);
+            if (parsedProject == null) {
                 continue;
             }
 
-            for (JsonNode projectSkillNode : projectSkillsNode) {
-                JsonNode skillNode = projectSkillNode.path("skill");
-                String skillName = text(skillNode, "name");
-                String skillDescription = text(skillNode, "description");
-                String categoryName = text(skillNode.path("category"), "name");
+            ResumeProject project = parsedResumeMapper.toProject(parsedProject);
+            project.setResume(resume);
+            project.setOrderIndex(resolveOrderIndex(parsedProject.getOrderIndex(), projectIndex + 1));
+            project = resumeProjectRepository.save(project);
 
-                Skill skill = upsertSkill(
-                        skillName,
-                        skillDescription,
-                        categoryName,
-                        categoryCache,
-                        skillCache
+            List<ParsedProjectSkill> projectSkills = orEmptyList(parsedProject.getSkills());
+            for (ParsedProjectSkill parsedProjectSkill : projectSkills) {
+                Skill skill = findOrCreateSkill(
+                        parsedProjectSkill.getSkillName(),
+                        parsedProjectSkill.getDescription(),
+                        parsedProjectSkill.getCategoryName(),
+                        skillCategoryByName,
+                        skillByName
                 );
                 if (skill == null) {
                     continue;
                 }
 
-                ProjectSkill entity = ProjectSkill.builder()
-                        .description(text(projectSkillNode, "description"))
+                ProjectSkill projectSkill = ProjectSkill.builder()
+                        .description(parsedProjectSkill.getDescription())
                         .project(project)
                         .skill(skill)
                         .build();
-                projectSkillRepository.save(entity);
+                projectSkillRepository.save(projectSkill);
             }
         }
     }
 
-    private void persistResumeCertifications(Resume resume, JsonNode certificationsNode) {
-        if (certificationsNode == null || !certificationsNode.isArray()) {
-            return;
-        }
+    private void saveResumeCertifications(Resume resume, List<ParsedResumeCertification> certifications) {
+        for (ParsedResumeCertification parsedCertification : orEmptyList(certifications)) {
+            if (parsedCertification == null) {
+                continue;
+            }
 
-        for (JsonNode certificationNode : certificationsNode) {
-            ResumeCertification certification = ResumeCertification.builder()
-                    .name(text(certificationNode, "name"))
-                    .issuer(text(certificationNode, "issuer"))
-                    .credentialUrl(text(certificationNode, "credentialUrl"))
-                    .image(text(certificationNode, "image"))
-                    .description(text(certificationNode, "description"))
-                    .resume(resume)
-                    .build();
+            ResumeCertification certification = parsedResumeMapper.toCertification(parsedCertification);
+            certification.setResume(resume);
             resumeCertificationRepository.save(certification);
         }
     }
 
-    private Skill upsertSkill(
+    private Skill findOrCreateSkill(
             String rawSkillName,
             String skillDescription,
             String rawCategoryName,
-            Map<String, SkillCategory> categoryCache,
-            Map<String, Skill> skillCache
+            Map<String, SkillCategory> skillCategoryByName,
+            Map<String, Skill> skillByName
     ) {
         String skillName = normalizeFreeText(rawSkillName);
         if (skillName == null) {
             return null;
         }
 
-        SkillCategory category = findExistingSkillCategory(rawCategoryName, categoryCache);
-        String key = normalizeLookupKey(skillName);
+        SkillCategory category = resolveSkillCategory(rawCategoryName, skillCategoryByName);
+        String lookupKey = normalizeLookupKey(skillName);
 
-        Skill cached = skillCache.get(key);
-        if (cached != null) {
-            return cached;
+        Skill existingSkill = skillByName.get(lookupKey);
+        if (existingSkill != null) {
+            return existingSkill;
         }
 
-        Object lock = skillUpsertLocks.computeIfAbsent(key, ignored -> new Object());
+        Object lock = skillLocks.computeIfAbsent(lookupKey, ignored -> new Object());
         synchronized (lock) {
-            cached = skillCache.get(key);
-            if (cached != null) {
-                return cached;
+            existingSkill = skillByName.get(lookupKey);
+            if (existingSkill != null) {
+                return existingSkill;
             }
 
             List<Skill> existingSkills = skillRepository.findAllByNormalizedName(skillName);
@@ -458,11 +465,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             if (!existingSkills.isEmpty()) {
                 skill = existingSkills.get(0);
                 if (existingSkills.size() > 1) {
-                    log.warn(
-                            "Detected duplicate skills for normalized key '{}', using skillId={}",
-                            key,
-                            skill.getId()
-                    );
+                    throw new AppException(ErrorCode.RESUME_PARSE_DUPLICATE_SKILL);
                 }
             } else {
                 skill = skillRepository.save(
@@ -474,8 +477,6 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
                 );
             }
 
-            // Keep one global skill per normalized name.
-            // Category is read-only from existing categories. Assign only if missing.
             if (category != null && skill.getCategory() == null) {
                 skill.setCategory(category);
             }
@@ -487,34 +488,30 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             }
             skill = skillRepository.save(skill);
 
-            skillCache.put(key, skill);
+            skillByName.put(lookupKey, skill);
             return skill;
         }
     }
 
-    private SkillCategory findExistingSkillCategory(String rawCategoryName, Map<String, SkillCategory> categoryCache) {
+    private SkillCategory resolveSkillCategory(String rawCategoryName, Map<String, SkillCategory> skillCategoryByName) {
         String categoryName = normalizeFreeText(rawCategoryName);
         if (categoryName == null) {
             return null;
         }
 
-        String key = normalizeLookupKey(categoryName);
-        if (categoryCache.containsKey(key)) {
-            return categoryCache.get(key);
+        String lookupKey = normalizeLookupKey(categoryName);
+        if (skillCategoryByName.containsKey(lookupKey)) {
+            return skillCategoryByName.get(lookupKey);
         }
 
         List<SkillCategory> existingCategories = skillCategoryRepository.findAllByNormalizedName(categoryName);
-        SkillCategory category = existingCategories.isEmpty() ? null : existingCategories.get(0);
+        SkillCategory existingCategory = existingCategories.isEmpty() ? null : existingCategories.get(0);
         if (existingCategories.size() > 1) {
-            log.warn(
-                    "Detected duplicate skill categories for normalized name '{}', using categoryId={}",
-                    categoryName,
-                    category != null ? category.getId() : null
-            );
+            throw new AppException(ErrorCode.RESUME_PARSE_DUPLICATE_CATEGORY);
         }
 
-        categoryCache.put(key, category);
-        return category;
+        skillCategoryByName.put(lookupKey, existingCategory);
+        return existingCategory;
     }
 
     private String normalizeFreeText(String rawValue) {
@@ -550,115 +547,42 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         return null;
     }
 
-    private String text(JsonNode node, String fieldName) {
-        if (node == null || node.isNull() || fieldName == null) {
-            return null;
+    private LocalDateTime resolveProcessedAt(String rawProcessedAt) {
+        String processedAt = normalizeFreeText(rawProcessedAt);
+        if (processedAt == null) {
+            return LocalDateTime.now();
         }
 
-        JsonNode valueNode = node.get(fieldName);
-        if (valueNode == null || valueNode.isNull()) {
-            return null;
+        try {
+            return OffsetDateTime.parse(processedAt).toLocalDateTime();
+        } catch (DateTimeParseException ignored) {
         }
 
-        String value = valueNode.asText();
+        try {
+            return Instant.parse(processedAt).atZone(ZoneId.systemDefault()).toLocalDateTime();
+        } catch (DateTimeParseException ignored) {
+        }
+
+        return LocalDateTime.now();
+    }
+
+    private String normalizeErrorMessage(String rawErrorMessage) {
+        String value = normalizeFreeText(rawErrorMessage);
         if (value == null) {
-            return null;
+            return "PARSE_FAILED";
         }
 
-        value = value.trim();
-        return value.isEmpty() ? null : value;
+        if (value.length() <= MAX_ERROR_MESSAGE_LENGTH) {
+            return value;
+        }
+        return value.substring(0, MAX_ERROR_MESSAGE_LENGTH);
     }
 
-    private LocalDate parseDate(String rawDate) {
-        if (rawDate == null || rawDate.isBlank()) {
-            return null;
-        }
-
-        try {
-            if (rawDate.length() == 10) {
-                return LocalDate.parse(rawDate);
-            }
-            if (rawDate.length() == 7) {
-                YearMonth yearMonth = YearMonth.parse(rawDate);
-                return yearMonth.atDay(1);
-            }
-            if (rawDate.length() == 4) {
-                int year = Integer.parseInt(rawDate);
-                return LocalDate.of(year, 1, 1);
-            }
-        } catch (DateTimeParseException | NumberFormatException e) {
-            log.debug("Unable to parse date '{}': {}", rawDate, e.getMessage());
-        }
-        return null;
+    private <T> List<T> orEmptyList(List<T> values) {
+        return values == null ? List.of() : values;
     }
 
-    private Double doubleValue(JsonNode node) {
-        if (node == null || node.isNull()) {
-            return null;
-        }
-        if (node.isNumber()) {
-            return node.asDouble();
-        }
-        if (node.isTextual()) {
-            try {
-                return Double.parseDouble(node.asText().trim());
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private Integer integerValue(JsonNode node) {
-        if (node == null || node.isNull()) {
-            return null;
-        }
-        if (node.isInt() || node.isLong()) {
-            return node.asInt();
-        }
-        if (node.isTextual()) {
-            try {
-                return Integer.parseInt(node.asText().trim());
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private Boolean booleanValue(JsonNode node) {
-        if (node == null || node.isNull()) {
-            return null;
-        }
-        if (node.isBoolean()) {
-            return node.asBoolean();
-        }
-        if (node.isTextual()) {
-            String value = node.asText().trim().toLowerCase(Locale.ROOT);
-            if ("true".equals(value) || "1".equals(value) || "yes".equals(value)) {
-                return Boolean.TRUE;
-            }
-            if ("false".equals(value) || "0".equals(value) || "no".equals(value)) {
-                return Boolean.FALSE;
-            }
-        }
-        return null;
-    }
-
-    private <T extends Enum<T>> T parseEnum(Class<T> enumType, String rawValue) {
-        if (rawValue == null || rawValue.isBlank()) {
-            return null;
-        }
-
-        String value = rawValue.trim().toUpperCase(Locale.ROOT).replace("-", "_").replace(" ", "_");
-        try {
-            return Enum.valueOf(enumType, value);
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-    }
-
-    private void setIfPresentText(java.util.function.Consumer<String> setter, String value) {
+    private void setIfNotBlank(Consumer<String> setter, String value) {
         if (value != null && !value.isBlank()) {
             setter.accept(value);
         }
