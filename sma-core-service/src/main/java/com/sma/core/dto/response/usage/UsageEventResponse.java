@@ -12,13 +12,15 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class UsageEventResponse {
+public class  UsageEventResponse {
 
     Integer id;
 
     String featureKey;
 
     String featureName;
+
+    String planName;
 
     Integer amount;
 

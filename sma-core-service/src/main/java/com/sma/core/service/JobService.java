@@ -4,6 +4,7 @@ import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
+import com.sma.core.dto.response.job.JobStatusSummaryResponse;
 
 public interface JobService {
 
@@ -30,5 +31,6 @@ public interface JobService {
     void deleteSampleJob(Integer id);
     JobDetailResponse updateJobExpiredDate(Integer id, UpdateJobExpDateRequest request);
     JobDetailResponse updateThreshold(Integer id, UpdateThresholdRequest request);
+    JobStatusSummaryResponse getMyCompanyJobStatusCount();
 
 }

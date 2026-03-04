@@ -6,6 +6,7 @@ import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
+import com.sma.core.dto.response.job.JobStatusSummaryResponse;
 import com.sma.core.dto.response.question.JobQuestionResponse;
 import com.sma.core.service.JobQuestionService;
 import com.sma.core.service.JobService;
@@ -169,6 +170,15 @@ public class JobController {
         return ApiResponse.<PagingResponse<BaseJobResponse>>builder()
                 .message("Get company jobs successfully")
                 .data(jobService.getJobsByCurrentCompany(request))
+                .build();
+    }
+
+    @GetMapping("/status-count")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<JobStatusSummaryResponse> getMyCompanyJobStatusCount() {
+        return ApiResponse.<JobStatusSummaryResponse>builder()
+                .message("Get company job status count successfully")
+                .data(jobService.getMyCompanyJobStatusCount())
                 .build();
     }
 
