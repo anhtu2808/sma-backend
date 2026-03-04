@@ -13,4 +13,6 @@ public interface ResumeEvaluationRepository extends JpaRepository<ResumeEvaluati
 
     Optional<ResumeEvaluation> findByResumeIdAndJobId(Integer resumeId, Integer jobId);
 
+    Optional<ResumeEvaluation> findByResumeIdAndJobIdAndEvaluationType(Integer resumeId, Integer jobId, EvaluationType evaluationType);
+
 }

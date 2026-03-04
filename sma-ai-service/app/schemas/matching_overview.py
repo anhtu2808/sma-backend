@@ -26,8 +26,6 @@ class MatchingOverviewResult(BaseModel):
     summary: Optional[str] = None
     strengths: Optional[str] = None
     weakness: Optional[str] = None
-    isTrueLevel: Optional[bool] = None
-    hasRelatedExperience: Optional[bool] = None
     isSpecificJd: Optional[bool] = None
     aiModelVersion: Optional[str] = None
     criteriaScores: List[OverviewCriteriaScoreResult] = Field(default_factory=list)

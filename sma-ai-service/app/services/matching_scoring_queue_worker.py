@@ -14,6 +14,7 @@ from loguru import logger
 from app.core.config import settings
 from app.services.matching_service import analyze_matching
 from app.services.matching_overview_service import analyze_matching_overview
+from app.services.matching_detail_service import analyze_matching_detail_supplement
 
 
 class EvaluationStatus(str, Enum):
@@ -161,7 +162,11 @@ class MatchingScoringQueueWorker:
             # Route to appropriate matching analysis based on type
             if matching_type == "OVERVIEW":
                 matching_result = asyncio.run(analyze_matching_overview(payload))
+            elif matching_type == "DETAIL" and payload.get("overviewScores"):
+                # Supplement mode: overview exists, only add explanations/skills/gaps
+                matching_result = asyncio.run(analyze_matching_detail_supplement(payload))
             else:
+                # Full detail mode: no overview exists, do full matching
                 matching_result = asyncio.run(analyze_matching(payload))
 
             # Publish success result

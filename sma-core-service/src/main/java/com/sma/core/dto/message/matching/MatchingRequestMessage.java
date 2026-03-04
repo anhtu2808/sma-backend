@@ -3,6 +3,7 @@ package com.sma.core.dto.message.matching;
 import com.sma.core.dto.request.evaluation.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -27,5 +28,6 @@ public class MatchingRequestMessage {
     Set<ResumeSoftSkillRequest> softSkills;
     Set<ResumeEducationRequest> educations;
     String matchingType; // "OVERVIEW" or "DETAIL"
+    Map<String, Object> overviewScores; // Overview data for detail supplement mode
 
 }

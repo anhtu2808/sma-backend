@@ -1,29 +1,50 @@
-"""Prompt builder for overview CV-JD matching analysis — fast scoring without deep details."""
+"""Prompt builder for overview CV-JD matching analysis — detailed text, scores-only criteria."""
 
 
-MATCHING_OVERVIEW_SYSTEM_PROMPT = """You are an expert recruitment AI that quickly evaluates how well a candidate's resume matches a job description.
+MATCHING_OVERVIEW_SYSTEM_PROMPT = """You are a world-class senior recruitment analyst AI that evaluates how well a candidate's resume matches a job description.
 
 You will receive:
 1. Job scoring criteria (each with a type, weight, and context/description)
 2. Candidate resume data (experiences, projects, hard skills, soft skills, educations)
 
-Provide a QUICK, CONCISE scoring evaluation as valid JSON. No markdown, no explanation outside the JSON.
+Analyze the resume against the job criteria and return a DETAILED evaluation as valid JSON. No markdown, no explanation outside the JSON.
 
 Rules:
 1. Use exact camelCase keys as specified below.
-2. Score each criterion on a scale of 0-100.
+2. Score each criterion on a scale of 0-100. 
 3. The overall score (aiOverallScore) should be a weighted average based on the criteria weights.
 4. matchLevel must be one of: EXCELLENT (>=85), GOOD (>=70), FAIR (>=50), POOR (>=30), NOT_MATCHED (<30).
-5. Keep summary, strengths, and weakness SHORT (1-2 sentences each). Be direct and specific.
-6. Do NOT provide explanations for individual criteria scores.
-7. Do NOT provide hardSkills, softSkills, experienceDetails, gaps, or weaknesses lists.
-8. Missing data -> null for scalars, [] for lists.
-9. All enum values must match EXACTLY as listed.
+5. Be EXTREMELY specific and evidence-based in summary, strengths, and weakness. Always reference actual data from the resume.
+6. Missing data -> null for scalars, [] for lists.
+7. All enum values must match EXACTLY as listed.
+8. Do NOT provide aiExplanation for criteria scores.
+9. Do NOT provide hardSkills, softSkills, experienceDetails lists inside criteria.
+10. Do NOT provide gaps or weaknesses lists.
 
-## Writing Style
-- summary: 1-2 sentences max. Mention the strongest match and biggest gap concisely.
-- strengths: Comma-separated list of 3-5 key strengths. Be specific (e.g., "5 years Spring Boot" not "backend experience").
-- weakness: Comma-separated list of 2-4 key gaps. Be specific (e.g., "No Kubernetes experience" not "missing skills").
+## Writing Style (CRITICAL — content will be shown directly to hiring managers and recruiters)
+
+### summary (3-5 sentences, DETAILED)
+Write a thorough executive summary that a hiring manager can use to make a decision. Include:
+- The candidate's strongest match areas with specific examples
+- Primary gaps and how critical they are
+- An overall hiring recommendation context (e.g., "Strong fit for mid-level but would need mentoring on...")
+- Any notable concerns or standout qualities
+
+### strengths (DETAILED, multi-line)
+List ALL concrete strengths with maximum specifics. For each strength:
+- Reference actual skill names, years of experience, company names, project names
+- Example: "5+ years of Spring Boot microservices experience at Company X, including building high-throughput payment APIs processing 10K+ transactions/day"
+- NOT generic: "Has backend experience"
+- Include at least 4-6 specific strengths covering multiple criteria areas
+
+### weakness (DETAILED, multi-line)
+List ALL specific gaps with impact assessment. For each weakness:
+- Name the exact missing skill/experience and why it matters for this role
+- Example: "No Kubernetes or container orchestration experience — critical gap as the role requires managing K8s clusters in production"
+- NOT generic: "Missing some skills"
+- Include at least 3-5 specific weaknesses
+
+## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
 - criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
 
@@ -31,12 +52,10 @@ JSON structure:
 {
   "aiOverallScore": <float 0-100>,
   "matchLevel": "<EXCELLENT|GOOD|FAIR|POOR|NOT_MATCHED>",
-  "summary": "<1-2 sentence quick assessment>",
-  "strengths": "<comma-separated key strengths>",
-  "weakness": "<comma-separated key weaknesses>",
-  "isTrueLevel": <boolean>,
-  "hasRelatedExperience": <boolean>,
-  "isSpecificJd": <boolean>,
+  "summary": "<3-5 sentence detailed executive summary with specific references>",
+  "strengths": "<detailed multi-line strengths with specific evidence from resume>",
+  "weakness": "<detailed multi-line weaknesses with specific gaps and impact>",
+  "isSpecificJd": <boolean - is the JD specific enough for detailed matching?>,
   "criteriaScores": [
     {
       "criteriaType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
@@ -47,7 +66,7 @@ JSON structure:
   ]
 }
 
-IMPORTANT: Keep token usage LOW. Only return scores and brief text. No detailed explanations."""
+IMPORTANT: Do NOT include aiExplanation, hardSkills, softSkills, experienceDetails, gaps, or weaknesses. Only return scores and detailed top-level text."""
 
 
 def build_matching_overview_prompt(request_data: dict) -> list[dict]:
@@ -95,21 +114,26 @@ def build_matching_overview_prompt(request_data: dict) -> list[dict]:
     else:
         soft_skills_text = "None listed."
 
-    # Format experiences (concise)
+    # Format experiences
     experiences_text = ""
     experiences = request_data.get("experiences", [])
     if experiences:
         exp_lines = []
         for exp in experiences:
+            exp_lines.append(f"\n  Company: {exp.get('company', 'N/A')}")
             for detail in exp.get("details", []):
-                exp_lines.append(
-                    f"- {detail.get('title', 'N/A')} at {exp.get('company', 'N/A')}"
-                )
+                exp_lines.append(f"    - Title: {detail.get('title', 'N/A')}")
+                exp_lines.append(f"      Description: {detail.get('description', 'N/A')}")
+                skills = detail.get("skills", [])
+                if skills:
+                    skill_descs = [s.get("description", "") for s in skills if s.get("description")]
+                    if skill_descs:
+                        exp_lines.append(f"      Skills: {', '.join(skill_descs)}")
         experiences_text = "\n".join(exp_lines) if exp_lines else "No details."
     else:
         experiences_text = "None."
 
-    # Format educations (concise)
+    # Format educations
     educations_text = ""
     educations = request_data.get("educations", [])
     if educations:
@@ -122,23 +146,50 @@ def build_matching_overview_prompt(request_data: dict) -> list[dict]:
     else:
         educations_text = "None."
 
-    user_content = f"""Score this candidate against the job requirements (overview only):
+    # Format projects
+    projects_text = ""
+    projects = request_data.get("projects", [])
+    if projects:
+        proj_lines = []
+        for proj in projects:
+            proj_lines.append(f"\n  Title: {proj.get('title', 'N/A')}")
+            proj_lines.append(f"  Description: {proj.get('description', 'N/A')}")
+            skills = proj.get("skills", [])
+            if skills:
+                skill_descs = [s.get("description", "") for s in skills if s.get("description")]
+                if skill_descs:
+                    proj_lines.append(f"  Skills: {', '.join(skill_descs)}")
+        projects_text = "\n".join(proj_lines)
+    else:
+        projects_text = "No project data available."
 
-=== JOB ===
-Title: {request_data.get("jobTitle", "N/A")}
-Criteria:
+    user_content = f"""Perform a DETAILED evaluation of the following candidate's resume against the job requirements.
+Be specific and evidence-based in summary, strengths, and weakness — reference actual data from the resume.
+Only return top-level scores and text. Do NOT include detailed skill breakdowns, gaps, or weaknesses lists.
+
+=== JOB INFORMATION ===
+Job Title: {request_data.get("jobTitle", "N/A")}
+
+Scoring Criteria:
 {criteria_text}
 
-=== CANDIDATE ===
-Name: {request_data.get("candidateFullName", "N/A")}
+=== CANDIDATE INFORMATION ===
+Candidate Name: {request_data.get("candidateFullName", "N/A")}
+
 Hard Skills: {hard_skills_text}
+
 Soft Skills: {soft_skills_text}
-Experience:
+
+Work Experience:
 {experiences_text}
+
+Projects:
+{projects_text}
+
 Education:
 {educations_text}
 
-Return JSON with scores only."""
+Return the evaluation as JSON with detailed summary/strengths/weakness and scores-only criteria."""
 
     return [
         {

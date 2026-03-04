@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -49,13 +49,49 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     @Override
     @Transactional
     public Integer processMatching(Integer jobId, Integer resumeId) {
-        return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL);
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        validateForMatching(job, resume);
+
+        // Check if an overview evaluation already exists for this (job, resume) pair
+        Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
+                .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.OVERVIEW);
+
+        if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+            // Supplement mode: reuse overview record, only request gaps/explanations/skills
+            ResumeEvaluation evaluation = existingOverview.get();
+            evaluation.setEvaluationType(EvaluationType.DETAIL);
+            evaluation.setEvaluationStatus(EvaluationStatus.WAITING);
+            resumeEvaluationRepository.save(evaluation);
+
+            // Build message with overview scores as context for AI
+            MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
+            message.setMatchingType(EvaluationType.DETAIL.toString());
+            message.setOverviewScores(buildOverviewScoresMap(evaluation));
+            matchingRequestPublisher.publish(message);
+
+            log.info("Detail supplement request sent for evaluationId={}, jobId={}, resumeId={}",
+                    evaluation.getId(), jobId, resumeId);
+            return evaluation.getId();
+        } else {
+            // Full detail mode: no overview exists, create new record and do full matching
+            return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL, resume, job);
+        }
     }
 
     @Override
     @Transactional
     public Integer processMatchingOverview(Integer jobId, Integer resumeId) {
-        return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW);
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        validateForMatching(job, resume);
+        return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW, resume, job);
     }
 
     @Override
@@ -76,9 +112,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     public ResumeEvaluationResponse getResumeEvaluation(Integer jobId, Integer resumeId) {
         ResumeEvaluation evaluation = resumeEvaluationRepository.findByResumeIdAndJobId(resumeId, jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        if (evaluation.getEvaluationType().equals(EvaluationType.OVERVIEW)) {
-
-        }
         return evaluationResponseMapper.toEvaluationResponse(evaluation);
     }
 
@@ -110,16 +143,14 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 return;
             }
 
-            // Map top-level fields directly from typed DTO
-            matchingResultMapper.mapToEvaluation(data, evaluation);
-            resumeEvaluationRepository.save(evaluation);
-
-            // Save criteria scores (always saved for both overview and detail)
-            saveCriteriaScores(data.getCriteriaScores(), evaluation);
-
-            // Save gaps and weaknesses (null-safe — overview results won't have these)
-            saveGaps(data.getGaps(), evaluation);
-            saveWeaknesses(data.getWeaknesses(), evaluation);
+            if (evaluation.getEvaluationType() == EvaluationType.DETAIL
+                    && hasExistingCriteriaScores(evaluation)) {
+                // Detail supplement mode: only add explanations, nested skills, gaps, weaknesses
+                processDetailSupplementResult(data, evaluation);
+            } else {
+                // Overview or full detail mode: save everything from scratch
+                processFullResult(data, evaluation);
+            }
 
             log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
                     evaluation.getId(), evaluation.getAiOverallScore());
@@ -169,20 +200,18 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     // ---- Private helpers ----
 
-    private Integer doProcessMatching(Integer jobId, Integer resumeId, EvaluationType type) {
-        Resume resume = resumeRepository.findById(resumeId)
-                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
-        Job job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-
+    private void validateForMatching(Job job, Resume resume) {
         if (!job.getStatus().equals(JobStatus.PUBLISHED)) {
             throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
         }
         if (!resume.getParseStatus().equals(ResumeParseStatus.FINISH)) {
-            resumeService.parseResume(resumeId);
+            resumeService.parseResume(resume.getId());
             throw new AppException(ErrorCode.RESUME_NOT_PARSED);
         }
+    }
 
+    private Integer doProcessMatching(Integer jobId, Integer resumeId, EvaluationType type,
+                                       Resume resume, Job job) {
         // Create evaluation with WAITING status
         ResumeEvaluation evaluation = ResumeEvaluation.builder()
                 .resume(resume)
@@ -201,6 +230,118 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 evaluation.getId(), jobId, resumeId, type);
 
         return evaluation.getId();
+    }
+
+    /**
+     * Process full matching result — used for overview and full detail (no prior overview).
+     * Saves top-level fields, criteria scores, and optionally nested skills/gaps/weaknesses.
+     */
+    private void processFullResult(MatchingResultData data, ResumeEvaluation evaluation) {
+        // Map top-level fields
+        matchingResultMapper.mapToEvaluation(data, evaluation);
+        resumeEvaluationRepository.save(evaluation);
+
+        // Save criteria scores
+        saveCriteriaScores(data.getCriteriaScores(), evaluation);
+
+        // Save gaps and weaknesses (null-safe — overview results won't have these)
+        saveGaps(data.getGaps(), evaluation);
+        saveWeaknesses(data.getWeaknesses(), evaluation);
+    }
+
+    /**
+     * Process detail supplement result — used when overview already exists.
+     * Only adds aiExplanation, nested skills, gaps, and weaknesses to existing record.
+     * Does NOT re-score criteria.
+     */
+    private void processDetailSupplementResult(MatchingResultData data, ResumeEvaluation evaluation) {
+        // Update supplementary top-level fields (isTrueLevel, hasRelatedExperience)
+        if (data.getIsTrueLevel() != null) {
+            evaluation.setIsTrueLevel(data.getIsTrueLevel());
+        }
+        if (data.getHasRelatedExperience() != null) {
+            evaluation.setHasRelatedExperience(data.getHasRelatedExperience());
+        }
+        evaluation.setEvaluationStatus(EvaluationStatus.FINISH);
+        resumeEvaluationRepository.save(evaluation);
+
+        // Supplement existing criteria scores with aiExplanation and nested skills
+        supplementCriteriaScores(data.getCriteriaScores(), evaluation);
+
+        // Save new gaps and weaknesses
+        saveGaps(data.getGaps(), evaluation);
+        saveWeaknesses(data.getWeaknesses(), evaluation);
+    }
+
+    private boolean hasExistingCriteriaScores(ResumeEvaluation evaluation) {
+        return evaluation.getCriteriaScores() != null && !evaluation.getCriteriaScores().isEmpty();
+    }
+
+    /**
+     * Build a map of overview scores to send as context for detail supplement AI request.
+     */
+    private Map<String, Object> buildOverviewScoresMap(ResumeEvaluation evaluation) {
+        Map<String, Object> overviewScores = new HashMap<>();
+        overviewScores.put("aiOverallScore", evaluation.getAiOverallScore());
+        overviewScores.put("matchLevel", evaluation.getMatchLevel() != null ? evaluation.getMatchLevel().name() : null);
+        overviewScores.put("summary", evaluation.getSummary());
+        overviewScores.put("strengths", evaluation.getStrengths());
+        overviewScores.put("weakness", evaluation.getWeakness());
+
+        // Add criteria scores
+        List<Map<String, Object>> criteriaScoresList = new ArrayList<>();
+        if (evaluation.getCriteriaScores() != null) {
+            for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
+                Map<String, Object> csMap = new HashMap<>();
+                if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
+                    csMap.put("criteriaType", cs.getScoringCriteria().getCriteria().getCriteriaType().name());
+                }
+                csMap.put("aiScore", cs.getAiScore());
+                csMap.put("weightedScore", cs.getWeightedScore());
+                criteriaScoresList.add(csMap);
+            }
+        }
+        overviewScores.put("criteriaScores", criteriaScoresList);
+
+        return overviewScores;
+    }
+
+    /**
+     * Supplement existing criteria scores with aiExplanation and nested skill details.
+     * Matches by criteriaType from the AI response to existing DB records.
+     */
+    private void supplementCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores,
+                                           ResumeEvaluation evaluation) {
+        if (criteriaScores == null) return;
+
+        // Build lookup map: criteriaType -> existing EvaluationCriteriaScore
+        Map<CriteriaType, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
+        if (evaluation.getCriteriaScores() != null) {
+            for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
+                if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
+                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getCriteriaType(), cs);
+                }
+            }
+        }
+
+        for (MatchingResultData.CriteriaScoreData csData : criteriaScores) {
+            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaType());
+            if (existing != null) {
+                // Supplement existing record with explanation and nested details
+                if (csData.getAiExplanation() != null) {
+                    existing.setAiExplanation(csData.getAiExplanation());
+                }
+                evaluationCriteriaScoreRepository.save(existing);
+
+                // Save nested details
+                saveHardSkills(csData.getHardSkills(), existing);
+                saveSoftSkills(csData.getSoftSkills(), existing);
+                saveExperienceDetails(csData.getExperienceDetails(), existing);
+            } else {
+                log.warn("No existing criteria score found for criteriaType={} in evaluationId={}",
+                        csData.getCriteriaType(), evaluation.getId());
+            }
+        }
     }
 
     private void saveCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
