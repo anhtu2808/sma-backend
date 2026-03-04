@@ -160,6 +160,20 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    public ResumeResponse setResumeAsDefault(Integer resumeId) {
+        Resume resume = getOwnedResume(resumeId);
+        if (Boolean.TRUE.equals(resume.getIsDeleted())) {
+            throw new AppException(ErrorCode.RESUME_NOT_EXISTED);
+        }
+
+        resumeRepository.clearDefaultByCandidateId(resume.getCandidate().getId());
+        resume.setIsDefault(Boolean.TRUE);
+
+        resume = resumeRepository.save(resume);
+        return resumeMapper.toResponse(resume);
+    }
+
+    @Override
     public ResumeResponse cloneResume(Integer resumeId, ResumeType targetType) {
         if (targetType == null) {
             throw new AppException(ErrorCode.BAD_REQUEST);
