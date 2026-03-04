@@ -2,6 +2,7 @@ package com.sma.core.controller;
 
 import com.sma.core.dto.request.subscription.CreateSubscriptionRequest;
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.subscription.CreateSubscriptionResponse;
 import com.sma.core.service.SubscriptionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +25,8 @@ public class SubscriptionController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('RECRUITER', 'CANDIDATE')")
-    public ApiResponse<String> createSubscription(@RequestBody CreateSubscriptionRequest request){
-        return ApiResponse.<String>builder()
+    public ApiResponse<CreateSubscriptionResponse> createSubscription(@RequestBody CreateSubscriptionRequest request){
+        return ApiResponse.<CreateSubscriptionResponse>builder()
                 .message("Create subscription successfully")
                 .data(subscriptionService.createSubscription(request))
                 .build();

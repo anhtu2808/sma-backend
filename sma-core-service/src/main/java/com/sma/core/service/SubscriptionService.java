@@ -2,6 +2,7 @@ package com.sma.core.service;
 
 import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.dto.request.subscription.CreateSubscriptionRequest;
+import com.sma.core.dto.response.subscription.CreateSubscriptionResponse;
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.Role;
 
@@ -10,7 +11,7 @@ import java.util.List;
 
 public interface SubscriptionService {
 
-    String createSubscription(CreateSubscriptionRequest request);
+    CreateSubscriptionResponse createSubscription(CreateSubscriptionRequest request);
 
     String createSubscription(Integer targetId, CreateSubscriptionRequest request, Role role);
 

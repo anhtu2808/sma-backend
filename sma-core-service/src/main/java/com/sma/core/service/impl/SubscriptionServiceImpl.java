@@ -2,6 +2,8 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.dto.request.subscription.CreateSubscriptionRequest;
+import com.sma.core.dto.response.payment.CreatePaymentResponse;
+import com.sma.core.dto.response.subscription.CreateSubscriptionResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.PaymentMethod;
 import com.sma.core.enums.PlanDurationUnit;
@@ -45,7 +47,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     final PaymentService paymentService;
 
     @Override
-    public String createSubscription(CreateSubscriptionRequest request) {
+    public CreateSubscriptionResponse createSubscription(CreateSubscriptionRequest request) {
         Subscription subscription = buildSubscription(request.getPlanPriceId());
         if (Objects.equals(JwtTokenProvider.getCurrentRole(), Role.CANDIDATE)){
             subscription = bindCandidate(subscription, JwtTokenProvider.getCurrentCandidateId());
@@ -53,7 +55,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             subscription = bindCompany(subscription, JwtTokenProvider.getCurrentRecruiterId());
         }
         subscriptionRepository.save(subscription);
-        return paymentService.createQR(subscription, PaymentMethod.SEPAY);
+        return CreateSubscriptionResponse.builder()
+                .id(subscription.getId())
+                .payment(paymentService.createQR(subscription, PaymentMethod.SEPAY))
+                .build();
     }
 
     @Override
