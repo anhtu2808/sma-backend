@@ -99,6 +99,7 @@ class MatchingResult(BaseModel):
     hasRelatedExperience: Optional[bool] = None
     isSpecificJd: Optional[bool] = None
     aiModelVersion: Optional[str] = None
+    processingTimeSecond: Optional[float] = None
     criteriaScores: List[CriteriaScoreResult] = Field(default_factory=list)
     gaps: List[GapResult] = Field(default_factory=list)
     weaknesses: List[WeaknessResult] = Field(default_factory=list)

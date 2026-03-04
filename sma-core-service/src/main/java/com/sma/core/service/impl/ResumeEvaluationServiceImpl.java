@@ -271,6 +271,9 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         if (data.getHasRelatedExperience() != null) {
             evaluation.setHasRelatedExperience(data.getHasRelatedExperience());
         }
+        if (data.getProcessingTimeSecond() != null) {
+            evaluation.setProcessingTimeSecond(data.getProcessingTimeSecond());
+        }
         evaluation.setEvaluationStatus(EvaluationStatus.FINISH);
         resumeEvaluationRepository.save(evaluation);
 
