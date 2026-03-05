@@ -1,9 +1,6 @@
 package com.sma.core.config;
 
-import com.sma.core.config.RabbitMQProperties.CriteriaContextRabbitMQProperties;
-import com.sma.core.config.RabbitMQProperties.MatchingRabbitMQProperties;
-import com.sma.core.config.RabbitMQProperties.ResumeParsingRabbitMQProperties;
-import com.sma.core.config.RabbitMQProperties.SuggestionRabbitMQProperties;
+import com.sma.core.config.RabbitMQProperties.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.QueueBuilder;
@@ -22,6 +19,7 @@ public class RabbitMQConfig {
     private final MatchingRabbitMQProperties matchingRabbitMQProperties;
     private final CriteriaContextRabbitMQProperties criteriaContextRabbitMQProperties;
     private final SuggestionRabbitMQProperties suggestionRabbitMQProperties;
+    private final ReSuggestionRabbitMQProperties reSuggestionRabbitMQProperties;
     @Bean
     public Queue resumeParsingRequestQueue() {
         return QueueBuilder
@@ -75,6 +73,20 @@ public class RabbitMQConfig {
     public Queue suggestResultQueue() {
         return QueueBuilder
                 .durable(suggestionRabbitMQProperties.getResultQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue reSuggestRequestQueue() {
+        return QueueBuilder
+                .durable(reSuggestionRabbitMQProperties.getRequestQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue reSuggestResultQueue() {
+        return QueueBuilder
+                .durable(reSuggestionRabbitMQProperties.getResultQueue())
                 .build();
     }
 

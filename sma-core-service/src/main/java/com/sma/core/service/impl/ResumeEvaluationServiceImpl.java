@@ -3,11 +3,16 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
+import com.sma.core.dto.message.suggest.ReSuggestRequestMessage;
+import com.sma.core.dto.message.suggest.SuggestResultMessage;
 import com.sma.core.dto.message.suggest.SuggestionRequestMessage;
 import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
+import com.sma.core.dto.request.evaluation.suggest.WeaknessSuggestionRequest;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
+import com.sma.core.dto.response.suggestion.WeaknessSuggestionResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.*;
 import com.sma.core.exception.AppException;
@@ -32,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -197,9 +203,49 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     @Override
     public void reGenerateSuggestion(Integer id, Integer evaluationWeaknessId) {
-        // TODO: Implement suggestion re-generation using AI in a future iteration
+        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+        EvaluationWeakness weakness = evaluationWeaknessRepository.findByIdAndEvaluationId(evaluationWeaknessId, id)
+                .orElseThrow(() -> new AppException(ErrorCode.WEAKNESS_NOT_FOUND));
+        ReSuggestRequestMessage message = evaluationMapper.toReSuggestRequestMessage(evaluation);
+        message.setWeakness(evaluationMapper.toWeaknessSuggestionRequest(weakness));
+        suggestionRequestPublisher.publish(message);
         log.info("reGenerateSuggestion called for evaluationId={}, weaknessId={} - not yet implemented",
                 id, evaluationWeaknessId);
+    }
+
+    @Transactional
+    @Override
+    public void saveSuggestion(SuggestResultMessage message) {
+
+        resumeEvaluationRepository.findById(message.getEvaluationId())
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+
+        Map<Integer, String> gapSuggestions =
+                message.getGapSuggestion().stream()
+                        .collect(Collectors.toMap(
+                                GapSuggestionResponse::getId,
+                                GapSuggestionResponse::getSuggestion
+                        ));
+
+        evaluationGapRepository
+                .findAllById(gapSuggestions.keySet())
+                .forEach(gap ->
+                        gap.setSuggestion(gapSuggestions.get(gap.getId()))
+                );
+
+        Map<Integer, String> weaknessSuggestions =
+                message.getWeaknessSuggestion().stream()
+                        .collect(Collectors.toMap(
+                                WeaknessSuggestionResponse::getId,
+                                WeaknessSuggestionResponse::getSuggestion
+                        ));
+
+        evaluationWeaknessRepository
+                .findAllById(weaknessSuggestions.keySet())
+                .forEach(w ->
+                        w.setSuggestion(weaknessSuggestions.get(w.getId()))
+                );
     }
 
     @Override

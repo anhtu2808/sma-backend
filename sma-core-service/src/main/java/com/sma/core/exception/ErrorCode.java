@@ -111,6 +111,8 @@ public enum ErrorCode {
     RESUME_PARSE_DUPLICATE_SKILL(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill detected"),
     RESUME_PARSE_DUPLICATE_CATEGORY(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill category detected"),
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
+    WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
+
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

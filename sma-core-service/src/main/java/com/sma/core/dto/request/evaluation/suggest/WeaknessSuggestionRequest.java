@@ -17,5 +17,6 @@ public class WeaknessSuggestionRequest {
     String context;
     Short severity;
     CriteriaType criterionType;
+    String suggestion;
 
 }

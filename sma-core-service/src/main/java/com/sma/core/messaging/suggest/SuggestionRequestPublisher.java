@@ -1,8 +1,10 @@
 package com.sma.core.messaging.suggest;
 
 import com.sma.core.config.RabbitMQProperties.MatchingRabbitMQProperties;
+import com.sma.core.config.RabbitMQProperties.ReSuggestionRabbitMQProperties;
 import com.sma.core.config.RabbitMQProperties.SuggestionRabbitMQProperties;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
+import com.sma.core.dto.message.suggest.ReSuggestRequestMessage;
 import com.sma.core.dto.message.suggest.SuggestionRequestMessage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -19,12 +21,20 @@ public class SuggestionRequestPublisher {
 
     RabbitTemplate rabbitTemplate;
     SuggestionRabbitMQProperties suggestionRabbitMQProperties;
+    ReSuggestionRabbitMQProperties reSuggestionRabbitMQProperties;
 
     public void publish(SuggestionRequestMessage message) {
-        log.info("Publishing matching request for evaluationId={}, jobId={}, resumeId={}",
+        log.info("Publishing suggestion request for evaluationId={}, jobId={}, resumeId={}",
                 message.getEvaluationId(), message.getJobId(), message.getResumeId());
         rabbitTemplate.convertAndSend(suggestionRabbitMQProperties.getRequestQueue(), message);
-        log.info("Matching request published successfully for evaluationId={}", message.getEvaluationId());
+        log.info("Suggestion request published successfully for evaluationId={}", message.getEvaluationId());
+    }
+
+    public void publish(ReSuggestRequestMessage message) {
+        log.info("Publishing re-suggestion request for evaluationId={}, jobId={}, resumeId={}",
+                message.getEvaluationId(), message.getJobId(), message.getResumeId());
+        rabbitTemplate.convertAndSend(reSuggestionRabbitMQProperties.getRequestQueue(), message);
+        log.info("Re-suggestion request published successfully for evaluationId={}", message.getEvaluationId());
     }
 
 
