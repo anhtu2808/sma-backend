@@ -7,6 +7,7 @@ from app.api.v1.router import api_router
 from app.services.resume_parsing_queue_worker import resume_parsing_queue_worker
 from app.services.matching_scoring_queue_worker import matching_scoring_queue_worker
 from app.services.criteria_context_queue_worker import CriteriaContextQueueWorker
+from app.services.suggestion_queue_worker import suggestion_queue_worker
 
 criteria_context_queue_worker = CriteriaContextQueueWorker()
 
@@ -16,8 +17,10 @@ async def lifespan(app: FastAPI):
     resume_parsing_queue_worker.start()
     matching_scoring_queue_worker.start()
     criteria_context_queue_worker.start()
+    suggestion_queue_worker.start()
     yield
     criteria_context_queue_worker.stop()
+    suggestion_queue_worker.stop()
     matching_scoring_queue_worker.stop()
     resume_parsing_queue_worker.stop()
 

@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 @Data
 public class ReSuggestionRabbitMQProperties {
 
-    private String requestQueue = "re-suggest.request";
-    private String resultQueue = "re-suggest.result";
+    private String requestQueue = "re.suggest.request";
+    private String resultQueue = "re.suggest.result";
 
 }

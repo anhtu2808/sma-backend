@@ -18,7 +18,16 @@ public class SuggestionResultListener {
     ResumeEvaluationService resumeEvaluationService;
 
     @RabbitListener(queues = "${app.rabbitmq.suggest.result-queue}")
-    public void handleMatchingResult(SuggestResultMessage message) {
+    public void handleMatchingSuggestionResult(SuggestResultMessage message) {
+        try {
+            resumeEvaluationService.saveSuggestion(message);
+        } catch (Exception e) {
+            log.error("Failed to process matching result message: {}", message, e);
+        }
+    }
+
+    @RabbitListener(queues = "${app.rabbitmq.re-suggest.result-queue}")
+    public void handleMatchingReSuggestionResult(SuggestResultMessage message) {
         try {
             resumeEvaluationService.saveSuggestion(message);
         } catch (Exception e) {

@@ -26,5 +26,6 @@ public interface EvaluationMapper {
 
     @Mapping(target = "jobName", source = "job.name")
     @Mapping(target = "jobLevel", source = "job.jobLevel")
+    @Mapping(target = "weakness", ignore = true)
     ReSuggestRequestMessage toReSuggestRequestMessage(ResumeEvaluation evaluation);
 }
