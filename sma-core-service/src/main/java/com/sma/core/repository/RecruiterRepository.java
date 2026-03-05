@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface RecruiterRepository extends JpaRepository<Recruiter, Integer> {
     Optional<Recruiter> findByCompanyId(Integer companyId);
     long countByCompanyId(Integer companyId);
+    Optional<Recruiter> findByUserId(Integer userId);
 }

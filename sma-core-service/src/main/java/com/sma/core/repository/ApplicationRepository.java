@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -48,4 +49,16 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
 
     @EntityGraph(attributePaths = {"job", "resume"})
     List<Application> findByCandidate_Id(Integer candidateId);
+
+    @Modifying
+    @Query("UPDATE Application a SET a.status = :newStatus, a.rejectReason = :reason " +
+            "WHERE a.candidate.id = :candidateId " +
+            "AND a.job.company.id = :companyId " +
+            "AND a.status NOT IN :closedStatuses")
+    void rejectAllApplicationsByBlock(
+            @Param("candidateId") Integer candidateId,
+            @Param("companyId") Integer companyId,
+            @Param("newStatus") ApplicationStatus newStatus,
+            @Param("reason") String reason,
+            @Param("closedStatuses") List<ApplicationStatus> closedStatuses);
 }

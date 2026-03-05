@@ -18,6 +18,7 @@ import com.sma.core.mapper.ApplicationMapper;
 import com.sma.core.mapper.resume.ResumeDetailMapper;
 import com.sma.core.repository.*;
 import com.sma.core.service.ApplicationService;
+import com.sma.core.service.CompanyBlockedCandidateService;
 import com.sma.core.service.EmailService;
 import com.sma.core.utils.JwtTokenProvider;
 import jakarta.persistence.criteria.Join;
@@ -58,12 +59,17 @@ public class ApplicationServiceImpl implements ApplicationService {
     RecruiterRepository recruiterRepository;
     ResumeDetailMapper resumeDetailMapper;
     EmailService emailService;
+    CompanyBlockedCandidateService blacklistService;
 
     @Override
     @Transactional
     public ApplicationResponse applyToJob(ApplicationRequest request, Integer currentCandidateId) {
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        Integer companyId = job.getCompany().getId();
+        if (blacklistService.isCandidateBlocked(currentCandidateId, companyId)) {
+            throw new AppException(ErrorCode.CANDIDATE_BLOCKED_BY_COMPANY);
+        }
         if (Boolean.TRUE.equals(job.getIsSample())) {
             throw new AppException(ErrorCode.CAN_NOT_APPLY_SAMPLE);
         }
@@ -272,6 +278,9 @@ public class ApplicationServiceImpl implements ApplicationService {
         Role currentRole = JwtTokenProvider.getCurrentRole();
         if (currentRole == Role.CANDIDATE) {
             Integer currentCandidateId = JwtTokenProvider.getCurrentCandidateId();
+            if (blacklistService.isCandidateBlocked(currentCandidateId, app.getJob().getCompany().getId())) {
+                throw new AppException(ErrorCode.CANDIDATE_BLOCKED_BY_COMPANY);
+            }
             if (!app.getCandidate().getId().equals(currentCandidateId)) {
                 throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
             }
