@@ -11,8 +11,9 @@ from loguru import logger
 from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.suggestion import SuggestionRequestMessage, SuggestResultMessage
+from app.schemas.suggestion import SuggestionRequestMessage, SuggestResultMessage, ReSuggestRequestMessage
 from app.services.suggestion_service import generate_suggestions
+from app.services.re_suggestion_service import generate_re_suggestions
 
 
 class SuggestionQueueWorker:
@@ -167,12 +168,19 @@ class SuggestionQueueWorker:
             if evaluation_id is None:
                 evaluation_id = -1
 
-            # Validate incoming payload
-            _ = SuggestionRequestMessage(**payload)
-            logger.info("Processing suggestion request for evaluationId: {}", evaluation_id)
-
-            # Execute suggestion logic (async service, so we use asyncio.run)
-            suggestion_result = asyncio.run(generate_suggestions(payload))
+            # Validate incoming payload based on the queue name
+            if queue_name == settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE:
+                _ = SuggestionRequestMessage(**payload)
+                logger.info("Processing suggestion request for evaluationId: {}", evaluation_id)
+                # Execute suggestion logic (async service, so we use asyncio.run)
+                suggestion_result = asyncio.run(generate_suggestions(payload))
+            elif queue_name == settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE:
+                _ = ReSuggestRequestMessage(**payload)
+                logger.info("Processing re-suggestion request for evaluationId: {}", evaluation_id)
+                # Execute re-suggestion logic
+                suggestion_result = asyncio.run(generate_re_suggestions(payload))
+            else:
+                raise ValueError(f"Unknown queue specific parser requested: {queue_name}")
 
             # Publish success result
             self._publish_result(

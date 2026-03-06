@@ -16,6 +16,18 @@ class WeaknessSuggestionRequest(BaseModel):
     criterionType: Optional[str] = None
     suggestion: Optional[str] = None  # Existing suggestion, if any
 
+class ReSuggestRequestMessage(BaseModel):
+    jobId: Optional[int] = None
+    resumeId: Optional[int] = None
+    evaluationId: Optional[int] = None
+    jobName: Optional[str] = None
+    jobLevel: Optional[str] = None
+    isTrueLevel: Optional[bool] = None
+    hasRelatedExperience: Optional[bool] = None
+    matchLevel: Optional[str] = None
+    summary: Optional[str] = None
+    weakness: Optional[WeaknessSuggestionRequest] = None
+
 class SuggestionRequestMessage(BaseModel):
     jobId: Optional[int] = None
     resumeId: Optional[int] = None
