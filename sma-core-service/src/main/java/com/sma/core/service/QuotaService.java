@@ -4,6 +4,7 @@ import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.EventSource;
+import com.sma.core.enums.Role;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -50,6 +51,7 @@ public interface QuotaService {
      * Check if event quota is available without consuming it
      */
     void checkEventQuotaAvailability(FeatureKey featureKey);
+    void checkEventQuotaAvailability(FeatureKey featureKey, Role role, Integer relatedActorId);
 
     record EventReservation(Integer subscriptionId, Integer featureId, Integer amount) {
     }

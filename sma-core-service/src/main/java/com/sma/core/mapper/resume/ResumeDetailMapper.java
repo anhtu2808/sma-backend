@@ -1,17 +1,17 @@
 package com.sma.core.mapper.resume;
 
-import com.sma.core.dto.response.resume.EvaluationCriteriaScoreResponse;
-import com.sma.core.dto.response.resume.EvaluationExperienceDetailResponse;
-import com.sma.core.dto.response.resume.EvaluationGapResponse;
-import com.sma.core.dto.response.resume.EvaluationHardSkillResponse;
-import com.sma.core.dto.response.resume.EvaluationSoftSkillResponse;
-import com.sma.core.dto.response.resume.EvaluationWeaknessResponse;
+import com.sma.core.dto.response.evaluation.EvaluationCriteriaScoreResponse;
+import com.sma.core.dto.response.evaluation.EvaluationExperienceDetailResponse;
+import com.sma.core.dto.response.evaluation.EvaluationGapResponse;
+import com.sma.core.dto.response.evaluation.EvaluationHardSkillResponse;
+import com.sma.core.dto.response.evaluation.EvaluationSoftSkillResponse;
+import com.sma.core.dto.response.evaluation.EvaluationWeaknessResponse;
 import com.sma.core.dto.response.resume.ExperienceSkillResponse;
 import com.sma.core.dto.response.resume.ProjectSkillResponse;
 import com.sma.core.dto.response.resume.ResumeCertificationDetailResponse;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.resume.ResumeEducationDetailResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationResponse;
 import com.sma.core.dto.response.resume.ResumeExperienceDetailResponse;
 import com.sma.core.dto.response.resume.ResumeExperienceResponse;
 import com.sma.core.dto.response.resume.ResumeProjectResponse;

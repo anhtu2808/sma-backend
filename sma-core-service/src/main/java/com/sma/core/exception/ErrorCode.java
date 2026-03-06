@@ -24,6 +24,7 @@ public enum ErrorCode {
     EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
     INVALID_SEPAY_CONTENT_FORMAT(HttpStatus.BAD_REQUEST, "Invalid sepay content format"),
     INVALID_EXPIRED_DATE(HttpStatus.BAD_REQUEST, "Invalid expired date"),
+    RECRUITER_NOT_HAVE_COMPANY(HttpStatus.BAD_REQUEST, "Current company is not available"),
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
@@ -111,7 +112,9 @@ public enum ErrorCode {
     RESUME_PARSE_DUPLICATE_CATEGORY(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill category detected"),
     CANDIDATE_ALREADY_BLOCKED(HttpStatus.BAD_REQUEST, "Candidate already blocked by this company"),
     CANDIDATE_BLOCKED_BY_COMPANY(HttpStatus.FORBIDDEN, "You have been blocked by this company"),
-    
+    INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
+    WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
+
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
 

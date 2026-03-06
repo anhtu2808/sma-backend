@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     RABBITMQ_MATCHING_RESULT_QUEUE: str = "resume.matching.result"
     RABBITMQ_CRITERIA_CONTEXT_REQUEST_QUEUE: str = "criteria.context.request"
     RABBITMQ_CRITERIA_CONTEXT_RESULT_QUEUE: str = "criteria.context.result"
+    RABBITMQ_SUGGESTION_REQUEST_QUEUE: str = "suggest.request"
+    RABBITMQ_SUGGESTION_RESULT_QUEUE: str = "suggest.result"
+    RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE: str = "re.suggest.request"
+    RABBITMQ_RE_SUGGESTION_RESULT_QUEUE: str = "re.suggest.result"
     RABBITMQ_RECONNECT_DELAY_SECONDS: int = 5
 
 

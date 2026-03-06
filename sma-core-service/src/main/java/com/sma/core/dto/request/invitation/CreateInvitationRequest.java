@@ -1,0 +1,16 @@
+package com.sma.core.dto.request.invitation;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CreateInvitationRequest {
+
+    Integer candidateId;
+    Integer jobId;
+
+}

@@ -3,19 +3,28 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
+import com.sma.core.dto.message.suggest.ReSuggestRequestMessage;
+import com.sma.core.dto.message.suggest.SuggestResultMessage;
+import com.sma.core.dto.message.suggest.SuggestionRequestMessage;
 import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
+import com.sma.core.dto.request.evaluation.suggest.WeaknessSuggestionRequest;
 import com.sma.core.dto.response.PagingResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationDetailResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
+import com.sma.core.dto.response.suggestion.WeaknessSuggestionResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.*;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.mapper.evaluation.EvaluationMapper;
 import com.sma.core.mapper.evaluation.EvaluationResponseMapper;
 import com.sma.core.mapper.evaluation.MatchingRequestMapper;
 import com.sma.core.mapper.evaluation.MatchingResultMapper;
 import com.sma.core.messaging.matching.MatchingRequestPublisher;
+import com.sma.core.messaging.suggest.SuggestionRequestPublisher;
 import com.sma.core.repository.*;
+import com.sma.core.service.QuotaService;
 import com.sma.core.service.ResumeEvaluationService;
 import com.sma.core.service.ResumeService;
 import lombok.AccessLevel;
@@ -28,6 +37,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -49,6 +59,9 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     MatchingRequestMapper matchingRequestMapper;
     MatchingResultMapper matchingResultMapper;
     EvaluationResponseMapper evaluationResponseMapper;
+    QuotaService quotaService;
+    SuggestionRequestPublisher suggestionRequestPublisher;
+    EvaluationMapper evaluationMapper;
 
     @Override
     @Transactional
@@ -57,12 +70,11 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-
         validateForMatching(job, resume);
-
+        quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE);
         // Check if an overview evaluation already exists for this (job, resume) pair
         Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
-                .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.OVERVIEW);
+                .findByResumeIdAndJobId(resumeId, jobId);
 
         if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
             // Supplement mode: reuse overview record, only request gaps/explanations/skills
@@ -93,9 +105,17 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-
         validateForMatching(job, resume);
-        return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW, resume, job);
+        if (job.getEnableAiScoring()) {
+            quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE, Role.RECRUITER, job.getCompany().getId());
+            Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
+                    .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.DETAIL);
+            if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+                return existingOverview.get().getId();
+            }
+            return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW, resume, job);
+        }
+        return null;
     }
 
     @Override
@@ -173,15 +193,58 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     @Override
     public void generateSuggestion(Integer id) {
-        // TODO: Implement suggestion generation using AI in a future iteration
+        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+        SuggestionRequestMessage message = evaluationMapper.toSuggestionRequestMessage(evaluation);
+        suggestionRequestPublisher.publish(message);
         log.info("generateSuggestion called for evaluationId={} - not yet implemented", id);
     }
 
     @Override
     public void reGenerateSuggestion(Integer id, Integer evaluationWeaknessId) {
-        // TODO: Implement suggestion re-generation using AI in a future iteration
+        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+        EvaluationWeakness weakness = evaluationWeaknessRepository.findByIdAndEvaluationId(evaluationWeaknessId, id)
+                .orElseThrow(() -> new AppException(ErrorCode.WEAKNESS_NOT_FOUND));
+        ReSuggestRequestMessage message = evaluationMapper.toReSuggestRequestMessage(evaluation);
+        message.setWeakness(evaluationMapper.toWeaknessSuggestionRequest(weakness));
+        suggestionRequestPublisher.publish(message);
         log.info("reGenerateSuggestion called for evaluationId={}, weaknessId={} - not yet implemented",
                 id, evaluationWeaknessId);
+    }
+
+    @Transactional
+    @Override
+    public void saveSuggestion(SuggestResultMessage message) {
+
+        resumeEvaluationRepository.findById(message.getEvaluationId())
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
+
+        Map<Integer, String> gapSuggestions =
+                message.getGapSuggestion().stream()
+                        .collect(Collectors.toMap(
+                                GapSuggestionResponse::getId,
+                                GapSuggestionResponse::getSuggestion
+                        ));
+
+        evaluationGapRepository
+                .findAllById(gapSuggestions.keySet())
+                .forEach(gap ->
+                        gap.setSuggestion(gapSuggestions.get(gap.getId()))
+                );
+
+        Map<Integer, String> weaknessSuggestions =
+                message.getWeaknessSuggestion().stream()
+                        .collect(Collectors.toMap(
+                                WeaknessSuggestionResponse::getId,
+                                WeaknessSuggestionResponse::getSuggestion
+                        ));
+
+        evaluationWeaknessRepository
+                .findAllById(weaknessSuggestions.keySet())
+                .forEach(w ->
+                        w.setSuggestion(weaknessSuggestions.get(w.getId()))
+                );
     }
 
     @Override
@@ -220,7 +283,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     private Integer doProcessMatching(Integer jobId, Integer resumeId, EvaluationType type,
-                                       Resume resume, Job job) {
+                                      Resume resume, Job job) {
         // Create evaluation with WAITING status
         ResumeEvaluation evaluation = ResumeEvaluation.builder()
                 .resume(resume)
@@ -323,7 +386,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
      * Matches by criteriaType from the AI response to existing DB records.
      */
     private void supplementCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores,
-                                           ResumeEvaluation evaluation) {
+                                          ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
         // Build lookup map: criteriaType -> existing EvaluationCriteriaScore

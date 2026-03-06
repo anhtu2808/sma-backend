@@ -60,6 +60,6 @@ public interface CompanyMapper {
         @Mapping(target = "avatar", source = "user.avatar")
         RecruiterShortResponse toRecruiterShortResponse(Recruiter recruiter);
 
-        LocationShortResponse toLocationShortResponse(CompanyLocation location);
+        CompanyInvitationResponse toCompanyInvitationResponse(Company company);
 
 }

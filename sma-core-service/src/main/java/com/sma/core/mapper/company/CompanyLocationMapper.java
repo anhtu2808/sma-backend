@@ -1,6 +1,7 @@
 package com.sma.core.mapper.company;
 
 import com.sma.core.dto.response.company.CompanyLocationResponse;
+import com.sma.core.dto.response.company.LocationShortResponse;
 import com.sma.core.entity.CompanyLocation;
 import org.mapstruct.Mapper;
 
@@ -8,5 +9,6 @@ import org.mapstruct.Mapper;
 public interface CompanyLocationMapper {
 
     CompanyLocationResponse toResponse(CompanyLocation companyLocation);
+    LocationShortResponse toLocationShortResponse(CompanyLocation location);
 
 }

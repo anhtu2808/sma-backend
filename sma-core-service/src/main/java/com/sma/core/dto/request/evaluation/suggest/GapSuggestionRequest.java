@@ -1,25 +1,22 @@
-package com.sma.core.dto.response.resume;
+package com.sma.core.dto.request.evaluation.suggest;
 
 import com.sma.core.enums.GapType;
 import com.sma.core.enums.ImpactType;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EvaluationGapResponse {
+public class GapSuggestionRequest {
+
     Integer id;
     GapType gapType;
     String itemName;
     String description;
     ImpactType impact;
-    Float impactScore;
-    String suggestion;
+
 }

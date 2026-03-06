@@ -110,7 +110,6 @@ public class MatchingResultData {
         String description;
         ImpactType impact;
         Float impactScore;
-        String suggestion;
     }
 
     @Getter
@@ -121,7 +120,6 @@ public class MatchingResultData {
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class WeaknessData {
         String weaknessText;
-        String suggestion;
         Integer startIndex;
         Integer endIndex;
         String context;

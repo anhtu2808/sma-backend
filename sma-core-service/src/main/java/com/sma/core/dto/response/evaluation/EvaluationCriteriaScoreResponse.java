@@ -1,4 +1,4 @@
-package com.sma.core.dto.response.resume;
+package com.sma.core.dto.response.evaluation;
 
 import com.sma.core.enums.CriteriaType;
 import lombok.AccessLevel;

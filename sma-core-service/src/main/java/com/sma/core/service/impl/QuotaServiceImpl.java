@@ -230,6 +230,28 @@ public class QuotaServiceImpl implements QuotaService {
     public void checkEventQuotaAvailability(FeatureKey featureKey) {
         LocalDateTime now = LocalDateTime.now();
         QuotaOwnerContext ownerContext = resolveOwnerContext();
+        ensureQuotaAvailable(featureKey, now, ownerContext);
+    }
+
+    @Override
+    public void checkEventQuotaAvailability(FeatureKey featureKey, Role role, Integer ownerContextId) {
+        LocalDateTime now = LocalDateTime.now();
+        QuotaOwnerContext ownerContext;
+        if (role.equals(Role.RECRUITER)) {
+            ownerContext = QuotaOwnerContext.builder()
+                    .role(role)
+                    .companyId(ownerContextId)
+                    .build();
+        } else {
+            ownerContext = QuotaOwnerContext.builder()
+                    .role(role)
+                    .candidateId(ownerContextId)
+                    .build();
+        }
+        ensureQuotaAvailable(featureKey, now, ownerContext);
+    }
+
+    private void ensureQuotaAvailable(FeatureKey featureKey, LocalDateTime now, QuotaOwnerContext ownerContext) {
         List<Subscription> subscriptions = subscriptionService.findEligibleSubscriptions(ownerContext, now);
 
         if (subscriptions.isEmpty()) {

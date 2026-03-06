@@ -5,6 +5,8 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
+import java.util.Set;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,6 +23,8 @@ public class BaseCompanyResponse {
     Integer followerNumber;
     CompanyStatus companyStatus;
     String logo;
+    Set<CompanyImageResponse> images;
+    String description;
     Integer recruiterCount;
 
 }

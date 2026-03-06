@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.resume;
 
+import com.sma.core.dto.response.evaluation.ResumeEvaluationResponse;
 import com.sma.core.enums.ResumeLanguage;
 import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;

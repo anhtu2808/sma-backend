@@ -1,7 +1,7 @@
 package com.sma.core.dto.response.application;
 
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
-import com.sma.core.dto.response.resume.ResumeEvaluationResponse;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationResponse;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

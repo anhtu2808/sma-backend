@@ -1,6 +1,7 @@
-package com.sma.core.dto.response.resume;
+package com.sma.core.dto.response.evaluation;
 
 import com.sma.core.enums.EvaluationStatus;
+import com.sma.core.enums.EvaluationType;
 import com.sma.core.enums.MatchLevel;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -16,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ResumeEvaluationResponse {
+public class ResumeEvaluationOverviewResponse {
     Integer id;
     Float aiOverallScore;
     Float recruiterOverallScore;
@@ -24,15 +25,12 @@ public class ResumeEvaluationResponse {
     String summary;
     String strengths;
     String weakness;
-    Boolean isTrueLevel;
-    Boolean hasRelatedExperience;
-    Boolean isSpecificJd;
     EvaluationStatus evaluationStatus;
-    Float processingTimeSecond;
-    String aiModelVersion;
+    EvaluationType evaluationType;
+    Integer resumeId;
+    String resumeFullName;
+    String candidateName;
     Integer jobId;
     String jobName;
     List<EvaluationCriteriaScoreResponse> criteriaScores;
-    List<EvaluationGapResponse> gaps;
-    List<EvaluationWeaknessResponse> weaknesses;
 }
