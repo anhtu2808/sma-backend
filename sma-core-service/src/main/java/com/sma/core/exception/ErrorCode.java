@@ -110,6 +110,8 @@ public enum ErrorCode {
     RESUME_PARSE_STALE_ATTEMPT(HttpStatus.BAD_REQUEST, "Stale parse attempt"),
     RESUME_PARSE_DUPLICATE_SKILL(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill detected"),
     RESUME_PARSE_DUPLICATE_CATEGORY(HttpStatus.INTERNAL_SERVER_ERROR, "Duplicate skill category detected"),
+    CANDIDATE_ALREADY_BLOCKED(HttpStatus.BAD_REQUEST, "Candidate already blocked by this company"),
+    CANDIDATE_BLOCKED_BY_COMPANY(HttpStatus.FORBIDDEN, "You have been blocked by this company"),
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
     WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
 
