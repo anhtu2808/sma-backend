@@ -20,7 +20,6 @@ public class CompanyDetailResponse extends BaseCompanyResponse {
 
     Integer minSize;
     Integer maxSize;
-    String description;
     String link;
     Integer followerNumber;
     String companyType;
@@ -28,7 +27,6 @@ public class CompanyDetailResponse extends BaseCompanyResponse {
     String phone;
     Set<RecruiterShortResponse> recruiters;
     Set<CompanyLocationResponse> locations;
-    Set<CompanyImageResponse> images;
     String taxIdentificationNumber;
     Boolean signCommitment;
     String erc;
