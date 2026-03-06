@@ -17,9 +17,9 @@ class WeaknessSuggestionRequest(BaseModel):
     suggestion: Optional[str] = None  # Existing suggestion, if any
 
 class SuggestionRequestMessage(BaseModel):
-    jobId: int
-    resumeId: int
-    evaluationId: int
+    jobId: Optional[int] = None
+    resumeId: Optional[int] = None
+    evaluationId: Optional[int] = None
     jobName: Optional[str] = None
     jobLevel: Optional[str] = None
     gaps: List[GapSuggestionRequest] = []

@@ -14,7 +14,8 @@ from app.core.config import settings
 
 from typing import Dict, Any
 
-async def generate_suggestions(request_data: Dict[str, Any]) -> Dict[str, Any]:
+
+async def generate_suggestions(request_data: dict) -> SuggestResultMessage:
     """
     Generate actionable suggestions for gaps and weaknesses found in a resume evaluation.
 
@@ -22,13 +23,15 @@ async def generate_suggestions(request_data: Dict[str, Any]) -> Dict[str, Any]:
         request_data: The incoming SuggestionRequestMessage payload as a dict.
 
     Returns:
-        A dict matching the SuggestResultMessage structure.
+        SuggestResultMessage with gap and weakness suggestions.
 
     Raises:
         ValueError: If analysis fails or validation errors occur.
         TimeoutError: If GPT request times out.
     """
-    evaluation_id = request_data.get("evaluationId", -1)
+    evaluation_id = request_data.get("evaluationId")
+    if evaluation_id is None:
+        evaluation_id = -1
     logger.info(
         "Starting suggestion generation for evaluationId={}, jobId={}, resumeId={}",
         evaluation_id,
@@ -53,7 +56,7 @@ async def generate_suggestions(request_data: Dict[str, Any]) -> Dict[str, Any]:
         response = create_json_chat_completion(
             model=model,
             messages=messages,
-            temperature=0.3,  # Slight creativity for advice formulation, but mostly grounded
+            temperature=0.3,
             timeout=timeout,
         )
 
@@ -67,6 +70,11 @@ async def generate_suggestions(request_data: Dict[str, Any]) -> Dict[str, Any]:
             logger.error(f"GPT returned invalid JSON for suggestions: {e}")
             raise ValueError(f"GPT returned invalid JSON: {str(e)}")
 
+        # Add identifying fields matching the SuggestResultMessage structure
+        parsed_data["evaluationId"] = evaluation_id
+        parsed_data["status"] = "SUCCESS"
+        parsed_data["errorMessage"] = None
+        
         # Log usage
         usage = response.usage
         logger.info(
@@ -79,19 +87,10 @@ async def generate_suggestions(request_data: Dict[str, Any]) -> Dict[str, Any]:
             raise TimeoutError("Suggestion generation request timed out")
         raise
 
-    # Format result structure
-    result = {
-        "evaluationId": evaluation_id,
-        "status": "SUCCESS",
-        "errorMessage": None,
-        "gapSuggestion": parsed_data.get("gapSuggestion", []),
-        "weaknessSuggestion": parsed_data.get("weaknessSuggestion", [])
-    }
-
     # Validate against schema
     logger.info("Validating suggestion result against schema")
     try:
-        SuggestResultMessage(**result)
+        suggestion_result = SuggestResultMessage(**parsed_data)
     except ValidationError as e:
         logger.error(f"Suggestion result schema validation failed: {e}")
         raise ValueError(f"Suggestion result does not match expected schema: {str(e)}")
@@ -101,8 +100,8 @@ async def generate_suggestions(request_data: Dict[str, Any]) -> Dict[str, Any]:
     logger.info(
         "Suggestion generation completed: evaluationId={}, gapSuggestions={}, weaknessSuggestions={}",
         evaluation_id,
-        len(result["gapSuggestion"]),
-        len(result["weaknessSuggestion"]),
+        len(suggestion_result.gapSuggestion) if suggestion_result.gapSuggestion else 0,
+        len(suggestion_result.weaknessSuggestion) if suggestion_result.weaknessSuggestion else 0,
     )
 
-    return result
+    return suggestion_result

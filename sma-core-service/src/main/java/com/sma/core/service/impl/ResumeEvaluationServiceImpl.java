@@ -70,36 +70,32 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-
         validateForMatching(job, resume);
-        if (job.getEnableAiScoring()) {
-            quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE, Role.RECRUITER, job.getCompany().getId());
-            // Check if an overview evaluation already exists for this (job, resume) pair
-            Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
-                    .findByResumeIdAndJobId(resumeId, jobId);
+        quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE);
+        // Check if an overview evaluation already exists for this (job, resume) pair
+        Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
+                .findByResumeIdAndJobId(resumeId, jobId);
 
-            if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
-                // Supplement mode: reuse overview record, only request gaps/explanations/skills
-                ResumeEvaluation evaluation = existingOverview.get();
-                evaluation.setEvaluationType(EvaluationType.DETAIL);
-                evaluation.setEvaluationStatus(EvaluationStatus.WAITING);
-                resumeEvaluationRepository.save(evaluation);
+        if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+            // Supplement mode: reuse overview record, only request gaps/explanations/skills
+            ResumeEvaluation evaluation = existingOverview.get();
+            evaluation.setEvaluationType(EvaluationType.DETAIL);
+            evaluation.setEvaluationStatus(EvaluationStatus.WAITING);
+            resumeEvaluationRepository.save(evaluation);
 
-                // Build message with overview scores as context for AI
-                MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
-                message.setMatchingType(EvaluationType.DETAIL.toString());
-                message.setOverviewScores(buildOverviewScoresMap(evaluation));
-                matchingRequestPublisher.publish(message);
+            // Build message with overview scores as context for AI
+            MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
+            message.setMatchingType(EvaluationType.DETAIL.toString());
+            message.setOverviewScores(buildOverviewScoresMap(evaluation));
+            matchingRequestPublisher.publish(message);
 
-                log.info("Detail supplement request sent for evaluationId={}, jobId={}, resumeId={}",
-                        evaluation.getId(), jobId, resumeId);
-                return evaluation.getId();
-            } else {
-                // Full detail mode: no overview exists, create new record and do full matching
-                return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL, resume, job);
-            }
+            log.info("Detail supplement request sent for evaluationId={}, jobId={}, resumeId={}",
+                    evaluation.getId(), jobId, resumeId);
+            return evaluation.getId();
+        } else {
+            // Full detail mode: no overview exists, create new record and do full matching
+            return doProcessMatching(jobId, resumeId, EvaluationType.DETAIL, resume, job);
         }
-        return null;
     }
 
     @Override
@@ -110,13 +106,16 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         validateForMatching(job, resume);
-        quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE);
-        Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
-                .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.DETAIL);
-        if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
-            return existingOverview.get().getId();
+        if (job.getEnableAiScoring()) {
+            quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE, Role.RECRUITER, job.getCompany().getId());
+            Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
+                    .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.DETAIL);
+            if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+                return existingOverview.get().getId();
+            }
+            return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW, resume, job);
         }
-        return doProcessMatching(jobId, resumeId, EvaluationType.OVERVIEW, resume, job);
+        return null;
     }
 
     @Override
@@ -284,7 +283,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     private Integer doProcessMatching(Integer jobId, Integer resumeId, EvaluationType type,
-                                       Resume resume, Job job) {
+                                      Resume resume, Job job) {
         // Create evaluation with WAITING status
         ResumeEvaluation evaluation = ResumeEvaluation.builder()
                 .resume(resume)
@@ -387,7 +386,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
      * Matches by criteriaType from the AI response to existing DB records.
      */
     private void supplementCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores,
-                                           ResumeEvaluation evaluation) {
+                                          ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
         // Build lookup map: criteriaType -> existing EvaluationCriteriaScore

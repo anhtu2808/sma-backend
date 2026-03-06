@@ -78,7 +78,8 @@ public class ResumeEvaluationController {
 
     @PostMapping("/{resumeEvaluationId}/suggestion")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<Void> generateSuggestion(@PathVariable Integer resumeEvaluationId, @RequestParam Integer suggestionId){
+    public ApiResponse<Void> generateSuggestion(@PathVariable Integer resumeEvaluationId,
+                                                @RequestParam(required = false) Integer suggestionId){
         if (suggestionId == null) {
             resumeEvaluationService.generateSuggestion(resumeEvaluationId);
         } else {

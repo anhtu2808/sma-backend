@@ -1,17 +1,13 @@
-"""
-Background worker to handle suggestion requests.
-Consumes messages from `suggest.request` and `re.suggest.request` queues, processes them with GPT,
-and publishes results to `suggest.result` or `re.suggest.result`.
-"""
+"""Background worker to handle suggestion requests using RabbitMQ and pika."""
 
-import json
 import asyncio
-import traceback
-from typing import Optional, Dict, Any
+import json
+import threading
+import time
+from typing import Any
 
-from fastapi.encoders import jsonable_encoder
+import pika
 from loguru import logger
-import aio_pika
 from pydantic import ValidationError
 
 from app.core.config import settings
@@ -20,197 +16,204 @@ from app.services.suggestion_service import generate_suggestions
 
 
 class SuggestionQueueWorker:
-    def __init__(self):
-        self.connection: Optional[aio_pika.RobustConnection] = None
-        self.channel: Optional[aio_pika.Channel] = None
-        self.should_run = False
-        self._consume_task = None
+    """Background RabbitMQ consumer for suggestion requests."""
 
-    async def connect(self):
-        """Establish connection to RabbitMQ"""
+    def __init__(self) -> None:
+        self._stop_event = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._connection: pika.BlockingConnection | None = None
+        self._channel: pika.adapters.blocking_connection.BlockingChannel | None = None
+
+    def start(self) -> None:
         if not settings.RABBITMQ_ENABLED:
             logger.info("RabbitMQ is disabled. Suggestion queue worker won't start.")
             return
 
-        auth_str = ""
-        if settings.RABBITMQ_USER and settings.RABBITMQ_PASSWORD:
-            auth_str = f"{settings.RABBITMQ_USER}:{settings.RABBITMQ_PASSWORD}@"
-
-        vhost = settings.RABBITMQ_VHOST
-        if vhost == "/":
-            vhost = "%2F"
-
-        url = f"amqp://{auth_str}{settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}/{vhost}"
-        
-        try:
-            logger.info(f"Connecting to RabbitMQ at {settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}")
-            self.connection = await aio_pika.connect_robust(url)
-            self.channel = await self.connection.channel()
-            logger.info("Successfully connected to RabbitMQ for suggestion worker")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to connect to RabbitMQ for suggestion worker: {e}")
-            return False
-
-    async def initialize_queues(self):
-        """Ensure queues exist"""
-        if not self.channel:
+        if self._thread and self._thread.is_alive():
+            logger.info("RabbitMQ suggestion worker is already running")
             return
 
-        # Declare normal queues
-        await self.channel.declare_queue(
-            settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE, durable=True
+        self._stop_event.clear()
+        self._thread = threading.Thread(
+            target=self._run,
+            name="suggestion-rabbitmq-worker",
+            daemon=True,
         )
-        await self.channel.declare_queue(
-            settings.RABBITMQ_SUGGESTION_RESULT_QUEUE, durable=True
-        )
-        
-        # Declare re-suggest queues
-        await self.channel.declare_queue(
-            settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE, durable=True
-        )
-        await self.channel.declare_queue(
-            settings.RABBITMQ_RE_SUGGESTION_RESULT_QUEUE, durable=True
-        )
-        logger.info("Suggestion RabbitMQ queues initialized")
+        self._thread.start()
+        logger.info("Started suggestion RabbitMQ worker")
 
-    async def _process_message(self, message: aio_pika.IncomingMessage, queue_name: str, result_queue_name: str):
-        """Process a single suggestion request message"""
-        try:
-            async with message.process():
-                # Parse message
-                raw_data = message.body.decode()
-                logger.info(f"Received suggestion request from {queue_name}:\n{raw_data[:200]}...")
+    def stop(self) -> None:
+        self._stop_event.set()
 
-                try:
-                    data_dict = json.loads(raw_data)
-                    # Validate incoming payload
-                    request_config = SuggestionRequestMessage(**data_dict)
-                except json.JSONDecodeError as e:
-                    logger.error(f"Invalid JSON in suggestion request: {e}")
-                    await self._send_error_result(result_queue_name, -1, f"Invalid JSON format: {str(e)}")
-                    return
-                except ValidationError as e:
-                    logger.error(f"Invalid suggestion request schema: {e}")
-                    # Attempt to extract evaluationId for the error message
-                    eval_id = data_dict.get("evaluationId", -1) if isinstance(data_dict, dict) else -1
-                    await self._send_error_result(result_queue_name, eval_id, f"Invalid schema: {str(e)}")
-                    return
-
-                eval_id = request_config.evaluationId
-                logger.info(f"Processing suggestion request for evaluation_id: {eval_id}")
-
-                try:
-                    # Execute suggestion logic
-                    result = await generate_suggestions(data_dict)
-
-                    # Return result
-                    await self._send_result(result_queue_name, result)
-                    logger.info(f"Successfully processed suggestion for evaluation_id: {eval_id}")
-
-                except ValidationError as ve:
-                    error_msg = f"Failed to validate generated suggestion: {ve}"
-                    logger.error(error_msg, exc_info=ve)
-                    await self._send_error_result(result_queue_name, eval_id, str(ve))
-                except TimeoutError as te:
-                    error_msg = f"Suggestion generation timed out: {te}"
-                    logger.error(error_msg, exc_info=te)
-                    await self._send_error_result(result_queue_name, eval_id, error_msg)
-                except Exception as ex:
-                    logger.opt(exception=True).error(f"Error during suggestion processing: {ex}")
-                    error_msg = f"Internal processing error: {str(ex)}"
-                    await self._send_error_result(result_queue_name, eval_id, error_msg)
-
-        except Exception as e:
-            logger.opt(exception=True).error(f"Failed to process message wrapper: {e}")
-
-
-    async def consume(self):
-        """Consume messages from the suggestion queues concurrently"""
-        while self.should_run:
+        if self._connection and self._connection.is_open:
             try:
-                if not self.connection or self.connection.is_closed:
-                    success = await self.connect()
-                    if success:
-                        await self.initialize_queues()
-                    else:
-                        await asyncio.sleep(settings.RABBITMQ_RECONNECT_DELAY_SECONDS)
-                        continue
+                self._connection.add_callback_threadsafe(self._safe_stop_consuming)
+            except Exception:
+                logger.exception("Failed to request RabbitMQ suggestion consumer stop")
 
-                # Set prefetch count for backpressure
-                await self.channel.set_qos(prefetch_count=5)
+        if self._thread:
+            self._thread.join(timeout=10)
+        logger.info("Stopped suggestion RabbitMQ worker")
 
-                queue_normal = await self.channel.get_queue(settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE)
-                queue_resuggest = await self.channel.get_queue(settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE)
-                
-                logger.info("Started consuming suggestion requests")
+    def _safe_stop_consuming(self) -> None:
+        if self._channel and self._channel.is_open:
+            self._channel.stop_consuming()
 
-                # Define concurrent processors
-                async def process_normal(message: aio_pika.IncomingMessage):
-                    await self._process_message(
-                        message,
-                        settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE,
-                        settings.RABBITMQ_SUGGESTION_RESULT_QUEUE
-                    )
+    def _run(self) -> None:
+        while not self._stop_event.is_set():
+            try:
+                self._connection = self._create_connection()
+                self._channel = self._connection.channel()
 
-                async def process_resuggest(message: aio_pika.IncomingMessage):
-                    await self._process_message(
-                        message,
-                        settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE,
-                        settings.RABBITMQ_RE_SUGGESTION_RESULT_QUEUE
-                    )
+                # Declare queues
+                self._channel.queue_declare(
+                    queue=settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE, durable=True
+                )
+                self._channel.queue_declare(
+                    queue=settings.RABBITMQ_SUGGESTION_RESULT_QUEUE, durable=True
+                )
+                self._channel.queue_declare(
+                    queue=settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE, durable=True
+                )
+                self._channel.queue_declare(
+                    queue=settings.RABBITMQ_RE_SUGGESTION_RESULT_QUEUE, durable=True
+                )
 
-                normal_consumer_tag = await queue_normal.consume(process_normal)
-                resuggest_consumer_tag = await queue_resuggest.consume(process_resuggest)
+                self._channel.basic_qos(prefetch_count=2)
 
-                try:
-                    while self.should_run and not self.connection.is_closed:
-                        await asyncio.sleep(1)
-                finally:
-                    # Clean up consumers if we exit the loop but connection isn't closed
-                    if not self.connection.is_closed:
-                        await queue_normal.cancel(normal_consumer_tag)
-                        await queue_resuggest.cancel(resuggest_consumer_tag)
+                # Consume from normal queue
+                self._channel.basic_consume(
+                    queue=settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE,
+                    on_message_callback=lambda ch, method, props, body: self._on_message(
+                        ch, method, props, body, queue_name=settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE,
+                        result_queue_name=settings.RABBITMQ_SUGGESTION_RESULT_QUEUE
+                    ),
+                    auto_ack=False,
+                )
 
-            except Exception as e:
-                logger.error(f"Error in suggestion queue consumer: {e}")
-                if self.should_run:
-                    logger.info(f"Reconnecting in {settings.RABBITMQ_RECONNECT_DELAY_SECONDS} seconds...")
-                    await asyncio.sleep(settings.RABBITMQ_RECONNECT_DELAY_SECONDS)
+                # Consume from resuggest queue
+                self._channel.basic_consume(
+                    queue=settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE,
+                    on_message_callback=lambda ch, method, props, body: self._on_message(
+                        ch, method, props, body, queue_name=settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE,
+                        result_queue_name=settings.RABBITMQ_RE_SUGGESTION_RESULT_QUEUE
+                    ),
+                    auto_ack=False,
+                )
 
-    async def _send_result(self, routing_key: str, result_dict: Dict[str, Any]):
-        """Publish successful result to the result queue"""
-        if not self.channel:
-            logger.error(f"Cannot send result: no channel. RoutingKey: {routing_key}")
-            return
+                logger.info(
+                    "RabbitMQ suggestion worker is consuming queues '{}' and '{}'",
+                    settings.RABBITMQ_SUGGESTION_REQUEST_QUEUE,
+                    settings.RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE,
+                )
+                self._channel.start_consuming()
+            except Exception:
+                logger.exception("RabbitMQ suggestion worker crashed, retrying...")
+            finally:
+                self._cleanup_connection()
 
+            if not self._stop_event.is_set():
+                time.sleep(settings.RABBITMQ_RECONNECT_DELAY_SECONDS)
+
+    def _create_connection(self) -> pika.BlockingConnection:
+        credentials = pika.PlainCredentials(
+            username=settings.RABBITMQ_USER,
+            password=settings.RABBITMQ_PASSWORD,
+        )
+        parameters = pika.ConnectionParameters(
+            host=settings.RABBITMQ_HOST,
+            port=settings.RABBITMQ_PORT,
+            virtual_host=settings.RABBITMQ_VHOST,
+            credentials=credentials,
+            heartbeat=60,
+            blocked_connection_timeout=300,
+            connection_attempts=3,
+            retry_delay=2,
+        )
+        return pika.BlockingConnection(parameters)
+
+    def _cleanup_connection(self) -> None:
+        if self._channel and self._channel.is_open:
+            try:
+                self._channel.close()
+            except Exception:
+                logger.exception("Failed to close RabbitMQ suggestion channel cleanly")
+
+        if self._connection and self._connection.is_open:
+            try:
+                self._connection.close()
+            except Exception:
+                logger.exception("Failed to close RabbitMQ suggestion connection cleanly")
+
+        self._channel = None
+        self._connection = None
+
+    def _on_message(
+        self,
+        ch: pika.adapters.blocking_connection.BlockingChannel,
+        method,
+        properties,
+        body: bytes,
+        queue_name: str,
+        result_queue_name: str,
+    ) -> None:
+        evaluation_id = None
         try:
-            # Result dictionary should already be compliant with SuggestResultMessage schema
-            json_str = json.dumps(jsonable_encoder(result_dict))
+            raw_data = body.decode("utf-8")
+            logger.info("Received suggestion request from {}:\n{}...", queue_name, raw_data[:200])
+            
+            payload = json.loads(raw_data)
+            evaluation_id = payload.get("evaluationId")
+            if evaluation_id is None:
+                evaluation_id = -1
 
-            message = aio_pika.Message(
-                body=json_str.encode(),
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                content_type="application/json"
+            # Validate incoming payload
+            _ = SuggestionRequestMessage(**payload)
+            logger.info("Processing suggestion request for evaluationId: {}", evaluation_id)
+
+            # Execute suggestion logic (async service, so we use asyncio.run)
+            suggestion_result = asyncio.run(generate_suggestions(payload))
+
+            # Publish success result
+            self._publish_result(
+                routing_key=result_queue_name,
+                parsed_data=suggestion_result.model_dump(mode="json"),
+            )
+            logger.info(
+                "Successfully processed suggestion for evaluationId: {} from queue {}",
+                evaluation_id, queue_name
             )
 
-            await self.channel.default_exchange.publish(
-                message,
-                routing_key=routing_key
-            )
-            eval_id = result_dict.get("evaluationId", "unknown")
-            logger.info(f"Published suggestion result for evaluationId={eval_id} to {routing_key}")
-        except Exception as e:
-            logger.error(f"Failed to publish suggestion result: {e}")
-            logger.debug(f"Result payload that failed to serialize/publish: {result_dict}")
-
-
-    async def _send_error_result(self, routing_key: str, evaluation_id: int, error_msg: str):
-        """Publish error result back over the specified routing queue"""
-        if not self.channel:
-            logger.error(f"Cannot send error result: no channel. Queue: {routing_key}")
+        except ValidationError as ve:
+            error_msg = f"Failed to validate generated suggestion: {ve}"
+            logger.exception(error_msg)
+            self._send_error_result(ch, method, result_queue_name, evaluation_id, str(ve))
+            return
+            
+        except TimeoutError as te:
+            error_msg = f"Suggestion generation timed out: {te}"
+            logger.exception(error_msg)
+            self._send_error_result(ch, method, result_queue_name, evaluation_id, error_msg)
             return
 
+        except Exception as suggestion_error:
+            logger.exception("Failed to process suggestion message")
+
+            if evaluation_id is None or evaluation_id == -1:
+                try:
+                    fallback_payload = json.loads(body.decode("utf-8"))
+                    evaluation_id = fallback_payload.get("evaluationId")
+                    if evaluation_id is None:
+                        evaluation_id = -1
+                except Exception:
+                    evaluation_id = -1
+
+            self._send_error_result(ch, method, result_queue_name, evaluation_id, str(suggestion_error)[:1000])
+            return
+
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    def _send_error_result(self, ch, method, routing_key: str, evaluation_id: int, error_msg: str) -> None:
         try:
             error_result = SuggestResultMessage(
                 evaluationId=evaluation_id,
@@ -219,47 +222,34 @@ class SuggestionQueueWorker:
                 gapSuggestion=[],
                 weaknessSuggestion=[]
             )
-
-            json_str = json.dumps(jsonable_encoder(error_result.model_dump()))
-
-            message = aio_pika.Message(
-                body=json_str.encode(),
-                delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
-                content_type="application/json"
+            self._publish_result(
+                routing_key=routing_key,
+                parsed_data=error_result.model_dump(mode="json"),
             )
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        except Exception:
+            logger.exception("Failed to publish FAILED suggestion result, requeue message")
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-            await self.channel.default_exchange.publish(
-                message,
-                routing_key=routing_key
-            )
-            logger.info(f"Published suggestion error result for evaluationId={evaluation_id} to {routing_key}")
-        except Exception as e:
-            logger.error(f"Failed to publish suggestion error result: {e}")
-            logger.debug(traceback.format_exc())
 
-    def start(self):
-        """Start the worker within the current event loop."""
-        self.should_run = True
-        self._consume_task = asyncio.create_task(self.consume())
-        # Add a name for easier debugging if supported
-        try:
-            self._consume_task.set_name("suggestion_queue_worker")
-        except AttributeError:
-            pass
-        logger.info("Suggestion queue worker started")
+    def _publish_result(
+        self,
+        *,
+        routing_key: str,
+        parsed_data: dict[str, Any],
+    ) -> None:
+        if self._channel is None or not self._channel.is_open:
+            raise RuntimeError("RabbitMQ channel is not open for publishing")
 
-    def stop(self):
-        """Stop the worker gracefully."""
-        self.should_run = False
-        if self._consume_task:
-            self._consume_task.cancel()
-        logger.info("Suggestion queue worker stopped")
+        self._channel.basic_publish(
+            exchange="",
+            routing_key=routing_key,
+            body=json.dumps(parsed_data, ensure_ascii=False).encode("utf-8"),
+            properties=pika.BasicProperties(
+                content_type="application/json",
+                delivery_mode=2,
+            ),
+        )
 
-    async def close_connection(self):
-        """Close RabbitMQ connection manually."""
-        if self.connection and not self.connection.is_closed:
-            await self.connection.close()
-            logger.info("Suggestion RabbitMQ connection closed")
 
-# Export singleton instance
 suggestion_queue_worker = SuggestionQueueWorker()
