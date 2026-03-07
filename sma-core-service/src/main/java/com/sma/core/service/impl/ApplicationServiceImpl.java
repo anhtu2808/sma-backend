@@ -4,6 +4,7 @@ import com.sma.core.dto.request.application.AnswerRequest;
 import com.sma.core.dto.request.application.ApplicationFilter;
 import com.sma.core.dto.request.application.ApplicationRequest;
 import com.sma.core.dto.response.application.ApplicationDetailResponse;
+import com.sma.core.dto.response.application.ApplicationExportResponse;
 import com.sma.core.dto.response.application.ApplicationListResponse;
 import com.sma.core.dto.response.application.ApplicationResponse;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -373,5 +375,55 @@ public class ApplicationServiceImpl implements ApplicationService {
                 "application",
                 context
         );
+    }
+
+    private ApplicationExportResponse convertToExportResponse(Application app) {
+        Resume resume = app.getResume();
+
+        double totalYears = 0;
+        if (resume.getExperiences() != null) {
+            totalYears = resume.getExperiences().stream()
+                    .filter(exp -> exp.getStartDate() != null && exp.getEndDate() != null)
+                    .mapToDouble(exp -> {
+                        long days = java.time.temporal.ChronoUnit.DAYS.between(exp.getStartDate(), exp.getEndDate());
+                        return days / 365.0;
+                    }).sum();
+        }
+
+        ResumeEvaluation eval = resume.getEvaluations().stream()
+                .filter(e -> e.getJob().getId().equals(app.getJob().getId()))
+                .findFirst().orElse(null);
+
+        String topSkills = resume.getSkillGroups().stream()
+                .flatMap(group -> group.getSkills().stream())
+                .map(s -> s.getSkill().getName())
+                .distinct().limit(5).collect(Collectors.joining(", "));
+
+        return ApplicationExportResponse.builder()
+                .fullName(app.getFullName())
+                .email(app.getEmail())
+                .phone(app.getPhone())
+                .appliedAt(app.getAppliedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                .jobTitle(app.getJob().getName())
+                .aiScore(eval != null ? eval.getAiOverallScore() : null)
+                .matchLevel((eval != null && eval.getMatchLevel() != null)
+                        ? eval.getMatchLevel().toString()
+                        : "N/A")
+                .aiSummary(eval != null ? eval.getSummary() : "")
+                .totalExperienceYears(Math.round(totalYears * 10.0) / 10.0)
+                .topSkills(topSkills)
+                .location(resume.getAddressInResume())
+                .resumeUrl(resume.getResumeUrl())
+                .build();
+    }
+
+    @Override
+    public List<ApplicationExportResponse> getShortlistedForExport(Integer jobId) {
+        validateRecruiterPermission(jobId);
+        List<Application> shortlistedApps = applicationRepository.findAllByJobIdAndStatus(
+                jobId, ApplicationStatus.SHORTLISTED);
+        return shortlistedApps.stream()
+                .map(this::convertToExportResponse)
+                .collect(Collectors.toList());
     }
 }
