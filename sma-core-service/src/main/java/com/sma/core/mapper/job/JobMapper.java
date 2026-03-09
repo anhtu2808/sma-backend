@@ -1,5 +1,7 @@
 package com.sma.core.mapper.job;
 
+import com.sma.core.dto.message.embedding.job.EmbeddingJobRequestMessage;
+import com.sma.core.dto.message.embedding.job.EmbeddingJobSkill;
 import com.sma.core.dto.request.job.AdminJobSampleRequest;
 import com.sma.core.dto.request.job.DraftJobRequest;
 import com.sma.core.dto.request.job.PublishJobRequest;
@@ -8,6 +10,7 @@ import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.dto.response.job.JobInvitationResponse;
 import com.sma.core.entity.Job;
 import com.sma.core.entity.JobQuestion;
+import com.sma.core.entity.Skill;
 import com.sma.core.mapper.SkillMapper;
 import com.sma.core.mapper.company.CompanyMapper;
 import org.mapstruct.Mapper;
@@ -68,4 +71,10 @@ public interface JobMapper {
     void updateJobFromRequest(AdminJobSampleRequest request, @MappingTarget Job job);
 
     JobInvitationResponse toJobInvitationResponse(Job job);
+
+    @Mapping(target = "title", source = "name")
+    @Mapping(target = "expertiseName", source = "expertise.name")
+    EmbeddingJobRequestMessage toEmbeddingJobMessage(Job job);
+
+    EmbeddingJobSkill toJobSkill(Skill skill);
 }

@@ -1,0 +1,17 @@
+package com.sma.core.dto.message.embedding.resume;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class EmbeddingResumeSkill {
+
+    Integer yearsOfExperience;
+    String name;
+
+}

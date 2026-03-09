@@ -96,6 +96,17 @@ app:
     re-suggest:
       request-queue: ${RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE:re.suggest.request}
       result-queue: ${RABBITMQ_RE_SUGGESTION_RESULT_QUEUE:re.suggest.result}
+    embedding:
+      resume:
+        request-queue: ${RABBITMQ_EMBEDDING_RESUME_REQUEST_QUEUE:embedding.resume.request}
+        result-queue: ${RABBITMQ_EMBEDDING_RESUME_RESULT_QUEUE:embedding.resume.result}
+      job:
+        request-queue: ${RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE:embedding.job.request}
+        result-queue: ${RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE:embedding.job.result}
+    proposed:
+      cv:
+        request-queue: ${RABBITMQ_PROPOSED_CV_REQUEST_QUEUE:proposed.cv.request}
+        result-queue: ${RABBITMQ_PROPOSED_CV_RESULT_QUEUE:proposed.cv.result}
   resume-parsing:
     partial-timeout-minutes: ${RESUME_PARSE_PARTIAL_TIMEOUT_MINUTES:1.5}
     watchdog-interval-ms: ${RESUME_PARSE_WATCHDOG_INTERVAL_MS:30000}

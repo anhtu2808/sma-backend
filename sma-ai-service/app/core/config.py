@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     RABBITMQ_SUGGESTION_RESULT_QUEUE: str = "suggest.result"
     RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE: str = "re.suggest.request"
     RABBITMQ_RE_SUGGESTION_RESULT_QUEUE: str = "re.suggest.result"
+    RABBITMQ_EMBEDDING_RESUME_REQUEST_QUEUE: str = "embedding.resume.request"
+    RABBITMQ_EMBEDDING_RESUME_RESULT_QUEUE: str = "embedding.resume.result"
+    RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE: str = "embedding.job.request"
+    RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE: str = "embedding.job.result"
     RABBITMQ_RECONNECT_DELAY_SECONDS: int = 5
 
 
@@ -59,7 +63,8 @@ class Settings(BaseSettings):
     # Qdrant
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
-    QDRANT_COLLECTION_NAME: str = "resume_embeddings"
+    QDRANT_COLLECTION_NAME: str = "resume"
+    QDRANT_JOB_COLLECTION_NAME: str = "job"
 
     # AWS S3
     AWS_ACCESS_KEY_ID: str = ""

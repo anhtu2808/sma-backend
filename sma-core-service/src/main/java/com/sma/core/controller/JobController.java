@@ -1,9 +1,11 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.message.embedding.job.EmbeddingJobRequestMessage;
 import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.request.question.UpsertQuestionRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
+import com.sma.core.dto.response.candidate.ProposedCandidateResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.dto.response.job.JobStatusSummaryResponse;
@@ -191,6 +193,24 @@ public class JobController {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update AI scoring settings successfully")
                 .data(jobService.updateAiSettings(id, request))
+                .build();
+    }
+
+    @PostMapping("/{id}/embedding")
+    public ApiResponse<EmbeddingJobRequestMessage> embeddingJob(@PathVariable Integer id) {
+        return ApiResponse.<EmbeddingJobRequestMessage>builder()
+                .message("Embedding job successfully")
+                .data(jobService.embeddingJob(id))
+                .build();
+    }
+
+    @GetMapping("/{id}/proposed-cv")
+    public ApiResponse<PagingResponse<ProposedCandidateResponse>> getProposedCV(@PathVariable Integer id,
+                                                                                @RequestParam Integer page,
+                                                                                @RequestParam Integer size) {
+        return ApiResponse.<PagingResponse<ProposedCandidateResponse>>builder()
+                .message("Get proposed CV successfully")
+                .data(jobService.getProposedCV(id, page, size))
                 .build();
     }
 }

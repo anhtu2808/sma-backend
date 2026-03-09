@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
@@ -16,6 +17,8 @@ import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.resume.ResumeDetailMapper;
 import com.sma.core.mapper.resume.ResumeMapper;
+import com.sma.core.mapper.resume.ResumeSkillMapper;
+import com.sma.core.messaging.embedding.resume.EmbeddingResumeRequestPublisher;
 import com.sma.core.messaging.resume.ResumeParsingRequestPublisher;
 import com.sma.core.repository.ApplicationRepository;
 import com.sma.core.repository.CandidateRepository;
@@ -38,6 +41,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -53,6 +57,8 @@ public class ResumeServiceImpl implements ResumeService {
     final ResumeParsingRequestPublisher resumeParsingRequestPublisher;
     final ResumeCloneService resumeCloneService;
     final QuotaService quotaService;
+    final ResumeSkillMapper resumeSkillMapper;
+    final EmbeddingResumeRequestPublisher embeddingResumeRequestPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -68,8 +74,8 @@ public class ResumeServiceImpl implements ResumeService {
         Role currentRole = JwtTokenProvider.getCurrentRole();
         Resume resume;
         if (currentRole == Role.CANDIDATE) {
-            resume = getOwnedResume(resumeId);
-            if (Boolean.TRUE.equals(resume.getIsDeleted())) {
+           resume = getOwnedResume(resumeId);
+           if (Boolean.TRUE.equals(resume.getIsDeleted())) {
                 throw new AppException(ErrorCode.RESUME_NOT_EXISTED);
             }
         } else if (currentRole == Role.RECRUITER || currentRole == Role.ADMIN) {
@@ -256,6 +262,24 @@ public class ResumeServiceImpl implements ResumeService {
                 .build();
         resume = resumeRepository.save(resume);
         return resumeMapper.toResponse(resume);
+    }
+
+    @Override
+    @Transactional
+    public EmbeddingResumeRequestMessage embeddingResume(Integer resumeId) {
+        Resume resume = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+        EmbeddingResumeRequestMessage message = resumeMapper.toEmbeddingMessage(resume);
+        message.setSkills(
+                resume.getSkillGroups()
+                        .stream()
+                        .filter(group -> group.getSkills() != null)
+                        .flatMap(group -> group.getSkills().stream())
+                        .map(resumeSkillMapper::toEmbeddingResumeSkill)
+                        .collect(Collectors.toSet())
+        );
+        embeddingResumeRequestPublisher.publish(message);
+        return message;
     }
 
     private Candidate getCurrentCandidate() {

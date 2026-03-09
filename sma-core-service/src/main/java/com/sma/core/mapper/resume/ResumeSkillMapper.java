@@ -1,5 +1,6 @@
 package com.sma.core.mapper.resume;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingResumeSkill;
 import com.sma.core.dto.request.resume.UpdateResumeSkillRequest;
 import com.sma.core.dto.response.resume.ResumeSkillDetailResponse;
 import com.sma.core.entity.ResumeSkill;
@@ -26,4 +27,8 @@ public interface ResumeSkillMapper {
     @Mapping(target = "skillCategoryId", source = "skill.category.id")
     @Mapping(target = "skillCategoryName", source = "skill.category.name")
     ResumeSkillDetailResponse toResponse(ResumeSkill resumeSkill);
+
+    @Mapping(target = "name", source = "skill.name")
+    EmbeddingResumeSkill toEmbeddingResumeSkill(ResumeSkill resumeSkill);
+
 }

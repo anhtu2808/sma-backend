@@ -20,6 +20,9 @@ public class RabbitMQConfig {
     private final CriteriaContextRabbitMQProperties criteriaContextRabbitMQProperties;
     private final SuggestionRabbitMQProperties suggestionRabbitMQProperties;
     private final ReSuggestionRabbitMQProperties reSuggestionRabbitMQProperties;
+    private final EmbeddingResume embeddingResume;
+    private final EmbeddingJob embeddingJob;
+    private final ProposedCV proposedCV;
     @Bean
     public Queue resumeParsingRequestQueue() {
         return QueueBuilder
@@ -87,6 +90,48 @@ public class RabbitMQConfig {
     public Queue reSuggestResultQueue() {
         return QueueBuilder
                 .durable(reSuggestionRabbitMQProperties.getResultQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue embeddingResumeRequestQueue() {
+        return QueueBuilder
+                .durable(embeddingResume.getRequestQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue embeddingResumeResultQueue() {
+        return QueueBuilder
+                .durable(embeddingResume.getResultQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue embeddingJobRequestQueue() {
+        return QueueBuilder
+                .durable(embeddingJob.getRequestQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue embeddingJobResultQueue() {
+        return QueueBuilder
+                .durable(embeddingJob.getResultQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue proposedCVRequestQueue() {
+        return QueueBuilder
+                .durable(proposedCV.getRequestQueue())
+                .build();
+    }
+
+    @Bean
+    public Queue proposedCVResultQueue() {
+        return QueueBuilder
+                .durable(proposedCV.getResultQueue())
                 .build();
     }
 

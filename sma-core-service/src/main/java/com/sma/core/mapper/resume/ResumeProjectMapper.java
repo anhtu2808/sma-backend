@@ -1,5 +1,6 @@
 package com.sma.core.mapper.resume;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingResumeProject;
 import com.sma.core.dto.request.resume.UpdateResumeProjectRequest;
 import com.sma.core.dto.response.resume.ResumeProjectResponse;
 import com.sma.core.entity.ResumeProject;
@@ -9,7 +10,10 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring", uses = ProjectSkillMapper.class)
+@Mapper(componentModel = "spring", uses = {
+        ProjectSkillMapper.class,
+        ExperienceSkillMapper.class
+})
 public interface ResumeProjectMapper {
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -19,4 +23,7 @@ public interface ResumeProjectMapper {
     void updateFromRequest(UpdateResumeProjectRequest request, @MappingTarget ResumeProject project);
 
     ResumeProjectResponse toResponse(ResumeProject project);
+
+    @Mapping(target = "projectSkills", source = "skills")
+    EmbeddingResumeProject toEmbeddingResumeProject(ResumeProject project);
 }
