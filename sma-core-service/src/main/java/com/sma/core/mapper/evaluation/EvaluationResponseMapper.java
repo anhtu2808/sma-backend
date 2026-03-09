@@ -28,8 +28,8 @@ public interface EvaluationResponseMapper {
     @Mapping(target = "scoringCriteriaId", source = "scoringCriteria.id")
     @Mapping(target = "scoringCriteriaContext", source = "scoringCriteria.context")
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")
-    @Mapping(target = "criteriaId", source = "scoringCriteria.criteria.id")
-    @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
+//    @Mapping(target = "criteriaId", source = "scoringCriteria.criteria.id")
+//    @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
     @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     EvaluationCriteriaScoreResponse toCriteriaScoreResponse(EvaluationCriteriaScore criteriaScore);
 
@@ -62,13 +62,13 @@ public interface EvaluationResponseMapper {
     @Mapping(target = "scoringCriteriaId", source = "scoringCriteria.id")
     @Mapping(target = "scoringCriteriaContext", ignore = true)
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")
-    @Mapping(target = "criteriaId", source = "scoringCriteria.criteria.id")
-    @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
+//    @Mapping(target = "criteriaId", source = "scoringCriteria.criteria.id")
+//    @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
     @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     @Mapping(target = "aiExplanation", ignore = true)
     @Mapping(target = "manualExplanation", ignore = true)
-    @Mapping(target = "hardSkills", ignore = true)
-    @Mapping(target = "softSkills", ignore = true)
-    @Mapping(target = "experienceDetails", ignore = true)
+//    @Mapping(target = "hardSkills", ignore = true)
+//    @Mapping(target = "softSkills", ignore = true)
+//    @Mapping(target = "experienceDetails", ignore = true)
     EvaluationCriteriaScoreResponse toOverviewCriteriaScore(EvaluationCriteriaScore criteriaScore);
 }

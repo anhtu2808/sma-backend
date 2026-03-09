@@ -87,8 +87,8 @@ public interface ResumeDetailMapper {
     @Mapping(target = "scoringCriteriaId", source = "scoringCriteria.id")
     @Mapping(target = "scoringCriteriaContext", source = "scoringCriteria.context")
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")
-    @Mapping(target = "criteriaId", source = "scoringCriteria.criteria.id")
-    @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
+//    @Mapping(target = "criteriaId", source = "scoringCriteria.criteria.id")
+//    @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
     @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     EvaluationCriteriaScoreResponse toEvaluationCriteriaScoreResponse(EvaluationCriteriaScore item);
 
@@ -159,12 +159,12 @@ public interface ResumeDetailMapper {
         response.setWeaknesses(sortById(response.getWeaknesses(), EvaluationWeaknessResponse::getId));
     }
 
-    @AfterMapping
-    default void sortEvaluationCriteriaScoreCollections(@MappingTarget EvaluationCriteriaScoreResponse response) {
-        response.setHardSkills(sortById(response.getHardSkills(), EvaluationHardSkillResponse::getId));
-        response.setSoftSkills(sortById(response.getSoftSkills(), EvaluationSoftSkillResponse::getId));
-        response.setExperienceDetails(sortById(response.getExperienceDetails(), EvaluationExperienceDetailResponse::getId));
-    }
+//    @AfterMapping
+//    default void sortEvaluationCriteriaScoreCollections(@MappingTarget EvaluationCriteriaScoreResponse response) {
+//        response.setHardSkills(sortById(response.getHardSkills(), EvaluationHardSkillResponse::getId));
+//        response.setSoftSkills(sortById(response.getSoftSkills(), EvaluationSoftSkillResponse::getId));
+//        response.setExperienceDetails(sortById(response.getExperienceDetails(), EvaluationExperienceDetailResponse::getId));
+//    }
 
     private <T> List<T> sortById(List<T> values, Function<T, Integer> idExtractor) {
         if (values == null || values.isEmpty()) {
