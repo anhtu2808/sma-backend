@@ -79,12 +79,12 @@ public class PaymentServiceImpl implements PaymentService {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         }
         String content = request.getContent();
-        if (!content.startsWith(sePayPrefix)) {
+        if (!content.contains(sePayPrefix)) {
             throw new AppException(ErrorCode.INVALID_SEPAY_CONTENT_FORMAT);
         }
-        Integer id = Integer.parseInt(
-                content.substring(sePayPrefix.length()).trim()
-        );
+        int startIndex = content.indexOf(sePayPrefix) + sePayPrefix.length();
+        Integer id = Integer.parseInt(content.substring(startIndex).trim());
+
         PaymentHistory paymentHistory = paymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
         LocalDateTime expiredTime = paymentHistory.getCreatedAt().plusMinutes(15);
