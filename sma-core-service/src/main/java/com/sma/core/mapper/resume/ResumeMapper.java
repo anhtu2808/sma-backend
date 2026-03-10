@@ -1,9 +1,11 @@
 package com.sma.core.mapper.resume;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Resume;
+import com.sma.core.entity.ResumeSkill;
 import com.sma.core.enums.ResumeType;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Builder;
@@ -12,7 +14,15 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring")
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Mapper(componentModel = "spring", uses = {
+        ResumeSkillMapper.class,
+        ResumeEducationMapper.class,
+        ResumeExperienceMapper.class,
+        ResumeProjectMapper.class,
+})
 
 public interface ResumeMapper {
     Resume toEntity(UploadResumeRequest resume);
@@ -73,4 +83,9 @@ public interface ResumeMapper {
     @Mapping(target = "certifications", ignore = true)
     @Mapping(target = "evaluations", ignore = true)
     Resume cloneEntity(Resume source, Resume rootResume, ResumeType targetType);
+
+
+    @Mapping(target = "address", source = "addressInResume")
+    EmbeddingResumeRequestMessage toEmbeddingMessage(Resume resume);
+
 }

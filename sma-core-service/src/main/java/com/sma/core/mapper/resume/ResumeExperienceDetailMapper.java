@@ -1,5 +1,6 @@
 package com.sma.core.mapper.resume;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingExperienceDetail;
 import com.sma.core.dto.request.resume.UpdateResumeExperienceDetailRequest;
 import com.sma.core.dto.response.resume.ResumeExperienceDetailResponse;
 import com.sma.core.entity.ResumeExperienceDetail;
@@ -19,4 +20,7 @@ public interface ResumeExperienceDetailMapper {
     void updateFromRequest(UpdateResumeExperienceDetailRequest request, @MappingTarget ResumeExperienceDetail detail);
 
     ResumeExperienceDetailResponse toResponse(ResumeExperienceDetail detail);
+
+    @Mapping(target = "experienceSkills", source = "skills")
+    EmbeddingExperienceDetail toEmbeddingExperienceDetail(ResumeExperienceDetail detail);
 }

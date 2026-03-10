@@ -1,7 +1,9 @@
 package com.sma.core.service;
 
+import com.sma.core.dto.message.embedding.job.EmbeddingJobRequestMessage;
 import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.response.PagingResponse;
+import com.sma.core.dto.response.candidate.ProposedCandidateResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.dto.response.job.JobStatusSummaryResponse;
@@ -33,4 +35,6 @@ public interface JobService {
     JobDetailResponse updateThreshold(Integer id, UpdateThresholdRequest request);
     JobStatusSummaryResponse getMyCompanyJobStatusCount();
 
+    EmbeddingJobRequestMessage embeddingJob(Integer id);
+    PagingResponse<ProposedCandidateResponse> getProposedCV(Integer id, Integer page, Integer size);
 }

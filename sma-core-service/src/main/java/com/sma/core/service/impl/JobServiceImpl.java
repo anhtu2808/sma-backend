@@ -1,8 +1,10 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.message.criteria.CriteriaContextRequestMessage;
+import com.sma.core.dto.message.embedding.job.EmbeddingJobRequestMessage;
 import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.response.PagingResponse;
+import com.sma.core.dto.response.candidate.ProposedCandidateResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.dto.response.job.JobStatusCountResponse;
@@ -15,6 +17,7 @@ import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.job.JobMapper;
 import com.sma.core.messaging.criteria.CriteriaContextRequestPublisher;
+import com.sma.core.messaging.embedding.job.EmbeddingJobRequestPublisher;
 import com.sma.core.repository.*;
 import com.sma.core.service.*;
 import com.sma.core.specification.JobSpecification;
@@ -61,6 +64,7 @@ public class JobServiceImpl implements JobService {
     final BannedKeywordServiceImpl bannedKeywordService;
     final QuotaService quotaService;
     final CompanyLocationRepository companyLocationRepository;
+    final EmbeddingJobRequestPublisher embeddingJobRequestPublisher;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -512,6 +516,21 @@ public class JobServiceImpl implements JobService {
                                        .all(all)
                                        .statuses(statusCounts)
                                        .build();
+    }
+
+    @Override
+    public EmbeddingJobRequestMessage embeddingJob(Integer id) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+
+        EmbeddingJobRequestMessage message = jobMapper.toEmbeddingJobMessage(job);
+        // embeddingJobRequestPublisher.publish(message);
+        return message;
+    }
+
+    @Override
+    public PagingResponse<ProposedCandidateResponse> getProposedCV(Integer id, Integer page, Integer size) {
+        return null;
     }
 
 

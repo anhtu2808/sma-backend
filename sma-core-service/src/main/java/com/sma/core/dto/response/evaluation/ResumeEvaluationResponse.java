@@ -33,6 +33,4 @@ public class ResumeEvaluationResponse {
     Integer jobId;
     String jobName;
     List<EvaluationCriteriaScoreResponse> criteriaScores;
-    List<EvaluationGapResponse> gaps;
-    List<EvaluationWeaknessResponse> weaknesses;
 }

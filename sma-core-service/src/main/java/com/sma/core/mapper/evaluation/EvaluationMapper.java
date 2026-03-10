@@ -4,15 +4,11 @@ import com.sma.core.dto.message.suggest.ReSuggestRequestMessage;
 import com.sma.core.dto.message.suggest.SuggestionRequestMessage;
 import com.sma.core.dto.request.evaluation.suggest.GapSuggestionRequest;
 import com.sma.core.dto.request.evaluation.suggest.WeaknessSuggestionRequest;
-import com.sma.core.dto.response.evaluation.EvaluationWeaknessResponse;
-import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
 import com.sma.core.entity.EvaluationGap;
 import com.sma.core.entity.EvaluationWeakness;
 import com.sma.core.entity.ResumeEvaluation;
-import jdk.jshell.SourceCodeAnalysis;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface EvaluationMapper {

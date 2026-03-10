@@ -25,12 +25,10 @@ public class ResumeEvaluationOverviewResponse {
     String summary;
     String strengths;
     String weakness;
-    EvaluationStatus evaluationStatus;
-    EvaluationType evaluationType;
     Integer resumeId;
     String resumeFullName;
     String candidateName;
     Integer jobId;
     String jobName;
-    List<EvaluationCriteriaScoreResponse> criteriaScores;
+
 }

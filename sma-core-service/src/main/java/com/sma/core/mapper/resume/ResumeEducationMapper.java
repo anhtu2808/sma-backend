@@ -1,5 +1,6 @@
 package com.sma.core.mapper.resume;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingResumeEducation;
 import com.sma.core.dto.request.resume.UpdateResumeEducationRequest;
 import com.sma.core.dto.response.resume.ResumeEducationDetailResponse;
 import com.sma.core.entity.ResumeEducation;
@@ -18,4 +19,6 @@ public interface ResumeEducationMapper {
     void updateFromRequest(UpdateResumeEducationRequest request, @MappingTarget ResumeEducation education);
 
     ResumeEducationDetailResponse toResponse(ResumeEducation education);
+
+    EmbeddingResumeEducation toEmbeddingResumeEducation(ResumeEducation education);
 }

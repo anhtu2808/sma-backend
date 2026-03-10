@@ -1,8 +1,10 @@
 package com.sma.core.mapper.resume;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingExperienceSkill;
 import com.sma.core.dto.request.resume.ExperienceSkillRequest;
 import com.sma.core.dto.response.resume.ExperienceSkillResponse;
 import com.sma.core.entity.ExperienceSkill;
+import com.sma.core.entity.ProjectSkill;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -21,4 +23,10 @@ public interface ExperienceSkillMapper {
     @Mapping(target = "skillId", source = "skill.id")
     @Mapping(target = "skillName", source = "skill.name")
     ExperienceSkillResponse toResponse(ExperienceSkill experienceSkill);
+
+    @Mapping(target = "name", source = "skill.name")
+    EmbeddingExperienceSkill toEmbeddingExperienceSkill(ExperienceSkill experienceSkill);
+
+    @Mapping(target = "name", source = "skill.name")
+    EmbeddingExperienceSkill toEmbeddingExperienceSkill(ProjectSkill projectSkill);
 }

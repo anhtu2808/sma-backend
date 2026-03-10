@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.evaluation;
 
+import com.sma.core.enums.RelevanceType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,9 +18,6 @@ import java.util.List;
 public class ResumeEvaluationDetailResponse extends ResumeEvaluationOverviewResponse {
     Boolean isTrueLevel;
     Boolean hasRelatedExperience;
-    Boolean isSpecificJd;
-    Float processingTimeSecond;
-    String aiModelVersion;
-    List<EvaluationGapResponse> gaps;
-    List<EvaluationWeaknessResponse> weaknesses;
+    RelevanceType transferabilityToRole;
+    List<EvaluationCriteriaScoreResponse> criteriaScores;
 }

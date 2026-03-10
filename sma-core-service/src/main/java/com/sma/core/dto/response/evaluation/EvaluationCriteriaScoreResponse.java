@@ -20,16 +20,12 @@ public class EvaluationCriteriaScoreResponse {
     Integer scoringCriteriaId;
     String scoringCriteriaContext;
     Double scoringCriteriaWeight;
-    Integer criteriaId;
-    String criteriaName;
     CriteriaType criteriaType;
-    Float maxScore;
     Float aiScore;
     Float manualScore;
     Float weightedScore;
     String aiExplanation;
     String manualExplanation;
-    List<EvaluationHardSkillResponse> hardSkills;
-    List<EvaluationSoftSkillResponse> softSkills;
-    List<EvaluationExperienceDetailResponse> experienceDetails;
+    List<EvaluationCriteriaSuggestionResponse> details;
+
 }

@@ -1,5 +1,6 @@
 package com.sma.core.controller;
 
+import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.ExperienceSkillRequest;
 import com.sma.core.dto.request.resume.UpdateProjectSkillRequest;
 import com.sma.core.dto.request.resume.UpdateResumeCertificationRequest;
@@ -369,6 +370,14 @@ public class ResumeController {
         resumeService.deleteResume(resumeId);
         return ApiResponse.<Void>builder()
                 .message("Delete resume successfully")
+                .build();
+    }
+
+    @PostMapping("/{resumeId}/embedding")
+    public ApiResponse<EmbeddingResumeRequestMessage> embeddingResume(@PathVariable Integer resumeId) {
+        return ApiResponse.<EmbeddingResumeRequestMessage>builder()
+                .message("Embedding resume successfully")
+                .data(resumeService.embeddingResume(resumeId))
                 .build();
     }
 }
