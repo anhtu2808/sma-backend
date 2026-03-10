@@ -1,10 +1,11 @@
 package com.sma.core.dto.response.usage;
 
-import com.sma.core.enums.EventSource;
+import com.sma.core.enums.UsageEventStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Builder
-public class  UsageEventResponse {
+public class UsageEventResponse {
 
     Integer id;
 
@@ -24,9 +25,9 @@ public class  UsageEventResponse {
 
     Integer amount;
 
-    EventSource eventSource;
+    UsageEventStatus status;
 
-    Integer entityId;
+    List<UsageEventContextResponse> contexts;
 
     LocalDateTime createdAt;
 }

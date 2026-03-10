@@ -168,9 +168,13 @@ class ResumeParsingQueueWorker:
         body: bytes,
     ) -> None:
         # Parse payload first to validate and get resume info
+        usage_event_id = None
+        resume_id = None
+        parse_attempt_id = None
         try:
             payload = json.loads(body.decode("utf-8"))
             resume_id = payload.get("resumeId")
+            usage_event_id = payload.get("usageEventId")
             parse_attempt_id = payload.get("parseAttemptId")
             resume_url = payload.get("resumeUrl")
 
@@ -178,6 +182,18 @@ class ResumeParsingQueueWorker:
                 raise ValueError("Invalid message payload: resumeId, parseAttemptId, and resumeUrl are required")
         except Exception as e:
             logger.error("Invalid message payload: {}", e)
+            if usage_event_id is not None:
+                try:
+                    self._publish_result(
+                        status=ParseStatus.FAIL,
+                        resume_id=resume_id,
+                        usage_event_id=usage_event_id,
+                        parse_attempt_id=parse_attempt_id,
+                        parsed_data=None,
+                        error_message=str(e)[:1000],
+                    )
+                except Exception:
+                    logger.exception("Failed to publish invalid-payload result for resumeId={}", resume_id)
             ch.basic_ack(delivery_tag=method.delivery_tag)  # Reject invalid message
             return
 
@@ -199,6 +215,7 @@ class ResumeParsingQueueWorker:
                 self._publish_result(
                     status=ParseStatus.FINISH,
                     resume_id=resume_id,
+                    usage_event_id=usage_event_id,
                     parse_attempt_id=parse_attempt_id,
                     parsed_data=parsed_payload,
                     error_message=None,
@@ -210,6 +227,7 @@ class ResumeParsingQueueWorker:
                     self._publish_result(
                         status=ParseStatus.FAIL,
                         resume_id=resume_id,
+                        usage_event_id=usage_event_id,
                         parse_attempt_id=parse_attempt_id,
                         parsed_data=None,
                         error_message=str(parsing_error)[:1000],
@@ -254,23 +272,25 @@ class ResumeParsingQueueWorker:
         *,
         status: ParseStatus,
         resume_id: int | None,
+        usage_event_id: int | None,
         parse_attempt_id: str | None,
         parsed_data: dict[str, Any] | None,
         error_message: str | None,
     ) -> None:
+        message = {
+            "resumeId": resume_id,
+            "usageEventId": usage_event_id,
+            "parseAttemptId": parse_attempt_id,
+            "status": status.value,
+            "errorMessage": error_message,
+            "processedAt": datetime.now(timezone.utc).isoformat(),
+            "parsedData": parsed_data,
+        }
+
         # Use thread-local connection for publishing
         try:
             connection = self._get_publish_connection()
             channel = connection.channel()
-
-            message = {
-                "resumeId": resume_id,
-                "parseAttemptId": parse_attempt_id,
-                "status": status.value,
-                "errorMessage": error_message,
-                "processedAt": datetime.now(timezone.utc).isoformat(),
-                "parsedData": parsed_data,
-            }
 
             channel.basic_publish(
                 exchange="",

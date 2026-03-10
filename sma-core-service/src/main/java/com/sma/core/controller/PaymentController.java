@@ -27,10 +27,12 @@ public class PaymentController {
     public ResponseEntity<Boolean> confirm(
             @RequestHeader("Authorization") String authorization,
             @RequestBody SePayWebhookRequest request) {
-        if (authorization.isBlank())
-            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        if (authorization == null || !authorization.startsWith("Apikey "))
+            throw new AppException(ErrorCode.MISSING_API_KEY);
+
+        String apiKey = authorization.substring(7);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(paymentService.confirm(authorization, request));
+                .body(paymentService.confirm(apiKey, request));
     }
 
     @GetMapping("/{id}/status")

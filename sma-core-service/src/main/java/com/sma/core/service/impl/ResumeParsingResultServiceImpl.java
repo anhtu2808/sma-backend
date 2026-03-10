@@ -8,11 +8,13 @@ import com.sma.core.enums.ResumeStatus;
 import com.sma.core.mapper.resume.ParsedResumeMapper;
 import com.sma.core.repository.*;
 import com.sma.core.service.NotificationService;
+import com.sma.core.service.QuotaService;
 import com.sma.core.service.ResumeParsingResultService;
 import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResumeParsingResultServiceImpl implements ResumeParsingResultService {
@@ -55,6 +58,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
 
     TransactionTemplate newTransactionTemplate;
     final NotificationService notificationService;
+    final QuotaService quotaService;
 
     @PostConstruct
     void initTransactionTemplates() {
@@ -65,12 +69,16 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
     @Override
     public void processParsingResult(ResumeParsingResultMessage message) {
         if (message == null || message.getResumeId() == null) {
+            if (message != null) {
+                quotaService.markUsageEventFailed(message.getUsageEventId());
+            }
             throw new AppException(ErrorCode.RESUME_PARSE_INVALID_MESSAGE);
         }
 
         Integer resumeId = message.getResumeId();
         Resume resume = resumeRepository.findById(resumeId).orElse(null);
         if (resume == null) {
+            quotaService.markUsageEventFailed(message.getUsageEventId());
             throw new AppException(ErrorCode.RESUME_PARSE_NOT_FOUND);
         }
 
@@ -78,6 +86,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         if (parseAttemptId == null) {
             markParseFailed(
                     resumeId,
+                    message.getUsageEventId(),
                     normalizeFreeText(resume.getParseAttemptId()),
                     "INVALID_RESULT_MESSAGE: missing parseAttemptId",
                     message.getProcessedAt()
@@ -86,6 +95,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         }
 
         if (!isAttemptMatched(resume, parseAttemptId)) {
+            quotaService.markUsageEventFailed(message.getUsageEventId());
             throw new AppException(ErrorCode.RESUME_PARSE_STALE_ATTEMPT);
         }
 
@@ -93,6 +103,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         if (messageStatus == null) {
             markParseFailed(
                     resumeId,
+                    message.getUsageEventId(),
                     parseAttemptId,
                     "INVALID_RESULT_MESSAGE: missing status",
                     message.getProcessedAt()
@@ -101,13 +112,20 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         }
 
         if (messageStatus == ResumeParseStatus.FAIL) {
-            markParseFailed(resumeId, parseAttemptId, message.getErrorMessage(), message.getProcessedAt());
+            markParseFailed(
+                    resumeId,
+                    message.getUsageEventId(),
+                    parseAttemptId,
+                    message.getErrorMessage(),
+                    message.getProcessedAt()
+            );
             return;
         }
 
         if (messageStatus != ResumeParseStatus.FINISH) {
             markParseFailed(
                     resumeId,
+                    message.getUsageEventId(),
                     parseAttemptId,
                     "INVALID_RESULT_STATUS: " + messageStatus,
                     message.getProcessedAt()
@@ -118,6 +136,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         if (message.getParsedData() == null) {
             markParseFailed(
                     resumeId,
+                    message.getUsageEventId(),
                     parseAttemptId,
                     "INVALID_RESULT_MESSAGE: missing parsedData for FINISH status",
                     message.getProcessedAt()
@@ -128,15 +147,20 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         try {
             saveParsedData(
                     resumeId,
+                    message.getUsageEventId(),
                     parseAttemptId,
                     message.getParsedData(),
                     message.getProcessedAt()
             );
         } catch (AppException e) {
+            if (e.getErrorCode() == ErrorCode.RESUME_PARSE_STALE_ATTEMPT) {
+                quotaService.markUsageEventFailed(message.getUsageEventId());
+            }
             throw e;
         } catch (Exception exception) {
             markParseFailed(
                     resumeId,
+                    message.getUsageEventId(),
                     parseAttemptId,
                     exception.getMessage(),
                     message.getProcessedAt()
@@ -147,6 +171,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
 
     private void saveParsedData(
             Integer resumeId,
+            Integer usageEventId,
             String parseAttemptId,
             ParsedResumePayload payload,
             String processedAt
@@ -155,7 +180,8 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             Resume resume = resumeRepository.findById(resumeId)
                     .orElseThrow(() -> new AppException(ErrorCode.RESUME_PARSE_NOT_FOUND));
 
-            if (!isAttemptMatched(resume, parseAttemptId)) {
+            if (!isAttemptMatched(resume, parseAttemptId) || !isParseInProgress(resume)) {
+                quotaService.markUsageEventFailed(usageEventId);
                 throw new AppException(ErrorCode.RESUME_PARSE_STALE_ATTEMPT);
             }
 
@@ -178,8 +204,10 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         });
     }
 
-    private void markParseFailed(
+    @Override
+    public void markParseFailed(
             Integer resumeId,
+            Integer usageEventId,
             String parseAttemptId,
             String errorMessage,
             String processedAt
@@ -187,10 +215,16 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         runInNewTransaction(() -> {
             Resume resume = resumeRepository.findById(resumeId).orElse(null);
             if (resume == null) {
+                quotaService.markUsageEventFailed(usageEventId);
                 return;
             }
 
             if (parseAttemptId != null && !isAttemptMatched(resume, parseAttemptId)) {
+                quotaService.markUsageEventFailed(usageEventId);
+                return;
+            }
+
+            if (!isParseInProgress(resume)) {
                 return;
             }
 
@@ -199,15 +233,20 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             resume.setParseErrorMessage(normalizeErrorMessage(errorMessage));
             resume.setParseUpdatedAt(resolveProcessedAt(processedAt));
             resumeRepository.save(resume);
+            quotaService.markUsageEventFailed(usageEventId);
 
-            notificationService.sendCandidateNotification(
-                    resume.getCandidate().getUser(),
-                    com.sma.core.enums.NotificationType.CV_PARSE_FAILED,
-                    "CV Parsing Failed",
-                    "We couldn't read your CV file: " + resume.getFileName() + ". Please re-upload a clear file.",
-                    "RESUME",
-                    resumeId
-            );
+            try {
+                notificationService.sendCandidateNotification(
+                        resume.getCandidate().getUser(),
+                        com.sma.core.enums.NotificationType.CV_PARSE_FAILED,
+                        "CV Parsing Failed",
+                        "We couldn't read your CV file: " + resume.getFileName() + ". Please re-upload a clear file.",
+                        "RESUME",
+                        resumeId
+                );
+            } catch (Exception notificationException) {
+                log.warn("Failed to send parse-failed notification for resumeId={}", resumeId, notificationException);
+            }
         });
     }
 
@@ -225,6 +264,10 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
             return false;
         }
         return currentAttemptId.equals(incomingAttemptId);
+    }
+
+    private boolean isParseInProgress(Resume resume) {
+        return resume != null && resume.getParseStatus() == ResumeParseStatus.PARTIAL;
     }
 
     private void clearExistingParsedData(Integer resumeId) {

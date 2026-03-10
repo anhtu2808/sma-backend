@@ -38,6 +38,7 @@ public enum ErrorCode {
     PAYMENT_TIME_EXPIRED(HttpStatus.FORBIDDEN, "Payment time expired"),
     PLAN_UPDATE_ONLY_PRICE_ALLOWED(HttpStatus.FORBIDDEN, "Only price updates are allowed when subscriptions exist"),
     CANDIDATE_CAN_NOT_LOGIN(HttpStatus.FORBIDDEN, "Candidate can not be logged in"),
+    MISSING_API_KEY(HttpStatus.FORBIDDEN, "Missing api key"),
 
     //404 - Not found
     NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),

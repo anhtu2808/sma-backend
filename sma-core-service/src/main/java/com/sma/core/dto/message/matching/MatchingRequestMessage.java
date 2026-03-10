@@ -15,6 +15,7 @@ import java.util.Set;
 public class MatchingRequestMessage {
 
     Integer evaluationId;
+    Integer usageEventId;
     Integer resumeId;
     Integer jobId;
     String resumeName;

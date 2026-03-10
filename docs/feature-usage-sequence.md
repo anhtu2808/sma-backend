@@ -38,8 +38,8 @@ sequenceDiagram
     Controller-->>Client: ApiResponse
 
     opt usageType == EVENT
-        Aspect->>Runtime: saveUsageEvent()
-        Runtime->>EventRepo: save(UsageEvent)
+        Aspect->>Runtime: saveUsageEvent(status=SUCCESS)
+        Runtime->>EventRepo: save(UsageEvent + UsageEventContexts)
     end
 ```
 
@@ -64,7 +64,7 @@ sequenceDiagram
 
     alt usageType == EVENT
         Service->>Window: resolveAnchoredMonthlyWindow()
-        Service->>EventRepo: sumTotal()/sumInPeriod()
+        Service->>EventRepo: sumTotal()/sumInPeriod() for SUCCESS events
     else usageType == STATE
         Service->>StateChecker: getCurrentUsage()
     else usageType == BOOLEAN
@@ -73,4 +73,23 @@ sequenceDiagram
 
     Service-->>Controller: List<FeatureUsageResponse>
     Controller-->>Client: ApiResponse
+```
+
+## Async Refund On Failure
+
+```mermaid
+sequenceDiagram
+    participant Service as ResumeEvaluationServiceImpl
+    participant Quota as QuotaServiceImpl
+    participant MQ as Matching Queue
+    participant Listener as MatchingResultListener
+
+    Service->>Quota: consumeEventQuota(MATCHING_SCORE, contexts=[JOB, RESUME])
+    Quota-->>Service: usageEventId
+    Service->>MQ: publish(request + usageEventId)
+
+    alt publish/result processing failed
+        Service->>Quota: markUsageEventFailed(usageEventId)
+        Listener->>Quota: markUsageEventFailed(usageEventId)
+    end
 ```

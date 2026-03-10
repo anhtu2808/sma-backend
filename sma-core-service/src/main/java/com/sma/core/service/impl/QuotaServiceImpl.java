@@ -1,10 +1,12 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.model.UsageContextModel;
 import com.sma.core.entity.*;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.EventSource;
+import com.sma.core.enums.UsageEventStatus;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.repository.CandidateRepository;
@@ -27,6 +29,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -165,21 +168,28 @@ public class QuotaServiceImpl implements QuotaService {
     }
 
     @Override
-    public void commitReservation(EventReservation reservation) {
-        commitReservation(reservation, null, null);
+    public UsageEvent commitReservation(EventReservation reservation) {
+        return commitReservation(reservation, List.of());
     }
 
     @Override
-    public void commitReservation(EventReservation reservation, EventSource entityType, Integer entityId) {
+    public UsageEvent commitReservation(EventReservation reservation, EventSource entityType, Integer entityId) {
+        return entityType == null || entityId == null
+                ? commitReservation(reservation, List.of())
+                : commitReservation(reservation, List.of(new UsageContextModel(entityType, entityId)));
+    }
+
+    @Override
+    public UsageEvent commitReservation(EventReservation reservation, List<UsageContextModel> contexts) {
         UsageEvent usageEvent = UsageEvent.builder()
                 .subscription(subscriptionRepository.getReferenceById(reservation.subscriptionId()))
                 .feature(featureRepository.getReferenceById(reservation.featureId()))
                 .amount(reservation.amount())
-                .eventSource(entityType)
-                .sourceId(entityId)
                 .build();
 
+        buildUsageContexts(usageEvent, contexts).forEach(usageEvent::addContext);
         usageEventRepository.save(usageEvent);
+        return usageEvent;
     }
 
     @Override
@@ -214,7 +224,14 @@ public class QuotaServiceImpl implements QuotaService {
     }
 
     @Override
-    public void consumeEventQuota(FeatureKey featureKey, int amount, EventSource entityType, Integer entityId) {
+    public UsageEvent consumeEventQuota(FeatureKey featureKey, int amount, EventSource entityType, Integer entityId) {
+        return entityType == null || entityId == null
+                ? consumeEventQuota(featureKey, amount, List.of())
+                : consumeEventQuota(featureKey, amount, List.of(new UsageContextModel(entityType, entityId)));
+    }
+
+    @Override
+    public UsageEvent consumeEventQuota(FeatureKey featureKey, int amount, List<UsageContextModel> contexts) {
         LocalDateTime now = LocalDateTime.now();
         QuotaOwnerContext ownerContext = resolveOwnerContext();
         List<Subscription> subscriptions = subscriptionService.findEligibleSubscriptions(ownerContext, now);
@@ -223,7 +240,16 @@ public class QuotaServiceImpl implements QuotaService {
 
         EventReservation reservation = reserveEventQuota(subscriptions, feature.getId(), amount, now);
 
-        commitReservation(reservation, entityType, entityId);
+        return commitReservation(reservation, contexts);
+    }
+
+    @Override
+    @Transactional
+    public void markUsageEventFailed(Integer usageEventId) {
+        if (usageEventId == null) {
+            return;
+        }
+        usageEventRepository.markStatus(usageEventId, UsageEventStatus.FAIL);
     }
 
     @Override
@@ -350,5 +376,22 @@ public class QuotaServiceImpl implements QuotaService {
                             .map(Plan::getId)
                             .distinct()
                             .toList();
+    }
+
+    private Set<UsageEventContext> buildUsageContexts(UsageEvent usageEvent, List<UsageContextModel> contexts) {
+        if (contexts == null || contexts.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return contexts.stream()
+                .filter(Objects::nonNull)
+                .filter(context -> context.eventSource() != null && context.sourceId() != null)
+                .distinct()
+                .map(context -> UsageEventContext.builder()
+                        .usageEvent(usageEvent)
+                        .eventSource(context.eventSource())
+                        .sourceId(context.sourceId())
+                        .build())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

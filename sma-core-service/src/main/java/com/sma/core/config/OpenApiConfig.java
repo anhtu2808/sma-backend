@@ -18,6 +18,7 @@ public class OpenApiConfig {
     private String swaggerServerUrl;
 
     private static final String SECURITY_SCHEME_NAME = "bearerAuth";
+    private static final String API_KEY_SCHEME = "apiKey";
 
     @Bean
     public OpenAPI customOpenAPI() {
@@ -33,10 +34,18 @@ public class OpenApiConfig {
                 .scheme("bearer")
                 .bearerFormat("JWT");
 
+        SecurityScheme apiKeySchema = new SecurityScheme()
+                .name("Authorization")
+                .type(SecurityScheme.Type.APIKEY)
+                .in(SecurityScheme.In.HEADER);
+
         // Apply security scheme globally
         return new OpenAPI()
                 .servers(List.of(apiServer))
-                .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME, bearerAuthScheme))
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
+                .components(new Components()
+                        .addSecuritySchemes(SECURITY_SCHEME_NAME, bearerAuthScheme)
+                        .addSecuritySchemes(API_KEY_SCHEME, apiKeySchema))
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .addSecurityItem(new SecurityRequirement().addList(API_KEY_SCHEME));
     }
 }

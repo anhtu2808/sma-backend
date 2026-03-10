@@ -3,6 +3,7 @@ package com.sma.core.specification;
 import com.sma.core.entity.UsageEvent;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.EventSource;
+import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -37,17 +38,23 @@ public class UsageEventSpecification {
                 predicates.add(cb.lessThan(root.get("createdAt"), endDate));
             }
 
-            // Filter directly on eventSource and sourceId columns
+            Join<Object, Object> contextsJoin = null;
             if (entityType != null) {
-                predicates.add(cb.equal(root.get("eventSource"), entityType));
+                contextsJoin = root.join("contexts");
+                predicates.add(cb.equal(contextsJoin.get("eventSource"), entityType));
             }
 
             if (entityId != null) {
-                predicates.add(cb.equal(root.get("sourceId"), entityId));
+                if (contextsJoin == null) {
+                    contextsJoin = root.join("contexts");
+                }
+                predicates.add(cb.equal(contextsJoin.get("sourceId"), entityId));
             }
 
             query.distinct(true);
-            query.orderBy(cb.desc(root.get("createdAt")));
+            if (!Long.class.equals(query.getResultType())) {
+                query.orderBy(cb.desc(root.get("createdAt")));
+            }
 
             return cb.and(predicates.toArray(new Predicate[0]));
         };

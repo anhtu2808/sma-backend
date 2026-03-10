@@ -143,9 +143,11 @@ class MatchingScoringQueueWorker:
         body: bytes,
     ) -> None:
         evaluation_id = None
+        usage_event_id = None
         try:
             payload = json.loads(body.decode("utf-8"))
             evaluation_id = payload.get("evaluationId")
+            usage_event_id = payload.get("usageEventId")
 
             if evaluation_id is None:
                 raise ValueError("Invalid message payload: evaluationId is required")
@@ -173,6 +175,7 @@ class MatchingScoringQueueWorker:
             self._publish_result(
                 status=EvaluationStatus.FINISH,
                 evaluation_id=evaluation_id,
+                usage_event_id=usage_event_id,
                 parsed_data=matching_result.model_dump(mode="json"),
                 error_message=None,
             )
@@ -189,6 +192,7 @@ class MatchingScoringQueueWorker:
                 try:
                     fallback_payload = json.loads(body.decode("utf-8"))
                     evaluation_id = fallback_payload.get("evaluationId")
+                    usage_event_id = fallback_payload.get("usageEventId")
                 except Exception:
                     pass
 
@@ -196,6 +200,7 @@ class MatchingScoringQueueWorker:
                 self._publish_result(
                     status=EvaluationStatus.FAIL,
                     evaluation_id=evaluation_id,
+                    usage_event_id=usage_event_id,
                     parsed_data=None,
                     error_message=str(matching_error)[:1000],
                 )
@@ -213,6 +218,7 @@ class MatchingScoringQueueWorker:
         *,
         status: EvaluationStatus,
         evaluation_id: int | None,
+        usage_event_id: int | None,
         parsed_data: dict[str, Any] | None,
         error_message: str | None,
     ) -> None:
@@ -221,6 +227,7 @@ class MatchingScoringQueueWorker:
 
         message = {
             "evaluationId": evaluation_id,
+            "usageEventId": usage_event_id,
             "status": status.value,
             "errorMessage": error_message,
             "processedAt": datetime.now(timezone.utc).isoformat(),
