@@ -6,6 +6,7 @@ import com.sma.core.dto.request.resume.UploadResumeRequest;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Candidate;
+import com.sma.core.entity.UsageEvent;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.entity.Resume;
 import com.sma.core.enums.ResumeParseStatus;
@@ -15,6 +16,7 @@ import com.sma.core.enums.ResumeType;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.exception.ResumeParsingPublishException;
 import com.sma.core.mapper.resume.ResumeDetailMapper;
 import com.sma.core.mapper.resume.ResumeMapper;
 import com.sma.core.mapper.resume.ResumeSkillMapper;
@@ -113,18 +115,9 @@ public class ResumeServiceImpl implements ResumeService {
     }
 
     @Override
+    @Transactional(noRollbackFor = ResumeParsingPublishException.class)
     public ResumeResponse parseResume(Integer resumeId) {
-        // Get resume first to have the ID for context
         Resume resume = getOwnedResume(resumeId);
-
-        // Consume quota with resume as context
-//        quotaService.consumeEventQuota(
-//                FeatureKey.RESUME_PARSING,
-//                1,
-//                EventSource.RESUME,
-//                resume.getId()
-//        );
-
         LocalDateTime now = LocalDateTime.now();
         String parseAttemptId = UUID.randomUUID().toString();
 
@@ -136,9 +129,17 @@ public class ResumeServiceImpl implements ResumeService {
         resume.setParseErrorMessage(null);
         resume = resumeRepository.save(resume);
 
+        Integer usageEventId = quotaService.consumeEventQuota(
+                FeatureKey.RESUME_PARSING,
+                1,
+                EventSource.RESUME,
+                resume.getId()
+        ).getId();
+
         try {
             resumeParsingRequestPublisher.publish(
                     resume.getId(),
+                    usageEventId,
                     parseAttemptId,
                     resume.getResumeUrl(),
                     resume.getFileName(),
@@ -146,11 +147,16 @@ public class ResumeServiceImpl implements ResumeService {
             );
         } catch (Exception e) {
             log.error("Failed to enqueue resume parsing request for resumeId={}", resumeId, e);
+            quotaService.markUsageEventFailed(usageEventId);
             resume.setParseStatus(ResumeParseStatus.FAIL);
             resume.setParseErrorMessage("ENQUEUE_FAILED");
             resume.setParseUpdatedAt(LocalDateTime.now());
-            resumeRepository.save(resume);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+            try {
+                resumeRepository.save(resume);
+            } catch (Exception persistException) {
+                log.error("Failed to persist enqueue failure for resumeId={}", resumeId, persistException);
+            }
+            throw new ResumeParsingPublishException(e);
         }
 
         return resumeMapper.toResponse(resume);
