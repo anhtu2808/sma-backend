@@ -26,8 +26,6 @@ public class EvaluationCriteriaScoreResponse {
     Float weightedScore;
     String aiExplanation;
     String manualExplanation;
-//    List<EvaluationHardSkillResponse> hardSkills;
-//    List<EvaluationSoftSkillResponse> softSkills;
-//    List<EvaluationExperienceDetailResponse> experienceDetails;
-    List<EvaluationCriteriaDetailResponse> details;
+    List<EvaluationCriteriaSuggestionResponse> details;
+
 }

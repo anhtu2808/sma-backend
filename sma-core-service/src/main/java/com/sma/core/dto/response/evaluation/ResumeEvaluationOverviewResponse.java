@@ -30,5 +30,5 @@ public class ResumeEvaluationOverviewResponse {
     String candidateName;
     Integer jobId;
     String jobName;
-    List<EvaluationCriteriaScoreResponse> criteriaScores;
+
 }

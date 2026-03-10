@@ -18,8 +18,6 @@ import java.util.List;
 public class ResumeEvaluationDetailResponse extends ResumeEvaluationOverviewResponse {
     Boolean isTrueLevel;
     Boolean hasRelatedExperience;
-    Boolean isSpecificJd;
     RelevanceType transferabilityToRole;
-//    List<EvaluationGapResponse> gaps;
-//    List<EvaluationWeaknessResponse> weaknesses;
+    List<EvaluationCriteriaScoreResponse> criteriaScores;
 }

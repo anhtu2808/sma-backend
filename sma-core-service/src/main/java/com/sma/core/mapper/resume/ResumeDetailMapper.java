@@ -1,11 +1,6 @@
 package com.sma.core.mapper.resume;
 
 import com.sma.core.dto.response.evaluation.EvaluationCriteriaScoreResponse;
-import com.sma.core.dto.response.evaluation.EvaluationExperienceDetailResponse;
-import com.sma.core.dto.response.evaluation.EvaluationGapResponse;
-import com.sma.core.dto.response.evaluation.EvaluationHardSkillResponse;
-import com.sma.core.dto.response.evaluation.EvaluationSoftSkillResponse;
-import com.sma.core.dto.response.evaluation.EvaluationWeaknessResponse;
 import com.sma.core.dto.response.resume.ExperienceSkillResponse;
 import com.sma.core.dto.response.resume.ProjectSkillResponse;
 import com.sma.core.dto.response.resume.ResumeCertificationDetailResponse;
@@ -22,7 +17,6 @@ import com.sma.core.entity.EvaluationExperienceDetail;
 import com.sma.core.entity.EvaluationGap;
 import com.sma.core.entity.EvaluationHardSkill;
 import com.sma.core.entity.EvaluationSoftSkill;
-import com.sma.core.entity.EvaluationWeakness;
 import com.sma.core.entity.ExperienceSkill;
 import com.sma.core.entity.ProjectSkill;
 import com.sma.core.entity.Resume;
@@ -92,16 +86,6 @@ public interface ResumeDetailMapper {
     @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     EvaluationCriteriaScoreResponse toEvaluationCriteriaScoreResponse(EvaluationCriteriaScore item);
 
-    EvaluationHardSkillResponse toEvaluationHardSkillResponse(EvaluationHardSkill item);
-
-    EvaluationSoftSkillResponse toEvaluationSoftSkillResponse(EvaluationSoftSkill item);
-
-    EvaluationExperienceDetailResponse toEvaluationExperienceDetailResponse(EvaluationExperienceDetail item);
-
-    EvaluationGapResponse toEvaluationGapResponse(EvaluationGap item);
-
-    EvaluationWeaknessResponse toEvaluationWeaknessResponse(EvaluationWeakness item);
-
     @AfterMapping
     default void sortResumeDetailCollections(@MappingTarget ResumeDetailResponse response) {
         response.setSkillGroups(sortByOrderIndexThenId(
@@ -155,9 +139,7 @@ public interface ResumeDetailMapper {
     @AfterMapping
     default void sortResumeEvaluationCollections(@MappingTarget ResumeEvaluationResponse response) {
         response.setCriteriaScores(sortById(response.getCriteriaScores(), EvaluationCriteriaScoreResponse::getId));
-        response.setGaps(sortById(response.getGaps(), EvaluationGapResponse::getId));
-        response.setWeaknesses(sortById(response.getWeaknesses(), EvaluationWeaknessResponse::getId));
-    }
+     }
 
 //    @AfterMapping
 //    default void sortEvaluationCriteriaScoreCollections(@MappingTarget EvaluationCriteriaScoreResponse response) {

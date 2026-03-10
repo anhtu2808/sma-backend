@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EvaluationCriteriaDetailResponse {
+public class EvaluationCriteriaSuggestionResponse {
 
     Integer id;
     String label;
