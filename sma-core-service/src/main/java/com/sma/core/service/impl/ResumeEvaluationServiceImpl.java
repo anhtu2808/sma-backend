@@ -315,10 +315,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
         // Save criteria scores
         saveCriteriaScores(data.getCriteriaScores(), evaluation);
-
-        // Save gaps and weaknesses (null-safe — overview results won't have these)
-        saveGaps(data.getGaps(), evaluation);
-        saveWeaknesses(data.getWeaknesses(), evaluation);
+        
     }
 
     /**
@@ -343,9 +340,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         // Supplement existing criteria scores with aiExplanation and nested skills
         supplementCriteriaScores(data.getCriteriaScores(), evaluation);
 
-        // Save new gaps and weaknesses
-        saveGaps(data.getGaps(), evaluation);
-        saveWeaknesses(data.getWeaknesses(), evaluation);
     }
 
     private boolean hasExistingCriteriaScores(ResumeEvaluation evaluation) {
@@ -408,10 +402,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 }
                 evaluationCriteriaScoreRepository.save(existing);
 
-                // Save nested details
-                saveHardSkills(csData.getHardSkills(), existing);
-                saveSoftSkills(csData.getSoftSkills(), existing);
-                saveExperienceDetails(csData.getExperienceDetails(), existing);
             } else {
                 log.warn("No existing criteria score found for criteriaType={} in evaluationId={}",
                         csData.getCriteriaType(), evaluation.getId());
@@ -442,54 +432,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
             // Save nested details (null-safe — overview results won't have these)
-            saveHardSkills(csData.getHardSkills(), criteriaScore);
-            saveSoftSkills(csData.getSoftSkills(), criteriaScore);
-            saveExperienceDetails(csData.getExperienceDetails(), criteriaScore);
         }
     }
 
-    private void saveHardSkills(List<MatchingResultData.HardSkillData> skills, EvaluationCriteriaScore criteriaScore) {
-        if (skills == null) return;
-        for (MatchingResultData.HardSkillData data : skills) {
-            EvaluationHardSkill entity = matchingResultMapper.toHardSkill(data);
-            entity.setEvaluationCriteriaScore(criteriaScore);
-            evaluationHardSkillRepository.save(entity);
-        }
-    }
-
-    private void saveSoftSkills(List<MatchingResultData.SoftSkillData> skills, EvaluationCriteriaScore criteriaScore) {
-        if (skills == null) return;
-        for (MatchingResultData.SoftSkillData data : skills) {
-            EvaluationSoftSkill entity = matchingResultMapper.toSoftSkill(data);
-            entity.setEvaluationCriteriaScore(criteriaScore);
-            evaluationSoftSkillRepository.save(entity);
-        }
-    }
-
-    private void saveExperienceDetails(List<MatchingResultData.ExperienceDetailData> details, EvaluationCriteriaScore criteriaScore) {
-        if (details == null) return;
-        for (MatchingResultData.ExperienceDetailData data : details) {
-            EvaluationExperienceDetail entity = matchingResultMapper.toExperienceDetail(data);
-            entity.setEvaluationCriteriaScore(criteriaScore);
-            evaluationExperienceDetailRepository.save(entity);
-        }
-    }
-
-    private void saveGaps(List<MatchingResultData.GapData> gaps, ResumeEvaluation evaluation) {
-        if (gaps == null) return;
-        for (MatchingResultData.GapData data : gaps) {
-            EvaluationGap entity = matchingResultMapper.toGap(data);
-            entity.setEvaluation(evaluation);
-            evaluationGapRepository.save(entity);
-        }
-    }
-
-    private void saveWeaknesses(List<MatchingResultData.WeaknessData> weaknesses, ResumeEvaluation evaluation) {
-        if (weaknesses == null) return;
-        for (MatchingResultData.WeaknessData data : weaknesses) {
-            EvaluationWeakness entity = matchingResultMapper.toWeakness(data);
-            entity.setEvaluation(evaluation);
-            evaluationWeaknessRepository.save(entity);
-        }
-    }
 }

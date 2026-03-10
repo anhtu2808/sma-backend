@@ -21,6 +21,9 @@ public class ScoringCriteria {
 
     private Double weight;
 
+    @Column(columnDefinition = "TEXT")
+    private String rule;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id")
     private Job job;

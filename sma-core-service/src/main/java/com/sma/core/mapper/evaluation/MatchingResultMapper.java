@@ -28,33 +28,4 @@ public interface MatchingResultMapper {
     @Mapping(target = "manualExplanation", ignore = true)
     EvaluationCriteriaScore toCriteriaScore(MatchingResultData.CriteriaScoreData data);
 
-    // ---- Hard skill mapping ----
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "evaluationCriteriaScore", ignore = true)
-    EvaluationHardSkill toHardSkill(MatchingResultData.HardSkillData data);
-
-    // ---- Soft skill mapping ----
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "evaluationCriteriaScore", ignore = true)
-    EvaluationSoftSkill toSoftSkill(MatchingResultData.SoftSkillData data);
-
-    // ---- Experience detail mapping ----
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "evaluationCriteriaScore", ignore = true)
-    EvaluationExperienceDetail toExperienceDetail(MatchingResultData.ExperienceDetailData data);
-
-    // ---- Gap mapping ----
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "evaluation", ignore = true)
-    EvaluationGap toGap(MatchingResultData.GapData data);
-
-    // ---- Weakness mapping ----
-
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "evaluation", ignore = true)
-    EvaluationWeakness toWeakness(MatchingResultData.WeaknessData data);
 }

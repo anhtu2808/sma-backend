@@ -14,6 +14,7 @@ public class JobScoringCriteriaRequest {
 
     String context;
     Double weight;
+    String rule;
     CriteriaType criteriaType;
 
 }

@@ -22,11 +22,7 @@ public class MatchingRequestMessage {
     String candidateFullName;
     String jobTitle;
     Set<JobScoringCriteriaRequest> criteria;
-    Set<ResumeExperienceRequest> experiences;
-    Set<ResumeProjectRequest> projects;
-    Set<ResumeHardSkillRequest> hardSkills;
-    Set<ResumeSoftSkillRequest> softSkills;
-    Set<ResumeEducationRequest> educations;
+    String rawResumeText;
     String matchingType; // "OVERVIEW" or "DETAIL"
     Map<String, Object> overviewScores; // Overview data for detail supplement mode
 
