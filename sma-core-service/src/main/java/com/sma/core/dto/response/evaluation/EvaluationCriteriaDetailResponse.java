@@ -6,23 +6,25 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EvaluationCriteriaSuggestionResponse {
+public class EvaluationCriteriaDetailResponse {
 
     Integer id;
     String label;
     LabelStatus status;
-    String explanation;
+    String description;
     SkillLevel requiredLevel;
     SkillLevel candidateLevel;
     Boolean isRequired;
+    Boolean isFixed;
     Integer startIndex;
     Integer endIndex;
     Float impactScore;
-    List<String> suggestions;
+    Set<String> suggestions;
 }

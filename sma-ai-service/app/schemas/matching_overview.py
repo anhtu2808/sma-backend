@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 MatchLevel = Literal["EXCELLENT", "GOOD", "FAIR", "POOR", "NOT_MATCHED"]
 CriteriaType = Literal["HARD_SKILLS", "SOFT_SKILLS", "EXPERIENCE", "EDUCATION", "JOB_TITLE", "JOB_LEVEL"]
+RelevanceType = Literal["HIGH", "MEDIUM", "LOW"]
 
 
 class OverviewCriteriaScoreResult(BaseModel):
@@ -14,8 +15,6 @@ class OverviewCriteriaScoreResult(BaseModel):
 
     criteriaType: CriteriaType
     aiScore: float = Field(ge=0, le=100)
-    maxScore: float = Field(default=100.0)
-    weightedScore: Optional[float] = None
 
 
 class MatchingOverviewResult(BaseModel):
@@ -26,7 +25,9 @@ class MatchingOverviewResult(BaseModel):
     summary: Optional[str] = None
     strengths: Optional[str] = None
     weakness: Optional[str] = None
-    isSpecificJd: Optional[bool] = None
+    isTrueLevel: Optional[bool] = None
+    hasRelatedExperience: Optional[bool] = None
+    transferabilityToRole: Optional[RelevanceType] = None
     aiModelVersion: Optional[str] = None
     processingTimeSecond: Optional[float] = None
     criteriaScores: List[OverviewCriteriaScoreResult] = Field(default_factory=list)

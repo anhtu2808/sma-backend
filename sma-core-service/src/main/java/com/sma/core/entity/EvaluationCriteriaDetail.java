@@ -33,11 +33,21 @@ public class EvaluationCriteriaDetail {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "required_level", columnDefinition = "skill_level_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SkillLevel requiredLevel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "candidate_level", columnDefinition = "skill_level_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private SkillLevel candidateLevel;
+
     private Boolean isRequired;
     private Integer startIndex;
     private Integer endIndex;
+    @Builder.Default
+    private Boolean isFixed = false;
     private Float impactScore;
 
     @OneToMany(mappedBy = "evaluationCriteriaDetail", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

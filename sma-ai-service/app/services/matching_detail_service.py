@@ -1,5 +1,5 @@
 """
-Detail supplement matching service — adds explanations, nested skills, gaps & weaknesses
+Detail supplement matching service — adds explanations, detail breakdowns, and suggestions
 to an existing overview evaluation.
 """
 
@@ -20,10 +20,9 @@ async def analyze_matching_detail_supplement(request_data: dict) -> MatchingDeta
 
     This function provides:
     1. Per-criteria explanations (aiExplanation)
-    2. Nested skill breakdowns (hardSkills, softSkills, experienceDetails)
-    3. Gap analysis between JD requirements and CV capabilities
-    4. Detailed weakness analysis
-    5. isTrueLevel and hasRelatedExperience
+    2. Detail breakdowns per criterion with status (MATCHED/MISSING/FIXED)
+    3. Suggestions for improvement where applicable
+    4. isTrueLevel, hasRelatedExperience, and transferabilityToRole assessments
 
     Args:
         request_data: Matching request payload including overview scores as context.
@@ -75,8 +74,9 @@ async def analyze_matching_detail_supplement(request_data: dict) -> MatchingDeta
             logger.error(f"GPT returned invalid JSON for detail supplement: {e}")
             raise ValueError(f"GPT returned invalid JSON: {str(e)}")
 
-        # Add processing time
+        # Add processing time and model info
         parsed_data["processingTimeSecond"] = round(time.perf_counter() - start_gpt, 2)
+        parsed_data["aiModelVersion"] = model
 
         # Log usage
         usage = response.usage
@@ -100,12 +100,19 @@ async def analyze_matching_detail_supplement(request_data: dict) -> MatchingDeta
 
     total_ms = (time.perf_counter() - start_total) * 1000
     logger.info(f"Total detail supplement analysis time: {total_ms:.2f}ms")
+
+    # Log detail counts per criteria
+    total_details = sum(len(cs.details) for cs in detail_result.criteriaScores)
     logger.info(
-        "Detail supplement analysis completed: evaluationId={}, criteriaScores={}, gaps={}, weaknesses={}",
+        "Detail supplement analysis completed: evaluationId={}, criteriaScores={}, totalDetails={}",
         evaluation_id,
         len(detail_result.criteriaScores),
-        len(detail_result.gaps),
-        len(detail_result.weaknesses),
+        total_details,
     )
+
+    import json
+    logger.info(f"\n===== FULL AI JSON RESPONSE FOR EVALUATION {evaluation_id} =====\n"
+                f"{json.dumps(detail_result.model_dump(mode='json'), indent=2, ensure_ascii=False)}\n"
+                f"================================================================")
 
     return detail_result

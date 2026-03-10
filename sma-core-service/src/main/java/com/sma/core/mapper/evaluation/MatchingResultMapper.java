@@ -14,6 +14,7 @@ public interface MatchingResultMapper {
     @Mapping(target = "resume", ignore = true)
     @Mapping(target = "job", ignore = true)
     @Mapping(target = "evaluationStatus", constant = "FINISH")
+    @Mapping(target = "evaluationType", ignore = true)
     @Mapping(target = "recruiterOverallScore", ignore = true)
     @Mapping(target = "criteriaScores", ignore = true)
     @Mapping(target = "gaps", ignore = true)

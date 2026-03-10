@@ -163,7 +163,7 @@ class MatchingScoringQueueWorker:
             if matching_type == "OVERVIEW":
                 matching_result = asyncio.run(analyze_matching_overview(payload))
             elif matching_type == "DETAIL" and payload.get("overviewScores"):
-                # Supplement mode: overview exists, only add explanations/skills/gaps
+                # Supplement mode: overview exists, add explanations/details/suggestions
                 matching_result = asyncio.run(analyze_matching_detail_supplement(payload))
             else:
                 # Full detail mode: no overview exists, do full matching

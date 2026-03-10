@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.message.matching.CriteriaScoreData;
+import com.sma.core.dto.message.matching.CriteriaScoreDetailData;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
@@ -149,11 +150,10 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 message.getEvaluationId(), message.getStatus());
 
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(message.getEvaluationId())
-                .orElse(null);
-        if (evaluation == null) {
-            log.error("Evaluation not found for id={}", message.getEvaluationId());
-            return;
-        }
+                .orElseThrow(() -> {
+                    log.error("Evaluation not found for id={}", message.getEvaluationId());
+                    return new AppException(ErrorCode.EVALUATION_NOT_EXISTED);
+                });
 
         if (message.getStatus() == EvaluationStatus.FAIL) {
             evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
@@ -162,31 +162,25 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             return;
         }
 
-        try {
-            MatchingResultData data = message.getParsedData();
-            if (data == null) {
-                evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
-                resumeEvaluationRepository.save(evaluation);
-                return;
-            }
-
-            if (evaluation.getEvaluationType() == EvaluationType.DETAIL
-                    && hasExistingCriteriaScores(evaluation)) {
-                // Detail supplement mode: only add explanations, nested skills, gaps, weaknesses
-                processDetailSupplementResult(data, evaluation);
-            } else {
-                // Overview or full detail mode: save everything from scratch
-                processFullResult(data, evaluation);
-            }
-
-            log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
-                    evaluation.getId(), evaluation.getAiOverallScore());
-
-        } catch (Exception e) {
-            log.error("Error processing matching result for evaluationId={}", message.getEvaluationId(), e);
+        MatchingResultData data = message.getParsedData();
+        if (data == null) {
             evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
             resumeEvaluationRepository.save(evaluation);
+            log.error("Parsed data is null for evaluationId={}", message.getEvaluationId());
+            return;
         }
+
+        if (evaluation.getEvaluationType() == EvaluationType.DETAIL
+                && hasExistingCriteriaScores(evaluation)) {
+            // Detail supplement mode: add explanations, details, and suggestions
+            processDetailSupplementResult(data, evaluation);
+        } else {
+            // Overview or full detail mode: save everything from scratch
+            processFullResult(data, evaluation);
+        }
+
+        log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
+                evaluation.getId(), evaluation.getAiOverallScore());
     }
 
     @Override
@@ -304,40 +298,45 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     /**
      * Process full matching result — used for overview and full detail (no prior overview).
-     * Saves top-level fields, criteria scores, and optionally nested skills/gaps/weaknesses.
+     * Saves top-level fields, criteria scores, details, and suggestions.
      */
     private void processFullResult(MatchingResultData data, ResumeEvaluation evaluation) {
-        // Map top-level fields
+        // Map top-level fields (includes transferabilityToRole, isTrueLevel, hasRelatedExperience)
         matchingResultMapper.mapToEvaluation(data, evaluation);
         resumeEvaluationRepository.save(evaluation);
 
-        // Save criteria scores
+        // Save criteria scores with details and suggestions
         saveCriteriaScores(data.getCriteriaScores(), evaluation);
-
     }
 
     /**
      * Process detail supplement result — used when overview already exists.
-     * Only adds aiExplanation, nested skills, gaps, and weaknesses to existing record.
+     * Adds aiExplanation, details, and suggestions to existing record.
      * Does NOT re-score criteria.
      */
     private void processDetailSupplementResult(MatchingResultData data, ResumeEvaluation evaluation) {
-        // Update supplementary top-level fields (isTrueLevel, hasRelatedExperience)
+        // Update supplementary top-level fields
         if (data.getIsTrueLevel() != null) {
             evaluation.setIsTrueLevel(data.getIsTrueLevel());
         }
         if (data.getHasRelatedExperience() != null) {
             evaluation.setHasRelatedExperience(data.getHasRelatedExperience());
         }
+        if (data.getTransferabilityToRole() != null) {
+            evaluation.setTransferabilityToRole(data.getTransferabilityToRole());
+        }
         if (data.getProcessingTimeSecond() != null) {
             evaluation.setProcessingTimeSecond(data.getProcessingTimeSecond());
         }
+        if (data.getAiModelVersion() != null) {
+            evaluation.setAiModelVersion(data.getAiModelVersion());
+        }
+        evaluation.setEvaluationType(EvaluationType.DETAIL);
         evaluation.setEvaluationStatus(EvaluationStatus.FINISH);
         resumeEvaluationRepository.save(evaluation);
 
-        // Supplement existing criteria scores with aiExplanation and nested skills
+        // Supplement existing criteria scores with aiExplanation, details, and suggestions
         supplementCriteriaScores(data.getCriteriaScores(), evaluation);
-
     }
 
     private boolean hasExistingCriteriaScores(ResumeEvaluation evaluation) {
@@ -364,7 +363,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                     csMap.put("criteriaType", cs.getScoringCriteria().getCriteria().getCriteriaType().name());
                 }
                 csMap.put("aiScore", cs.getAiScore());
-                csMap.put("weightedScore", cs.getWeightedScore());
                 criteriaScoresList.add(csMap);
             }
         }
@@ -374,7 +372,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     /**
-     * Supplement existing criteria scores with aiExplanation and nested skill details.
+     * Supplement existing criteria scores with aiExplanation, details, and suggestions.
      * Matches by criteriaType from the AI response to existing DB records.
      */
     private void supplementCriteriaScores(List<CriteriaScoreData> criteriaScores,
@@ -394,11 +392,14 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaType());
             if (existing != null) {
-                // Supplement existing record with explanation and nested details
+                // Supplement existing record with explanation
                 if (csData.getAiExplanation() != null) {
                     existing.setAiExplanation(csData.getAiExplanation());
                 }
                 evaluationCriteriaScoreRepository.save(existing);
+
+                // Save nested details and suggestions
+                saveDetails(csData.getDetails(), existing);
 
             } else {
                 log.warn("No existing criteria score found for criteriaType={} in evaluationId={}",
@@ -414,7 +415,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             EvaluationCriteriaScore criteriaScore = matchingResultMapper.toCriteriaScore(csData);
             criteriaScore.setEvaluation(evaluation);
 
-
             // Link to existing ScoringCriteria by criteriaType
             if (csData.getCriteriaType() != null && evaluation.getJob() != null) {
                 evaluation.getJob().getScoringCriterias().stream()
@@ -426,8 +426,56 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
-            // Save nested details (null-safe — overview results won't have these)
+            // Save nested details and suggestions
+            saveDetails(csData.getDetails(), criteriaScore);
         }
+    }
+
+    /**
+     * Save CriteriaScoreDetailData items as EvaluationCriteriaDetail entities,
+     * including their suggestions as EvaluationCriteriaSuggestion entities.
+     * Uses cascade to persist — no separate repository needed.
+     */
+    private void saveDetails(List<CriteriaScoreDetailData> details, EvaluationCriteriaScore criteriaScore) {
+        if (details == null || details.isEmpty()) return;
+
+        // Ensure details set is initialized (MapStruct + @Builder may leave it null)
+        if (criteriaScore.getDetails() == null) {
+            criteriaScore.setDetails(new HashSet<>());
+        }
+
+        for (CriteriaScoreDetailData detailData : details) {
+            EvaluationCriteriaDetail detail = EvaluationCriteriaDetail.builder()
+                    .label(detailData.getLabel())
+                    .status(detailData.getStatus())
+                    .description(detailData.getDescription())
+                    .requiredLevel(detailData.getRequiredLevel())
+                    .candidateLevel(detailData.getCandidateLevel())
+                    .startIndex(detailData.getStartIndex())
+                    .endIndex(detailData.getEndIndex())
+                    .impactScore(detailData.getImpactScore())
+                    .evaluationCriteriaScore(criteriaScore)
+                    .build();
+
+            criteriaScore.getDetails().add(detail);
+
+            // Save suggestions for this detail
+            if (detailData.getSuggestions() != null) {
+                if (detail.getSuggestions() == null) {
+                    detail.setSuggestions(new HashSet<>());
+                }
+                for (String suggestionText : detailData.getSuggestions()) {
+                    EvaluationCriteriaSuggestion suggestion = EvaluationCriteriaSuggestion.builder()
+                            .suggestion(suggestionText)
+                            .evaluationCriteriaDetail(detail)
+                            .build();
+                    detail.getSuggestions().add(suggestion);
+                }
+            }
+        }
+
+        // Cascade will persist details and suggestions when criteria score is saved
+        evaluationCriteriaScoreRepository.save(criteriaScore);
     }
 
 }
