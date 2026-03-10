@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -58,11 +60,11 @@ public class PaymentServiceImpl implements PaymentService {
         long amount = subscription.getPrice()
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValue();
-        String description = sePayPrefix + " ";
+        String description = sePayPrefix + "-";
         if (PaymentMethod.SEPAY.equals(method) || PaymentMethod.BANK_TRANSFER.equals(method)) {
             paymentHistory.setPaymentMethod(method);
             paymentRepository.saveAndFlush(paymentHistory);
-            description += paymentHistory.getId();
+            description = description + paymentHistory.getId() + "-X";
             return CreatePaymentResponse.builder()
                     .id(paymentHistory.getId())
                     .qr(String.format(sePayLink, sePayBankAccount, sePayBank, amount,
@@ -82,8 +84,16 @@ public class PaymentServiceImpl implements PaymentService {
         if (!content.contains(sePayPrefix)) {
             throw new AppException(ErrorCode.INVALID_SEPAY_CONTENT_FORMAT);
         }
-        int startIndex = content.indexOf(sePayPrefix) + sePayPrefix.length();
-        Integer id = Integer.parseInt(content.substring(startIndex).trim());
+        Pattern pattern = Pattern.compile("\\bTKPSMA-(\\d+)-X");
+        Matcher matcher = pattern.matcher(content);
+
+        int id;
+
+        if (matcher.find()) {
+            id = Integer.parseInt(matcher.group(1));
+        } else {
+            throw new AppException(ErrorCode.INVALID_SEPAY_CONTENT_FORMAT);
+        }
 
         PaymentHistory paymentHistory = paymentRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PAYMENT_NOT_FOUND));
