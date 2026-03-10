@@ -28,6 +28,7 @@ public interface EvaluationResponseMapper {
     @Mapping(target = "scoringCriteriaContext", source = "scoringCriteria.context")
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")
     @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
+    @Mapping(target = "details", ignore = true)
     EvaluationCriteriaScoreResponse toCriteriaScoreResponse(EvaluationCriteriaScore criteriaScore);
 
     // --- Overview Response ---

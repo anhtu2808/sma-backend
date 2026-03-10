@@ -26,9 +26,6 @@ public interface MatchingResultMapper {
     @Mapping(target = "scoringCriteria", ignore = true)
     @Mapping(target = "manualScore", ignore = true)
     @Mapping(target = "manualExplanation", ignore = true)
-    @Mapping(target = "hardSkills", ignore = true)
-    @Mapping(target = "softSkills", ignore = true)
-    @Mapping(target = "experienceDetails", ignore = true)
     EvaluationCriteriaScore toCriteriaScore(MatchingResultData.CriteriaScoreData data);
 
     // ---- Hard skill mapping ----
