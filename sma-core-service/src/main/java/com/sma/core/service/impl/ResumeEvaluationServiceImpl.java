@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.message.matching.CriteriaScoreData;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
@@ -46,11 +47,8 @@ import java.util.stream.Collectors;
 public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     ResumeEvaluationRepository resumeEvaluationRepository;
-    EvaluationExperienceDetailRepository evaluationExperienceDetailRepository;
-    EvaluationHardSkillRepository evaluationHardSkillRepository;
     EvaluationWeaknessRepository evaluationWeaknessRepository;
     EvaluationGapRepository evaluationGapRepository;
-    EvaluationSoftSkillRepository evaluationSoftSkillRepository;
     EvaluationCriteriaScoreRepository evaluationCriteriaScoreRepository;
     JobRepository jobRepository;
     ResumeRepository resumeRepository;
@@ -315,7 +313,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
         // Save criteria scores
         saveCriteriaScores(data.getCriteriaScores(), evaluation);
-        
+
     }
 
     /**
@@ -379,7 +377,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
      * Supplement existing criteria scores with aiExplanation and nested skill details.
      * Matches by criteriaType from the AI response to existing DB records.
      */
-    private void supplementCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores,
+    private void supplementCriteriaScores(List<CriteriaScoreData> criteriaScores,
                                           ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
@@ -393,7 +391,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             }
         }
 
-        for (MatchingResultData.CriteriaScoreData csData : criteriaScores) {
+        for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaType());
             if (existing != null) {
                 // Supplement existing record with explanation and nested details
@@ -409,16 +407,13 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         }
     }
 
-    private void saveCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
+    private void saveCriteriaScores(List<CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
-        for (MatchingResultData.CriteriaScoreData csData : criteriaScores) {
+        for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore criteriaScore = matchingResultMapper.toCriteriaScore(csData);
             criteriaScore.setEvaluation(evaluation);
 
-            if (csData.getMaxScore() == null) {
-                criteriaScore.setMaxScore(100f);
-            }
 
             // Link to existing ScoringCriteria by criteriaType
             if (csData.getCriteriaType() != null && evaluation.getJob() != null) {

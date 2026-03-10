@@ -1,5 +1,6 @@
 package com.sma.core.mapper.evaluation;
 
+import com.sma.core.dto.message.matching.CriteriaScoreData;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.entity.*;
 import org.mapstruct.*;
@@ -26,6 +27,7 @@ public interface MatchingResultMapper {
     @Mapping(target = "scoringCriteria", ignore = true)
     @Mapping(target = "manualScore", ignore = true)
     @Mapping(target = "manualExplanation", ignore = true)
-    EvaluationCriteriaScore toCriteriaScore(MatchingResultData.CriteriaScoreData data);
+    @Mapping(target = "details", ignore = true)
+    EvaluationCriteriaScore toCriteriaScore(CriteriaScoreData data);
 
 }

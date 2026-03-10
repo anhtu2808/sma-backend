@@ -21,26 +21,9 @@ public class MatchingResultData {
     String weakness;
     Boolean isTrueLevel;
     Boolean hasRelatedExperience;
-    Boolean isSpecificJd;
+    RelevanceType transferabilityToRole;
     Float processingTimeSecond;
     String aiModelVersion;
     List<CriteriaScoreData> criteriaScores;
-
-    // ---- Nested DTOs ----
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class CriteriaScoreData {
-        CriteriaType criteriaType;
-        Float aiScore;
-        Float maxScore;
-        Float weightedScore;
-        String aiExplanation;
-    }
-
 
 }
