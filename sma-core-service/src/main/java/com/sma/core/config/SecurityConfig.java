@@ -57,7 +57,8 @@ public class SecurityConfig {
             "/v1/heathcheck/**",
             "/v1/healthcheck/**",
             "/v1/users/**",
-            "/ws-smartrecruit/**"
+            "/ws-smartrecruit/**",
+            "/v1/payments/confirm"
     };
 
     @Bean
