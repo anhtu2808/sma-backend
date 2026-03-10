@@ -11,7 +11,7 @@ public interface EventUsageCalculator {
             List<Subscription> subscriptions,
             Integer featureId,
             UsageLimitUnit unit,
-            EventSource entityType,
-            Integer entityId
+            EventSource eventSource,
+            Integer sourceId
     );
 }

@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResumeParsingRequestMessage {
     Integer resumeId;
+    Integer usageEventId;
     String parseAttemptId;
     String resumeUrl;
     String fileName;

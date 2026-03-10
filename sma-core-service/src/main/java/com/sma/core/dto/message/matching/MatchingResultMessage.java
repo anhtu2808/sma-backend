@@ -13,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 public class MatchingResultMessage {
 
     Integer evaluationId;
+    Integer usageEventId;
     EvaluationStatus status;
     String errorMessage;
     String processedAt;
