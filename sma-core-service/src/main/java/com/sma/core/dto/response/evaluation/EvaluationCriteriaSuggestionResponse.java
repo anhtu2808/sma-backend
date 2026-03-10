@@ -17,6 +17,7 @@ public class EvaluationCriteriaSuggestionResponse {
     Integer id;
     String label;
     LabelStatus status;
+    String explanation;
     SkillLevel requiredLevel;
     SkillLevel candidateLevel;
     Boolean isRequired;
