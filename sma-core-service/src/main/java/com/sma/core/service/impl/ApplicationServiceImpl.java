@@ -131,6 +131,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         Application savedApplication = applicationRepository.save(application);
+        sendNewApplyNotificationToRecruiters(savedApplication);
         return applicationMapper.toResponse(savedApplication);
     }
 
@@ -146,7 +147,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(candidateId, jobId)
                 .ifPresent(lastApp -> { 
-                    if (lastApp.getAttempt() >= 2) {
+                    if (lastApp.getAttempt() >= 3) {
                         throw new AppException(ErrorCode.MAX_APPLY_ATTEMPTS_REACHED);
                     }
                     if (lastApp.getStatus() != ApplicationStatus.APPLIED) {
@@ -372,5 +373,39 @@ public class ApplicationServiceImpl implements ApplicationService {
                 "application",
                 context
         );
+    }
+
+    private void sendNewApplyNotificationToRecruiters(Application app) {
+        Integer companyId = app.getJob().getCompany().getId();
+
+        List<Recruiter> recruiters = recruiterRepository.findAllByCompanyId(companyId);
+
+        for (Recruiter recruiter : recruiters) {
+            if (recruiter.getUser() != null && recruiter.getUser().getEmail() != null) {
+                Context context = new Context();
+
+                String rName = recruiter.getUser().getFullName();
+                if (rName == null || rName.trim().isEmpty()) {
+                    rName = recruiter.getUser().getEmail().split("@")[0];
+                }
+
+                context.setVariable("recruiterName", rName);
+                context.setVariable("jobName", app.getJob().getName());
+                context.setVariable("candidateName", app.getFullName());
+                context.setVariable("candidateEmail", app.getEmail());
+                context.setVariable("applicationId", app.getId());
+                context.setVariable("coverLetter", app.getCoverLetter());
+                context.setVariable("appliedDate", java.time.format.DateTimeFormatter
+                        .ofPattern("yyyy-MM-dd HH:mm").format(app.getAppliedAt()));
+
+
+                emailService.sendEmailWithTemplate(
+                        recruiter.getUser().getEmail(),
+                        "[SmartRecruit] New Applicant for " + app.getJob().getName(),
+                        "recruiter-new-apply",
+                        context
+                );
+            }
+        }
     }
 }

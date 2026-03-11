@@ -88,13 +88,18 @@ public class JobServiceImpl implements JobService {
                 return response;
             }
             if (currentCandidateId != null) {
-                long totalAttempts = applicationRepository.countByCandidateIdAndJobId(currentCandidateId, id);
-                response.setAppliedAttempt((int) totalAttempts);
-                applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(currentCandidateId, id)
-                                     .ifPresent(lastApp -> {
-                                         response.setLastApplicationStatus(lastApp.getStatus());
-                                     });
-                response.setCanApply(totalAttempts < 2);
+                Application lastApp = applicationRepository
+                        .findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(currentCandidateId, id)
+                        .orElse(null);
+
+                int attempt = lastApp != null ? lastApp.getAttempt() : 0;
+
+                response.setAppliedAttempt(attempt);
+                response.setCanApply(attempt < 3);
+
+                if (lastApp != null) {
+                    response.setLastApplicationStatus(lastApp.getStatus());
+                }
             }
             return response;
         }

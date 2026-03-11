@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -16,4 +17,5 @@ public interface RecruiterRepository extends JpaRepository<Recruiter, Integer> {
     Optional<Recruiter> findByUserId(Integer userId);
     @Query("SELECT r.user FROM Recruiter r WHERE r.company.id = :companyId AND r.isRootRecruiter = true")
     Optional<User> findRootUserByCompanyId(@Param("companyId") Integer companyId);
+    List<Recruiter> findAllByCompanyId(Integer companyId);
 }
