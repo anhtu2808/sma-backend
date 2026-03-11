@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Registration Update</title>
+</head>
+
+<body style="font-family: 'Inter', Arial, sans-serif; background-color: #F3F4F6; padding: 20px; margin: 0;">
+
+<div
+        style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);">
+
+    <div
+            th:style="'background:' + (${status} == 'APPROVED' ? '#10B981' : (${status} == 'REJECTED' ? '#EF4444' : '#FF6B35')) + '; height:8px;'">
+    </div>
+
+    <div style="padding: 40px 30px 10px 30px;">
+
+        <div style="margin-bottom: 32px; display: flex; align-items: center;">
+            <img src="https://smartrecruit.tech/static/media/sma-logo.a080dcf97000caef0bbfe0a549fdac82.svg"
+                 alt="SmartRecruit Logo" style="height: 40px; width: auto; margin-right: 12px;">
+            <span style="font-size: 22px; font-weight: 800; color: #111827;">
+                    SmartRecruit
+                </span>
+        </div>
+
+        <p style="color: #374151; font-size: 15px;">
+            Dear <strong th:text="${recruiterName}">User</strong>,
+        </p>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+            Thank you for registering your company on <strong>SmartRecruit</strong>.
+            Our team has reviewed the information you submitted for
+            <strong style="color:#FF6B35;" th:text="${companyName}">Company Name</strong>.
+        </p>
+
+        <h2 style="color:#111827;font-size:24px;font-weight:700;"
+            th:text="${status == 'PENDING_VERIFICATION' ? 'Registration Received' : (status == 'APPROVED' ? 'Company Verified' : 'Registration Rejected')}">
+            Registration Update
+        </h2>
+
+        <!-- PENDING -->
+        <div th:if="${status == 'PENDING_VERIFICATION'}">
+
+            <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                Your company registration has been successfully submitted and is currently
+                <strong>under verification</strong> by our administration team.
+            </p>
+
+            <p style="color:#4B5563;font-size:15px;">
+                Verification normally takes <strong>1–2 business days</strong>.
+                We will notify you once the review process is complete.
+            </p>
+
+        </div>
+
+        <!-- APPROVED -->
+        <div th:if="${status == 'APPROVED'}">
+
+            <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                Congratulations! Your company
+                <strong style="color:#FF6B35;" th:text="${companyName}">Company Name</strong>
+                has been successfully verified.
+            </p>
+
+            <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                You can now start posting jobs, managing applications, and connecting with
+                top IT talent through our platform.
+            </p>
+
+            <div style="text-align:center;margin:32px 0;">
+                <a href="https://employer.smartrecruit.tech/login"
+                   style="background-color:#FF6B35;color:#ffffff;padding:14px 35px;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;display:inline-block;">
+                    Go to Login
+                </a>
+            </div>
+
+        </div>
+
+        <!-- REJECTED -->
+        <div th:if="${status == 'REJECTED'}">
+
+            <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                Unfortunately, we were unable to verify your company
+                <strong th:text="${companyName}">Company Name</strong>
+                based on the information provided.
+            </p>
+
+            <div
+                    style="background-color:#FEF2F2;border:1px solid #FCA5A5;padding:22px;border-radius:12px;margin:28px 0;">
+                <p style="color:#991B1B;font-weight:700;margin-top:0;font-size:14px;">
+                    Reason for rejection
+                </p>
+
+                <p style="color:#B91C1C;font-size:14px;margin-bottom:0;" th:text="${rejectReason}">
+                    The provided documentation does not match our verification requirements.
+                </p>
+            </div>
+
+            <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+                Please review the rejection reason above and update the required information or
+                provide additional documentation before submitting your registration again.
+            </p>
+
+            <div style="text-align:center;margin:32px 0;">
+                <a href="https://employer.smartrecruit.tech/register/recruiter"
+                   style="background-color:#FF6B35;color:#ffffff;padding:14px 35px;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;display:inline-block;">
+                    Register Again
+                </a>
+            </div>
+
+        </div>
+
+        <p style="color:#6B7280;font-size:13px;margin-top:32px;">
+            If you have any questions, please contact our support team at
+            <strong style="color:#FF6B35;">smart.recruit.business@gmail.com</strong>.
+        </p>
+
+        <p style="color:#111827;font-size:14px;font-weight:600;margin-top:28px;">
+            Best regards,<br>
+            SmartRecruit Team
+        </p>
+
+        <hr style="border:0;border-top:1px solid #E5E7EB;margin:32px 0 16px 0;">
+
+        <p style="color:#9CA3AF;font-size:12px;">
+            This is an automated email from SmartRecruit regarding your company registration.
+        </p>
+
+    </div>
+
+    <div style="background:#111827;padding:22px;text-align:center;">
+        <p style="margin:0;color:#D1D5DB;font-size:12px;">
+            © 2026 SmartRecruit. All rights reserved.
+        </p>
+    </div>
+
+</div>
+
+</body>
+
+</html>
