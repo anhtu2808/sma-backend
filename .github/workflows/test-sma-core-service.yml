@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main, develop, 'feature/**' ]
     paths:
-      - 'sma-backend/sma-core-service/**'
-      - 'sma-backend/.github/workflows/test-sma-core-service.yml'
+      - 'sma-core-service/**'
+      - '.github/workflows/test-sma-core-service.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'sma-backend/sma-core-service/**'
+      - 'sma-core-service/**'
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: sma-backend/sma-core-service
+        working-directory: sma-core-service
 
     steps:
     - name: Checkout code
@@ -68,7 +68,7 @@ jobs:
     
     defaults:
       run:
-        working-directory: sma-backend/sma-core-service
+        working-directory: sma-core-service
 
     steps:
     - name: Checkout code
