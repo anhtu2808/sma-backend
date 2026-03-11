@@ -23,6 +23,8 @@ public enum ErrorCode {
     CANT_DELETE_RESUME_IN_USE(HttpStatus.BAD_REQUEST, "Cannot delete resume that is in use"),
     EMAIL_EXISTS(HttpStatus.BAD_REQUEST, "Email already exists"),
     INVALID_SEPAY_CONTENT_FORMAT(HttpStatus.BAD_REQUEST, "Invalid sepay content format"),
+    MISSING_ID_FROM_CONTENT(HttpStatus.BAD_REQUEST, "Missing id from content"),
+    MISSING_SEPAY_CONTENT(HttpStatus.BAD_REQUEST, "Missing sepay content"),
     INVALID_EXPIRED_DATE(HttpStatus.BAD_REQUEST, "Invalid expired date"),
     RECRUITER_NOT_HAVE_COMPANY(HttpStatus.BAD_REQUEST, "Current company is not available"),
     //401 - Unauthenticated

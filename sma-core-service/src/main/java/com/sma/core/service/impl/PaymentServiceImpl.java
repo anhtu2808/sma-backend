@@ -60,11 +60,11 @@ public class PaymentServiceImpl implements PaymentService {
         long amount = subscription.getPrice()
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValue();
-        String description = sePayPrefix + "-";
+        String description = sePayPrefix + " ";
         if (PaymentMethod.SEPAY.equals(method) || PaymentMethod.BANK_TRANSFER.equals(method)) {
             paymentHistory.setPaymentMethod(method);
             paymentRepository.saveAndFlush(paymentHistory);
-            description = description + paymentHistory.getId() + "-X";
+            description = description + paymentHistory.getId() + "X";
             return CreatePaymentResponse.builder()
                     .id(paymentHistory.getId())
                     .qr(String.format(sePayLink, sePayBankAccount, sePayBank, amount,
@@ -81,10 +81,13 @@ public class PaymentServiceImpl implements PaymentService {
             throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
         }
         String content = request.getContent();
+        if (content == null || content.isEmpty()){
+            throw new AppException(ErrorCode.MISSING_SEPAY_CONTENT);
+        }
         if (!content.contains(sePayPrefix)) {
             throw new AppException(ErrorCode.INVALID_SEPAY_CONTENT_FORMAT);
         }
-        Pattern pattern = Pattern.compile("\\bTKPSMA-(\\d+)-X");
+        Pattern pattern = Pattern.compile("\\bTKPSMA\\s*(\\d+)X\\b");
         Matcher matcher = pattern.matcher(content);
 
         int id;
@@ -92,7 +95,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (matcher.find()) {
             id = Integer.parseInt(matcher.group(1));
         } else {
-            throw new AppException(ErrorCode.INVALID_SEPAY_CONTENT_FORMAT);
+            throw new AppException(ErrorCode.MISSING_ID_FROM_CONTENT);
         }
 
         PaymentHistory paymentHistory = paymentRepository.findById(id)
