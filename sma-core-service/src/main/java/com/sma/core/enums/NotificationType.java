@@ -9,5 +9,6 @@ public enum NotificationType {
     AI_DOWNTIME,
     SYSTEM,
     CV_PARSE_FAILED,
-    INVITATION
+    INVITATION,
+    PAYMENT_SUCCESS
 }

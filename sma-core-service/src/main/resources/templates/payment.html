@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Notification</title>
+</head>
+
+<body
+        style="font-family: 'Inter', Arial, sans-serif; background-color: #F3F4F6; padding: 20px; margin: 0; -webkit-font-smoothing: antialiased;">
+
+<div
+        style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);">
+
+    <div th:style="'background: ' + (${isSuccess} ? '#10B981' : '#EF4444') + '; height: 8px;'"></div>
+
+    <div style="padding: 40px 30px 10px 30px;">
+
+        <div style="margin-bottom: 32px; display: flex; align-items: center;">
+            <img src="https://smartrecruit.tech/static/media/sma-logo.a080dcf97000caef0bbfe0a549fdac82.svg"
+                 alt="SmartRecruit Logo" style="height: 40px; width: auto; margin-right: 12px;">
+            <span style="font-size: 22px; font-weight: 800; color: #111827; letter-spacing: -0.3px;">
+                    SmartRecruit
+                </span>
+        </div>
+
+        <p style="color: #374151; font-size: 15px;">
+            Dear <strong th:text="${fullName}">User</strong>,
+        </p>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+            Thank you for choosing <strong>SmartRecruit</strong>.
+            We truly appreciate your trust in our platform and your support for our AI-powered recruitment services.
+        </p>
+
+        <h2 style="color: #111827; font-size: 24px; font-weight: 700;"
+            th:text="${isSuccess ? 'Payment Successful' : 'Payment Failed'}">
+            Payment Status
+        </h2>
+
+        <div th:if="${isSuccess}">
+            <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+                Your payment for the
+                <strong style="color:#FF6B35;" th:text="${planName}">Premium Plan</strong>
+                has been successfully processed.
+                Your subscription is now active and you can start using premium features immediately.
+            </p>
+        </div>
+
+        <div th:unless="${isSuccess}">
+            <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+                Unfortunately, your payment for the
+                <strong th:text="${planName}">Premium Plan</strong>
+                could not be completed due to a session expiration or payment interruption.
+                Please review the transaction details below and try again.
+            </p>
+        </div>
+
+        <div
+                style="background-color: #F9FAFB; padding: 22px; border-radius: 12px; margin: 28px 0; border: 1px solid #E5E7EB;">
+
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+
+                <tr>
+                    <td style="color: #6B7280; padding-bottom: 10px;">Plan</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${planName}">Pro Recruiter</td>
+                </tr>
+
+                <tr>
+                    <td style="color: #6B7280; padding-bottom: 10px;">Transaction ID</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${transactionCode}">#123456</td>
+                </tr>
+
+                <tr>
+                    <td style="color: #6B7280; padding-bottom: 10px;">Payment Method</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${paymentMethod}">Bank Transfer</td>
+                </tr>
+
+                <tr>
+                    <td style="color: #6B7280; padding-bottom: 10px;">Amount</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${amount + ' ' + currency}">50,000 VND
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="color: #6B7280;">Date</td>
+                    <td style="text-align: right; font-weight: 600;" th:text="${date}">2026-03-10</td>
+                </tr>
+
+            </table>
+
+        </div>
+
+        <p style="color:#6B7280; font-size:13px; margin-top:32px;">
+            If you have any questions or need assistance, please contact our support team at
+            <strong style="color:#FF6B35;">smart.recruit.business@gmail.com</strong>.
+        </p>
+
+        <p style="color:#111827; font-size:14px; font-weight:600; margin-top:28px;">
+            Best regards,<br>
+            SmartRecruit Team
+        </p>
+
+        <hr style="border:0; border-top:1px solid #E5E7EB; margin:32px 0 16px 0;">
+
+        <p style="color:#9CA3AF; font-size:12px;">
+            This email was sent by SmartRecruit regarding your subscription payment.
+        </p>
+
+    </div>
+
+    <div style="background:#111827; padding:22px; text-align:center;">
+        <p style="margin:0; color:#D1D5DB; font-size:12px;">
+            © 2026 SmartRecruit. All rights reserved.
+        </p>
+    </div>
+
+</div>
+
+</body>
+
+</html>
