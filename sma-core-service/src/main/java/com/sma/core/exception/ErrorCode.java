@@ -119,7 +119,8 @@ public enum ErrorCode {
     WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
 
     //500 - Server Error
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
+    SERVER_ERROR_EMBEDDING(HttpStatus.INTERNAL_SERVER_ERROR, "Server error while embedding");
 
     String message;
     HttpStatusCode statusCode;

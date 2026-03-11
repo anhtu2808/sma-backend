@@ -1,5 +1,6 @@
 package com.sma.core.service;
 
+import com.sma.core.dto.message.embedding.EmbeddingResultMessage;
 import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
@@ -22,5 +23,6 @@ public interface ResumeService {
     void deleteResume(Integer resumeId);
     ResumeResponse createResumeBuilder();
     EmbeddingResumeRequestMessage embeddingResume(Integer resumeId);
+    void updateEmbeddingResume(EmbeddingResultMessage message);
 
 }

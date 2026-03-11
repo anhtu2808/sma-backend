@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.message.embedding.EmbeddingResultMessage;
 import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
@@ -7,13 +8,8 @@ import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.UsageEvent;
-import com.sma.core.enums.FeatureKey;
+import com.sma.core.enums.*;
 import com.sma.core.entity.Resume;
-import com.sma.core.enums.ResumeParseStatus;
-import com.sma.core.enums.EventSource;
-import com.sma.core.enums.ResumeStatus;
-import com.sma.core.enums.ResumeType;
-import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.exception.ResumeParsingPublishException;
@@ -286,6 +282,21 @@ public class ResumeServiceImpl implements ResumeService {
         );
         embeddingResumeRequestPublisher.publish(message);
         return message;
+    }
+
+    @Override
+    public void updateEmbeddingResume(EmbeddingResultMessage message) {
+        Resume resume = resumeRepository.findById(message.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+
+        if (message.getStatus() != null && message.getStatus().equals(EmbedStatus.FAIL.toString())) {
+            resume.setEmbedStatus(EmbedStatus.FAIL);
+            resumeRepository.save(resume);
+            throw new AppException(ErrorCode.SERVER_ERROR_EMBEDDING);
+        }
+
+        resume.setEmbedStatus(EmbedStatus.SUCCESS);
+        resumeRepository.save(resume);
     }
 
     private Candidate getCurrentCandidate() {

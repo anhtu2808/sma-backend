@@ -82,6 +82,8 @@ public interface ResumeMapper {
     @Mapping(target = "projects", ignore = true)
     @Mapping(target = "certifications", ignore = true)
     @Mapping(target = "evaluations", ignore = true)
+    @Mapping(target = "proposes", ignore = true)
+    @Mapping(target = "embedStatus", ignore = true)
     Resume cloneEntity(Resume source, Resume rootResume, ResumeType targetType);
 
 

@@ -5,13 +5,14 @@ import com.sma.core.dto.request.job.*;
 import com.sma.core.dto.request.question.UpsertQuestionRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
-import com.sma.core.dto.response.candidate.ProposedCandidateResponse;
 import com.sma.core.dto.response.job.BaseJobResponse;
 import com.sma.core.dto.response.job.JobDetailResponse;
 import com.sma.core.dto.response.job.JobStatusSummaryResponse;
+import com.sma.core.dto.response.job.ProposedCVResponse;
 import com.sma.core.dto.response.question.JobQuestionResponse;
 import com.sma.core.service.JobQuestionService;
 import com.sma.core.service.JobService;
+import com.sma.core.service.ProposedResumeService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ import java.util.Set;
 public class JobController {
     final JobService jobService;
     final JobQuestionService jobQuestionService;
+    final ProposedResumeService proposedResumeService;
 
     @GetMapping
     public ApiResponse<PagingResponse<BaseJobResponse>> getAllJob(@ParameterObject JobFilterRequest request) {
@@ -205,12 +207,12 @@ public class JobController {
     }
 
     @GetMapping("/{id}/proposed-cv")
-    public ApiResponse<PagingResponse<ProposedCandidateResponse>> getProposedCV(@PathVariable Integer id,
-                                                                                @RequestParam Integer page,
-                                                                                @RequestParam Integer size) {
-        return ApiResponse.<PagingResponse<ProposedCandidateResponse>>builder()
+    public ApiResponse<PagingResponse<ProposedCVResponse>> getProposedCV(@PathVariable Integer id,
+                                                                         @RequestParam Integer page,
+                                                                         @RequestParam Integer size) {
+        return ApiResponse.<PagingResponse<ProposedCVResponse>>builder()
                 .message("Get proposed CV successfully")
-                .data(jobService.getProposedCV(id, page, size))
+                .data(proposedResumeService.getProposedCV(id, page, size))
                 .build();
     }
 }
