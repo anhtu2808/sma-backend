@@ -3,6 +3,7 @@ package com.sma.core.entity;
 import com.sma.core.enums.EvaluationStatus;
 import com.sma.core.enums.EvaluationType;
 import com.sma.core.enums.MatchLevel;
+import com.sma.core.enums.RelevanceType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -52,6 +53,11 @@ public class ResumeEvaluation {
 
     @Column(name = "is_specific_jd")
     private Boolean isSpecificJd;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transferability_to_role", columnDefinition = "relevance_type")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private RelevanceType transferabilityToRole;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "evaluation_status", columnDefinition = "evaluation_status_type")

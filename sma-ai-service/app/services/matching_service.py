@@ -17,7 +17,7 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
     Analyze how well a resume matches a job description.
 
     This is the main orchestration function that:
-    1. Prepares context from resume data and job criteria
+    1. Prepares context from raw resume text and job criteria (with rules)
     2. Calls GPT for semantic matching analysis
     3. Validates the response against Pydantic schema
 

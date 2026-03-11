@@ -26,6 +26,6 @@ public class EvaluationCriteriaScoreResponse {
     Float weightedScore;
     String aiExplanation;
     String manualExplanation;
-    List<EvaluationCriteriaSuggestionResponse> details;
+    List<EvaluationCriteriaDetailResponse> details;
 
 }

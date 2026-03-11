@@ -30,6 +30,12 @@ public interface EvaluationResponseMapper {
     @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     EvaluationCriteriaScoreResponse toCriteriaScoreResponse(EvaluationCriteriaScore criteriaScore);
 
+    EvaluationCriteriaDetailResponse toDetailCriteriaScoreResponse(EvaluationCriteriaDetail criteriaScore);
+
+    default String mapSuggestion(EvaluationCriteriaSuggestion suggestion) {
+        return suggestion.getSuggestion();
+    }
+
     // --- Overview Response ---
     @Mapping(target = "jobId", source = "job.id")
     @Mapping(target = "jobName", source = "job.name")

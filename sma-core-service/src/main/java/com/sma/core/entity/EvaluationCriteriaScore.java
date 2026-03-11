@@ -47,11 +47,6 @@ public class EvaluationCriteriaScore {
     private ResumeEvaluation evaluation;
 
     @OneToMany(mappedBy = "evaluationCriteriaScore", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<EvaluationHardSkill> hardSkills = new HashSet<>();
+    private Set<EvaluationCriteriaDetail> details = new HashSet<>();
 
-    @OneToMany(mappedBy = "evaluationCriteriaScore", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<EvaluationSoftSkill> softSkills = new HashSet<>();
-
-    @OneToMany(mappedBy = "evaluationCriteriaScore", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<EvaluationExperienceDetail> experienceDetails = new HashSet<>();
 }

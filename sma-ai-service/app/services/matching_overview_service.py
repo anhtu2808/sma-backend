@@ -18,7 +18,7 @@ async def analyze_matching_overview(request_data: dict) -> MatchingOverviewResul
     Quick overview scoring of how well a resume matches a job description.
 
     This function provides fast scoring without deep analysis:
-    1. Prepares concise context from resume data and job criteria
+    1. Prepares concise context from raw resume text and job criteria (with rules)
     2. Calls GPT with overview prompt (fewer tokens)
     3. Validates the response against lightweight Pydantic schema
 

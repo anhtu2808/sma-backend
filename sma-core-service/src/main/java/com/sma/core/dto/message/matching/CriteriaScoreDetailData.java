@@ -1,4 +1,4 @@
-package com.sma.core.dto.response.evaluation;
+package com.sma.core.dto.message.matching;
 
 import com.sma.core.enums.LabelStatus;
 import com.sma.core.enums.SkillLevel;
@@ -11,15 +11,15 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class EvaluationCriteriaSuggestionResponse {
+public class CriteriaScoreDetailData {
 
-    Integer id;
     String label;
     LabelStatus status;
+    String description;
     SkillLevel requiredLevel;
     SkillLevel candidateLevel;
-    Boolean isRequired;
     Integer startIndex;
     Integer endIndex;
     Float impactScore;
