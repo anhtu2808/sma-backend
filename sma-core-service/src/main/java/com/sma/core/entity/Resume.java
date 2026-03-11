@@ -102,7 +102,7 @@ public class Resume {
     private Boolean isDeleted = Boolean.FALSE;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "embed_status", columnDefinition = "embedStatus")
+    @Column(name = "embed_status", columnDefinition = "embed_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Builder.Default
     private EmbedStatus embedStatus = EmbedStatus.NONE;

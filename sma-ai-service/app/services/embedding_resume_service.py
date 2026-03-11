@@ -6,7 +6,8 @@ from qdrant_client.models import PointStruct
 from app.core.config import settings
 from app.schemas.embedding import (
     EmbeddingResumeRequestMessage,
-    EmbeddingResumeResultMessage
+    EmbeddingResumeResultMessage,
+    EmbedStatus
 )
 from app.clients.openai_client import create_embeddings
 from app.services.vector_service import vector_service
@@ -162,8 +163,9 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
         logger.warning(f"No valid chunks found for resume {resume_data.id}")
 
         return EmbeddingResumeResultMessage(
-            resumeId=resume_data.id,
-            status="EMPTY"
+            id=resume_data.id,
+            status=EmbedStatus.FAIL,
+            errorMessage="No valid chunks found for resume"
         )
 
     logger.info(f"Generating embeddings for {len(chunks)} chunks")
@@ -201,6 +203,6 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
     )
 
     return EmbeddingResumeResultMessage(
-        resumeId=resume_data.id,
-        status="SUCCESS"
+        id=resume_data.id,
+        status=EmbedStatus.SUCCESS
     )

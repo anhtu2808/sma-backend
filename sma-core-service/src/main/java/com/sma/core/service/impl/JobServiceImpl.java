@@ -529,7 +529,7 @@ public class JobServiceImpl implements JobService {
         Job job = jobRepository.findById(message.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
 
-        if (message.getStatus() != null && message.getStatus().equals(EmbedStatus.FAIL.toString())) {
+        if (message.getStatus() != null && message.getStatus().equals(EmbedStatus.FAIL)) {
             job.setEmbedStatus(EmbedStatus.FAIL);
             jobRepository.save(job);
             throw new AppException(ErrorCode.SERVER_ERROR_EMBEDDING);

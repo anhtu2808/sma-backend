@@ -90,10 +90,14 @@ public class Job {
     private Company company;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "embed_status", columnDefinition = "embedStatus")
+    @Column(name = "embed_status", columnDefinition = "embed_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Builder.Default
-    private EmbedStatus embedStatus = EmbedStatus.NONE;
+    private EmbedStatus embedStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "propose_status", columnDefinition = "propose_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private ProposeStatus proposeStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expertise_id")

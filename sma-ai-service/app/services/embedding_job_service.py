@@ -6,7 +6,8 @@ from qdrant_client.models import PointStruct
 from app.core.config import settings
 from app.schemas.embedding import (
     EmbeddingJobRequestMessage,
-    EmbeddingJobResultMessage
+    EmbeddingJobResultMessage,
+    EmbedStatus
 )
 from app.clients.openai_client import create_embeddings
 from app.services.vector_service import vector_service
@@ -74,8 +75,9 @@ async def process_and_embed_job(request: dict) -> EmbeddingJobResultMessage:
     if not chunks:
         logger.warning(f"No valid chunks found for job {job_data.id}")
         return EmbeddingJobResultMessage(
-            jobId=job_data.id,
-            status="EMPTY"
+            id=job_data.id,
+            status=EmbedStatus.FAIL,
+            errorMessage="No valid chunks found for job"
         )
 
     logger.info(f"Generating embeddings for {len(chunks)} chunks")
@@ -109,6 +111,6 @@ async def process_and_embed_job(request: dict) -> EmbeddingJobResultMessage:
     )
 
     return EmbeddingJobResultMessage(
-        jobId=job_data.id,
-        status="SUCCESS"
+        id=job_data.id,
+        status=EmbedStatus.SUCCESS
     )

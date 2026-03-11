@@ -289,7 +289,7 @@ public class ResumeServiceImpl implements ResumeService {
         Resume resume = resumeRepository.findById(message.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
 
-        if (message.getStatus() != null && message.getStatus().equals(EmbedStatus.FAIL.toString())) {
+        if (message.getStatus() != null && message.getStatus().equals(EmbedStatus.FAIL)) {
             resume.setEmbedStatus(EmbedStatus.FAIL);
             resumeRepository.save(resume);
             throw new AppException(ErrorCode.SERVER_ERROR_EMBEDDING);

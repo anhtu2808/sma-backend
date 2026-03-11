@@ -75,6 +75,7 @@ CREATE TYPE notification_type AS ENUM ('APPLICATION_STATUS', 'REJECTION', 'COMPA
 CREATE TYPE export_type AS ENUM ('XLSX', 'CSV');
 
 CREATE TYPE embed_status AS ENUM ('NONE', 'SUCCESS', 'FAIL');
+CREATE TYPE propose_status AS ENUM ('NONE', 'PROCESSING', 'FAILED','FINISHED');
 -- ==============================================
 -- TABLE DEFINITIONS
 -- ==============================================
@@ -855,3 +856,4 @@ ALTER TABLE evaluation_criteria_scores ADD FOREIGN KEY (scoring_criteria_id) REF
 
 ALTER TABLE jobs ADD COLUMN embed_status embed_status default 'NONE';
 ALTER TABLE resumes ADD COLUMN embed_status embed_status default 'NONE';
+alter table jobs add column propose_status propose_status default 'NONE'

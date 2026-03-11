@@ -10,6 +10,7 @@ from app.services.criteria_context_queue_worker import CriteriaContextQueueWorke
 from app.services.suggestion_queue_worker import suggestion_queue_worker
 from app.services.embedding_resume_queue_worker import embedding_resume_queue_worker
 from app.services.embedding_job_queue_worker import embedding_job_queue_worker
+from app.services.proposed_cv_queue_worker import proposed_cv_queue_worker
 
 
 criteria_context_queue_worker = CriteriaContextQueueWorker()
@@ -23,7 +24,9 @@ async def lifespan(app: FastAPI):
     suggestion_queue_worker.start()
     embedding_resume_queue_worker.start()
     embedding_job_queue_worker.start()
+    proposed_cv_queue_worker.start()
     yield
+    proposed_cv_queue_worker.stop()
     embedding_job_queue_worker.stop()
     embedding_resume_queue_worker.stop()
     criteria_context_queue_worker.stop()

@@ -29,12 +29,12 @@ public class ProposedResume {
     @JoinColumn(name = "job_id")
     private Job job;
 
-    @Column(name = "create_date", nullable = false)
-    private LocalDateTime createDate;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createDate = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
     }
 
 }

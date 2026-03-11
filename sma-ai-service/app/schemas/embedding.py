@@ -1,9 +1,16 @@
+from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
 
 class BaseSchema(BaseModel):
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+
+
+class EmbedStatus(str, Enum):
+    NONE = "NONE"
+    SUCCESS = "SUCCESS"
+    FAIL = "FAIL"
 
 
 class EmbeddingResumeSkill(BaseSchema):
@@ -58,8 +65,8 @@ class EmbeddingResumeRequestMessage(BaseSchema):
 
 
 class EmbeddingResumeResultMessage(BaseSchema):
-    resumeId: int
-    status: str
+    id: int
+    status: EmbedStatus
     errorMessage: Optional[str] = None
 
 
@@ -79,6 +86,6 @@ class EmbeddingJobRequestMessage(BaseSchema):
 
 
 class EmbeddingJobResultMessage(BaseSchema):
-    jobId: int
-    status: str
+    id: int
+    status: EmbedStatus
     errorMessage: Optional[str] = None

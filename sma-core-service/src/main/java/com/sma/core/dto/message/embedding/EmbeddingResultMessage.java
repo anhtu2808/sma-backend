@@ -1,5 +1,6 @@
 package com.sma.core.dto.message.embedding;
 
+import com.sma.core.enums.EmbedStatus;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,7 +13,7 @@ import lombok.experimental.FieldDefaults;
 public class EmbeddingResultMessage {
 
     Integer id;
-    String status;
+    EmbedStatus status;
     String errorMessage;
 
 }

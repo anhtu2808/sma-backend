@@ -1,6 +1,5 @@
-"""Background worker to handle embedding job requests using RabbitMQ and pika."""
+"""Background worker to handle proposed CV matching requests using RabbitMQ and pika."""
 
-import asyncio
 import json
 import threading
 import time
@@ -8,15 +7,14 @@ from typing import Any
 
 import pika
 from loguru import logger
-from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.embedding import EmbeddingJobResultMessage, EmbedStatus
-from app.services.embedding_job_service import process_and_embed_job
+from app.schemas.proposed_cv import ProposeStatus
+from app.services.proposed_cv_service import find_proposed_resumes
 
 
-class EmbeddingJobQueueWorker:
-    """Background RabbitMQ consumer for job embedding requests."""
+class ProposedCVQueueWorker:
+    """Background RabbitMQ consumer for proposed CV matching requests."""
 
     def __init__(self) -> None:
         self._stop_event = threading.Event()
@@ -26,21 +24,21 @@ class EmbeddingJobQueueWorker:
 
     def start(self) -> None:
         if not settings.RABBITMQ_ENABLED:
-            logger.info("RabbitMQ is disabled. Embedding job worker won't start.")
+            logger.info("RabbitMQ is disabled. Proposed CV worker won't start.")
             return
 
         if self._thread and self._thread.is_alive():
-            logger.info("RabbitMQ embedding job worker is already running")
+            logger.info("RabbitMQ proposed CV worker is already running")
             return
 
         self._stop_event.clear()
         self._thread = threading.Thread(
             target=self._run,
-            name="embedding-job-rabbitmq-worker",
+            name="proposed-cv-rabbitmq-worker",
             daemon=True,
         )
         self._thread.start()
-        logger.info("Started embedding job RabbitMQ worker")
+        logger.info("Started proposed CV RabbitMQ worker")
 
     def stop(self) -> None:
         self._stop_event.set()
@@ -49,11 +47,11 @@ class EmbeddingJobQueueWorker:
             try:
                 self._connection.add_callback_threadsafe(self._safe_stop_consuming)
             except Exception:
-                logger.exception("Failed to request RabbitMQ embedding job consumer stop")
+                logger.exception("Failed to request RabbitMQ proposed CV consumer stop")
 
         if self._thread:
             self._thread.join(timeout=10)
-        logger.info("Stopped embedding job RabbitMQ worker")
+        logger.info("Stopped proposed CV RabbitMQ worker")
 
     def _safe_stop_consuming(self) -> None:
         if self._channel and self._channel.is_open:
@@ -67,30 +65,27 @@ class EmbeddingJobQueueWorker:
 
                 # Declare queues
                 self._channel.queue_declare(
-                    queue=settings.RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE, durable=True
+                    queue=settings.RABBITMQ_PROPOSED_CV_REQUEST_QUEUE, durable=True
                 )
                 self._channel.queue_declare(
-                    queue=settings.RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE, durable=True
+                    queue=settings.RABBITMQ_PROPOSED_CV_RESULT_QUEUE, durable=True
                 )
 
-                self._channel.basic_qos(prefetch_count=2)
+                self._channel.basic_qos(prefetch_count=1)
 
                 self._channel.basic_consume(
-                    queue=settings.RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE,
-                    on_message_callback=lambda ch, method, props, body: self._on_message(
-                        ch, method, props, body, queue_name=settings.RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE,
-                        result_queue_name=settings.RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE
-                    ),
+                    queue=settings.RABBITMQ_PROPOSED_CV_REQUEST_QUEUE,
+                    on_message_callback=self._on_message,
                     auto_ack=False,
                 )
 
                 logger.info(
-                    "RabbitMQ embedding job worker is consuming queue '{}'",
-                    settings.RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE
+                    "RabbitMQ proposed CV worker is consuming queue '{}'",
+                    settings.RABBITMQ_PROPOSED_CV_REQUEST_QUEUE,
                 )
                 self._channel.start_consuming()
             except Exception:
-                logger.exception("RabbitMQ embedding job worker crashed, retrying...")
+                logger.exception("RabbitMQ proposed CV worker crashed, retrying...")
             finally:
                 self._cleanup_connection()
 
@@ -119,13 +114,13 @@ class EmbeddingJobQueueWorker:
             try:
                 self._channel.close()
             except Exception:
-                logger.exception("Failed to close RabbitMQ embedding job channel cleanly")
+                logger.exception("Failed to close RabbitMQ proposed CV channel cleanly")
 
         if self._connection and self._connection.is_open:
             try:
                 self._connection.close()
             except Exception:
-                logger.exception("Failed to close RabbitMQ embedding job connection cleanly")
+                logger.exception("Failed to close RabbitMQ proposed CV connection cleanly")
 
         self._channel = None
         self._connection = None
@@ -136,73 +131,49 @@ class EmbeddingJobQueueWorker:
         method,
         properties,
         body: bytes,
-        queue_name: str,
-        result_queue_name: str,
     ) -> None:
         job_id = None
         try:
             raw_data = body.decode("utf-8")
-            logger.info("Received job embedding request from {}:\n{}...", queue_name, raw_data[:200])
-            
+            logger.info("Received proposed CV request: {}", raw_data[:200])
+
             payload = json.loads(raw_data)
             job_id = payload.get("id")
-            if job_id is None:
-                job_id = -1
 
-            # Execute validation and embedding flow (async service -> asyncio.run)
-            result_msg = asyncio.run(process_and_embed_job(payload))
+            # Execute the matching logic (synchronous — no asyncio needed)
+            result_msg = find_proposed_resumes(payload)
 
-            # Publish success result
+            # Publish result
             self._publish_result(
-                routing_key=result_queue_name,
                 parsed_data=result_msg.model_dump(mode="json"),
             )
             logger.info(
-                "Successfully processed embedding for jobId: {} from queue {}",
-                job_id, queue_name
+                "Successfully processed proposed CV for jobId={}, found {} matches",
+                job_id,
+                len(result_msg.proposedCVs),
             )
 
-        except ValidationError as ve:
-            error_msg = f"Failed to validate incoming job embedding request: {ve}"
-            logger.exception(error_msg)
-            self._send_error_result(ch, method, result_queue_name, job_id, str(ve))
-            return
-            
-        except Exception as embed_err:
-            logger.exception("Failed to process job embedding message")
-            if job_id is None or job_id == -1:
-                try:
-                    fallback_payload = json.loads(body.decode("utf-8"))
-                    job_id = fallback_payload.get("id", -1)
-                except Exception:
-                    job_id = -1
-
-            self._send_error_result(ch, method, result_queue_name, job_id, str(embed_err)[:1000])
-            return
+        except Exception as e:
+            logger.exception("Failed to process proposed CV message for jobId={}", job_id)
+            # On error, publish an empty result so the core service is not left hanging
+            try:
+                empty_result = {
+                    "status": ProposeStatus.FAILED.value,
+                    "errorMessage": str(e),
+                    "jobId": job_id or -1,
+                    "proposedCVs": []
+                }
+                self._publish_result(parsed_data=empty_result)
+            except Exception:
+                logger.exception("Failed to publish empty proposed CV result, requeue message")
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                return
 
         ch.basic_ack(delivery_tag=method.delivery_tag)
-
-    def _send_error_result(self, ch, method, routing_key: str, job_id: int, error_msg: str) -> None:
-        try:
-            error_result = EmbeddingJobResultMessage(
-                id=job_id,
-                status=EmbedStatus.FAIL,
-                errorMessage=error_msg,
-            )
-            self._publish_result(
-                routing_key=routing_key,
-                parsed_data=error_result.model_dump(mode="json"),
-            )
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-        except Exception:
-            logger.exception("Failed to publish FAILED job embedding result, requeue message")
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-
 
     def _publish_result(
         self,
         *,
-        routing_key: str,
         parsed_data: dict[str, Any],
     ) -> None:
         if self._channel is None or not self._channel.is_open:
@@ -210,7 +181,7 @@ class EmbeddingJobQueueWorker:
 
         self._channel.basic_publish(
             exchange="",
-            routing_key=routing_key,
+            routing_key=settings.RABBITMQ_PROPOSED_CV_RESULT_QUEUE,
             body=json.dumps(parsed_data, ensure_ascii=False).encode("utf-8"),
             properties=pika.BasicProperties(
                 content_type="application/json",
@@ -218,4 +189,5 @@ class EmbeddingJobQueueWorker:
             ),
         )
 
-embedding_job_queue_worker = EmbeddingJobQueueWorker()
+
+proposed_cv_queue_worker = ProposedCVQueueWorker()

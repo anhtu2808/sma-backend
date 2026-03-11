@@ -12,5 +12,5 @@ import java.util.Set;
 public interface ProposedResumeRepository extends JpaRepository<ProposedResume, Integer> {
 
     Page<ProposedResume> findByJobId(Integer jobId, Pageable pageable);
-
+    boolean existsByJobIdAndResumeId(Integer jobId, Integer resumeId);
 }
