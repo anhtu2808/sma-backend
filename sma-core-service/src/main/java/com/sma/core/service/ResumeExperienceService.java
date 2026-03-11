@@ -7,4 +7,6 @@ public interface ResumeExperienceService {
     ResumeExperienceResponse create(Integer resumeId, UpdateResumeExperienceRequest request);
 
     ResumeExperienceResponse update(Integer resumeId, Integer experienceId, UpdateResumeExperienceRequest request);
+
+    void delete(Integer resumeId, Integer experienceId);
 }

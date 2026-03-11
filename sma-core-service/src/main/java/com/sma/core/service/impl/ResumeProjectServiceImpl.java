@@ -47,6 +47,16 @@ public class ResumeProjectServiceImpl implements ResumeProjectService {
         return save(project, request);
     }
 
+    @Override
+    public void delete(Integer resumeId, Integer projectId) {
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        ResumeProject project = resumeProjectRepository
+                .findByIdAndResume_IdAndResume_Candidate_Id(projectId, resumeId, candidateId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        resumeProjectRepository.delete(project);
+    }
+
     private Resume getOwnedResume(Integer resumeId) {
         Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
         return resumeRepository.findByIdAndCandidate_Id(resumeId, candidateId)

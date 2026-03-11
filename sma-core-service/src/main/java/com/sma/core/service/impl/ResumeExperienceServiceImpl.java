@@ -47,6 +47,16 @@ public class ResumeExperienceServiceImpl implements ResumeExperienceService {
         return save(experience, request);
     }
 
+    @Override
+    public void delete(Integer resumeId, Integer experienceId) {
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        ResumeExperience experience = resumeExperienceRepository
+                .findByIdAndResume_IdAndResume_Candidate_Id(experienceId, resumeId, candidateId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        resumeExperienceRepository.delete(experience);
+    }
+
     private Resume getOwnedResume(Integer resumeId) {
         Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
         return resumeRepository.findByIdAndCandidate_Id(resumeId, candidateId)

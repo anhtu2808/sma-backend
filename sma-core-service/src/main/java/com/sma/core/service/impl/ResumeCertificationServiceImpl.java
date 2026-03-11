@@ -47,6 +47,16 @@ public class ResumeCertificationServiceImpl implements ResumeCertificationServic
         return save(certification, request);
     }
 
+    @Override
+    public void delete(Integer resumeId, Integer certificationId) {
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        ResumeCertification certification = resumeCertificationRepository
+                .findByIdAndResume_IdAndResume_Candidate_Id(certificationId, resumeId, candidateId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        resumeCertificationRepository.delete(certification);
+    }
+
     private Resume getOwnedResume(Integer resumeId) {
         Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
         return resumeRepository.findByIdAndCandidate_Id(resumeId, candidateId)

@@ -158,6 +158,18 @@ public class ResumeController {
                 .build();
     }
 
+    @DeleteMapping("/{resumeId}/educations/{educationId}")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<Void> deleteEducation(
+            @PathVariable Integer resumeId,
+            @PathVariable Integer educationId
+    ) {
+        resumeEducationService.delete(resumeId, educationId);
+        return ApiResponse.<Void>builder()
+                .message("Delete resume education successfully")
+                .build();
+    }
+
     @PostMapping("/{resumeId}/experiences")
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ResumeExperienceResponse> createExperience(
@@ -180,6 +192,18 @@ public class ResumeController {
         return ApiResponse.<ResumeExperienceResponse>builder()
                 .message("Update resume experience successfully")
                 .data(resumeExperienceService.update(resumeId, experienceId, request))
+                .build();
+    }
+
+    @DeleteMapping("/{resumeId}/experiences/{experienceId}")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<Void> deleteExperience(
+            @PathVariable Integer resumeId,
+            @PathVariable Integer experienceId
+    ) {
+        resumeExperienceService.delete(resumeId, experienceId);
+        return ApiResponse.<Void>builder()
+                .message("Delete resume experience successfully")
                 .build();
     }
 
@@ -260,6 +284,18 @@ public class ResumeController {
                 .build();
     }
 
+    @DeleteMapping("/{resumeId}/projects/{projectId}")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<Void> deleteProject(
+            @PathVariable Integer resumeId,
+            @PathVariable Integer projectId
+    ) {
+        resumeProjectService.delete(resumeId, projectId);
+        return ApiResponse.<Void>builder()
+                .message("Delete resume project successfully")
+                .build();
+    }
+
     @PostMapping("/{resumeId}/projects/{projectId}/skills")
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<ProjectSkillResponse> createProjectSkill(
@@ -308,6 +344,18 @@ public class ResumeController {
         return ApiResponse.<ResumeCertificationDetailResponse>builder()
                 .message("Update resume certification successfully")
                 .data(resumeCertificationService.update(resumeId, certificationId, request))
+                .build();
+    }
+
+    @DeleteMapping("/{resumeId}/certifications/{certificationId}")
+    @PreAuthorize("hasRole('CANDIDATE')")
+    public ApiResponse<Void> deleteCertification(
+            @PathVariable Integer resumeId,
+            @PathVariable Integer certificationId
+    ) {
+        resumeCertificationService.delete(resumeId, certificationId);
+        return ApiResponse.<Void>builder()
+                .message("Delete resume certification successfully")
                 .build();
     }
 
