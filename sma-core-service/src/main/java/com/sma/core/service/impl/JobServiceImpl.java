@@ -293,7 +293,7 @@ public class JobServiceImpl implements JobService {
             if (request.getStatus() != null && !request.getStatus().isEmpty())
                 allowedStatus = request.getStatus();
             else
-                allowedStatus = EnumSet.noneOf(JobStatus.class);
+                allowedStatus = getDefaultNonArchivedStatuses();
             if (role.equals(Role.RECRUITER)) {
                 Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentRecruiterId());
                 request.setCompanyId(recruiter.getCompany().getId());
@@ -511,7 +511,7 @@ public class JobServiceImpl implements JobService {
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             allowedStatus = request.getStatus();
         } else {
-            allowedStatus = EnumSet.noneOf(JobStatus.class);
+            allowedStatus = getDefaultNonArchivedStatuses();
         }
         Page<Job> jobPage = jobRepository.findAll(
                 JobSpecification.withFilter(request, allowedStatus, null),
@@ -547,6 +547,12 @@ public class JobServiceImpl implements JobService {
                                        .all(all)
                                        .statuses(statusCounts)
                                        .build();
+    }
+
+    private EnumSet<JobStatus> getDefaultNonArchivedStatuses() {
+        EnumSet<JobStatus> statuses = EnumSet.allOf(JobStatus.class);
+        statuses.remove(JobStatus.ARCHIVED);
+        return statuses;
     }
 
     @Override
