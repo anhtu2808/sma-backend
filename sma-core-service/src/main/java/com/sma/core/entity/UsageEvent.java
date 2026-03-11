@@ -1,10 +1,14 @@
 package com.sma.core.entity;
 
-import com.sma.core.enums.EventSource;
+import com.sma.core.enums.UsageEventStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "usage_events")
@@ -34,14 +38,27 @@ public class UsageEvent {
     private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_source", length = 50)
-    private EventSource eventSource;
+    @Column(name = "status", nullable = false, columnDefinition = "usage_event_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default
+    private UsageEventStatus status = UsageEventStatus.SUCCESS;
 
-    @Column(name = "source_id")
-    private Integer sourceId;
+    @OneToMany(mappedBy = "usageEvent", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private Set<UsageEventContext> contexts = new LinkedHashSet<>();
+
+    public void addContext(UsageEventContext context) {
+        if (context == null) {
+            return;
+        }
+        context.setUsageEvent(this);
+        contexts.add(context);
+    }
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
     }
 }

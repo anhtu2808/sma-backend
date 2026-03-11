@@ -108,16 +108,12 @@ public interface MatchingRequestMapper {
                 .evaluationId(evaluation.getId())
                 .resumeId(resume.getId())
                 .jobId(job.getId())
+                .rawResumeText(resume.getRawText())
                 .resumeName(resume.getResumeName())
                 .resumeFileName(resume.getFileName())
                 .candidateFullName(resume.getFullName())
                 .jobTitle(job.getName())
                 .criteria(toCriteriaRequests(job.getScoringCriterias()))
-                .experiences(toExperienceRequests(resume.getExperiences()))
-                .projects(toProjectRequests(resume.getProjects()))
-                .hardSkills(toHardSkillRequests(resume.getSkillGroups()))
-                .softSkills(toSoftSkillRequests(resume.getSkillGroups()))
-                .educations(toEducationRequests(resume.getEducations()))
                 .build();
     }
 }

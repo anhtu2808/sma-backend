@@ -13,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResumeParsingResultMessage {
     Integer resumeId;
+    Integer usageEventId;
     String parseAttemptId;
     ResumeParseStatus status;
     String errorMessage;

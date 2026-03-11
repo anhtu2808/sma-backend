@@ -1,5 +1,8 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.model.UsageContextModel;
+import com.sma.core.dto.message.matching.CriteriaScoreData;
+import com.sma.core.dto.message.matching.CriteriaScoreDetailData;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
 import com.sma.core.dto.message.matching.MatchingResultData;
 import com.sma.core.dto.message.matching.MatchingResultMessage;
@@ -7,7 +10,6 @@ import com.sma.core.dto.message.suggest.ReSuggestRequestMessage;
 import com.sma.core.dto.message.suggest.SuggestResultMessage;
 import com.sma.core.dto.message.suggest.SuggestionRequestMessage;
 import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
-import com.sma.core.dto.request.evaluation.suggest.WeaknessSuggestionRequest;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
@@ -17,6 +19,7 @@ import com.sma.core.entity.*;
 import com.sma.core.enums.*;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
+import com.sma.core.exception.MatchingPublishException;
 import com.sma.core.mapper.evaluation.EvaluationMapper;
 import com.sma.core.mapper.evaluation.EvaluationResponseMapper;
 import com.sma.core.mapper.evaluation.MatchingRequestMapper;
@@ -46,11 +49,8 @@ import java.util.stream.Collectors;
 public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     ResumeEvaluationRepository resumeEvaluationRepository;
-    EvaluationExperienceDetailRepository evaluationExperienceDetailRepository;
-    EvaluationHardSkillRepository evaluationHardSkillRepository;
     EvaluationWeaknessRepository evaluationWeaknessRepository;
     EvaluationGapRepository evaluationGapRepository;
-    EvaluationSoftSkillRepository evaluationSoftSkillRepository;
     EvaluationCriteriaScoreRepository evaluationCriteriaScoreRepository;
     JobRepository jobRepository;
     ResumeRepository resumeRepository;
@@ -64,14 +64,13 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     EvaluationMapper evaluationMapper;
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = MatchingPublishException.class)
     public Integer processMatching(Integer jobId, Integer resumeId) {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         validateForMatching(job, resume);
-        quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE);
         // Check if an overview evaluation already exists for this (job, resume) pair
         Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
                 .findByResumeIdAndJobId(resumeId, jobId);
@@ -83,11 +82,13 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             evaluation.setEvaluationStatus(EvaluationStatus.WAITING);
             resumeEvaluationRepository.save(evaluation);
 
-            // Build message with overview scores as context for AI
-            MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
-            message.setMatchingType(EvaluationType.DETAIL.toString());
-            message.setOverviewScores(buildOverviewScoresMap(evaluation));
-            matchingRequestPublisher.publish(message);
+            publishMatchingRequest(
+                    evaluation,
+                    resume,
+                    job,
+                    EvaluationType.DETAIL,
+                    buildOverviewScoresMap(evaluation)
+            );
 
             log.info("Detail supplement request sent for evaluationId={}, jobId={}, resumeId={}",
                     evaluation.getId(), jobId, resumeId);
@@ -99,7 +100,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = MatchingPublishException.class)
     public Integer processMatchingOverview(Integer jobId, Integer resumeId) {
         Resume resume = resumeRepository.findById(resumeId)
                 .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
@@ -107,7 +108,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
         validateForMatching(job, resume);
         if (job.getEnableAiScoring()) {
-            quotaService.checkEventQuotaAvailability(FeatureKey.MATCHING_SCORE, Role.RECRUITER, job.getCompany().getId());
             Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
                     .findByResumeIdAndJobIdAndEvaluationType(resumeId, jobId, EvaluationType.DETAIL);
             if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
@@ -151,43 +151,43 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 message.getEvaluationId(), message.getStatus());
 
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(message.getEvaluationId())
-                .orElse(null);
-        if (evaluation == null) {
-            log.error("Evaluation not found for id={}", message.getEvaluationId());
-            return;
-        }
+                .orElseThrow(() -> {
+                    log.error("Evaluation not found for id={}", message.getEvaluationId());
+                    quotaService.markUsageEventFailed(message.getUsageEventId());
+                    return new AppException(ErrorCode.EVALUATION_NOT_EXISTED);
+                });
 
         if (message.getStatus() == EvaluationStatus.FAIL) {
-            evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
-            resumeEvaluationRepository.save(evaluation);
-            log.warn("Matching failed for evaluationId={}: {}", message.getEvaluationId(), message.getErrorMessage());
+            markMatchingFailed(evaluation, message.getUsageEventId(), message.getErrorMessage());
             return;
         }
 
         try {
             MatchingResultData data = message.getParsedData();
             if (data == null) {
-                evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
-                resumeEvaluationRepository.save(evaluation);
+                markMatchingFailed(
+                        evaluation,
+                        message.getUsageEventId(),
+                        "INVALID_RESULT_MESSAGE: missing parsedData for FINISH status"
+                );
                 return;
             }
 
-            if (evaluation.getEvaluationType() == EvaluationType.DETAIL
-                    && hasExistingCriteriaScores(evaluation)) {
-                // Detail supplement mode: only add explanations, nested skills, gaps, weaknesses
-                processDetailSupplementResult(data, evaluation);
-            } else {
-                // Overview or full detail mode: save everything from scratch
-                processFullResult(data, evaluation);
-            }
+        if (evaluation.getEvaluationType() == EvaluationType.DETAIL
+                && hasExistingCriteriaScores(evaluation)) {
+            // Detail supplement mode: add explanations, details, and suggestions
+            processDetailSupplementResult(data, evaluation);
+        } else {
+            // Overview or full detail mode: save everything from scratch
+            processFullResult(data, evaluation);
+        }
 
             log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
                     evaluation.getId(), evaluation.getAiOverallScore());
 
         } catch (Exception e) {
             log.error("Error processing matching result for evaluationId={}", message.getEvaluationId(), e);
-            evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
-            resumeEvaluationRepository.save(evaluation);
+            markMatchingFailed(evaluation, message.getUsageEventId(), e.getMessage());
         }
     }
 
@@ -293,10 +293,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 .build();
         resumeEvaluationRepository.save(evaluation);
 
-        // Build & publish message using mapper
-        MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
-        message.setMatchingType(type.toString());
-        matchingRequestPublisher.publish(message);
+        publishMatchingRequest(evaluation, resume, job, type, null);
 
         log.info("Matching request sent for evaluationId={}, jobId={}, resumeId={}, matchingType={}",
                 evaluation.getId(), jobId, resumeId, type);
@@ -306,46 +303,45 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
     /**
      * Process full matching result — used for overview and full detail (no prior overview).
-     * Saves top-level fields, criteria scores, and optionally nested skills/gaps/weaknesses.
+     * Saves top-level fields, criteria scores, details, and suggestions.
      */
     private void processFullResult(MatchingResultData data, ResumeEvaluation evaluation) {
-        // Map top-level fields
+        // Map top-level fields (includes transferabilityToRole, isTrueLevel, hasRelatedExperience)
         matchingResultMapper.mapToEvaluation(data, evaluation);
         resumeEvaluationRepository.save(evaluation);
 
-        // Save criteria scores
+        // Save criteria scores with details and suggestions
         saveCriteriaScores(data.getCriteriaScores(), evaluation);
-
-        // Save gaps and weaknesses (null-safe — overview results won't have these)
-        saveGaps(data.getGaps(), evaluation);
-        saveWeaknesses(data.getWeaknesses(), evaluation);
     }
 
     /**
      * Process detail supplement result — used when overview already exists.
-     * Only adds aiExplanation, nested skills, gaps, and weaknesses to existing record.
+     * Adds aiExplanation, details, and suggestions to existing record.
      * Does NOT re-score criteria.
      */
     private void processDetailSupplementResult(MatchingResultData data, ResumeEvaluation evaluation) {
-        // Update supplementary top-level fields (isTrueLevel, hasRelatedExperience)
+        // Update supplementary top-level fields
         if (data.getIsTrueLevel() != null) {
             evaluation.setIsTrueLevel(data.getIsTrueLevel());
         }
         if (data.getHasRelatedExperience() != null) {
             evaluation.setHasRelatedExperience(data.getHasRelatedExperience());
         }
+        if (data.getTransferabilityToRole() != null) {
+            evaluation.setTransferabilityToRole(data.getTransferabilityToRole());
+        }
         if (data.getProcessingTimeSecond() != null) {
             evaluation.setProcessingTimeSecond(data.getProcessingTimeSecond());
         }
+        if (data.getAiModelVersion() != null) {
+            evaluation.setAiModelVersion(data.getAiModelVersion());
+        }
+        evaluation.setEvaluationType(EvaluationType.DETAIL);
         evaluation.setEvaluationStatus(EvaluationStatus.FINISH);
         resumeEvaluationRepository.save(evaluation);
 
-        // Supplement existing criteria scores with aiExplanation and nested skills
+        // Supplement existing criteria scores with aiExplanation, details, and suggestions
         supplementCriteriaScores(data.getCriteriaScores(), evaluation);
-
-        // Save new gaps and weaknesses
-        saveGaps(data.getGaps(), evaluation);
-        saveWeaknesses(data.getWeaknesses(), evaluation);
     }
 
     private boolean hasExistingCriteriaScores(ResumeEvaluation evaluation) {
@@ -372,7 +368,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                     csMap.put("criteriaType", cs.getScoringCriteria().getCriteria().getCriteriaType().name());
                 }
                 csMap.put("aiScore", cs.getAiScore());
-                csMap.put("weightedScore", cs.getWeightedScore());
                 criteriaScoresList.add(csMap);
             }
         }
@@ -382,10 +377,10 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     /**
-     * Supplement existing criteria scores with aiExplanation and nested skill details.
+     * Supplement existing criteria scores with aiExplanation, details, and suggestions.
      * Matches by criteriaType from the AI response to existing DB records.
      */
-    private void supplementCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores,
+    private void supplementCriteriaScores(List<CriteriaScoreData> criteriaScores,
                                           ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
@@ -399,19 +394,18 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             }
         }
 
-        for (MatchingResultData.CriteriaScoreData csData : criteriaScores) {
+        for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaType());
             if (existing != null) {
-                // Supplement existing record with explanation and nested details
+                // Supplement existing record with explanation
                 if (csData.getAiExplanation() != null) {
                     existing.setAiExplanation(csData.getAiExplanation());
                 }
                 evaluationCriteriaScoreRepository.save(existing);
 
-                // Save nested details
-                saveHardSkills(csData.getHardSkills(), existing);
-                saveSoftSkills(csData.getSoftSkills(), existing);
-                saveExperienceDetails(csData.getExperienceDetails(), existing);
+                // Save nested details and suggestions
+                saveDetails(csData.getDetails(), existing);
+
             } else {
                 log.warn("No existing criteria score found for criteriaType={} in evaluationId={}",
                         csData.getCriteriaType(), evaluation.getId());
@@ -419,16 +413,12 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         }
     }
 
-    private void saveCriteriaScores(List<MatchingResultData.CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
+    private void saveCriteriaScores(List<CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
-        for (MatchingResultData.CriteriaScoreData csData : criteriaScores) {
+        for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore criteriaScore = matchingResultMapper.toCriteriaScore(csData);
             criteriaScore.setEvaluation(evaluation);
-
-            if (csData.getMaxScore() == null) {
-                criteriaScore.setMaxScore(100f);
-            }
 
             // Link to existing ScoringCriteria by criteriaType
             if (csData.getCriteriaType() != null && evaluation.getJob() != null) {
@@ -441,55 +431,102 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
-            // Save nested details (null-safe — overview results won't have these)
-            saveHardSkills(csData.getHardSkills(), criteriaScore);
-            saveSoftSkills(csData.getSoftSkills(), criteriaScore);
-            saveExperienceDetails(csData.getExperienceDetails(), criteriaScore);
+            // Save nested details and suggestions
+            saveDetails(csData.getDetails(), criteriaScore);
         }
     }
 
-    private void saveHardSkills(List<MatchingResultData.HardSkillData> skills, EvaluationCriteriaScore criteriaScore) {
-        if (skills == null) return;
-        for (MatchingResultData.HardSkillData data : skills) {
-            EvaluationHardSkill entity = matchingResultMapper.toHardSkill(data);
-            entity.setEvaluationCriteriaScore(criteriaScore);
-            evaluationHardSkillRepository.save(entity);
+    /**
+     * Save CriteriaScoreDetailData items as EvaluationCriteriaDetail entities,
+     * including their suggestions as EvaluationCriteriaSuggestion entities.
+     * Uses cascade to persist — no separate repository needed.
+     */
+    private void saveDetails(List<CriteriaScoreDetailData> details, EvaluationCriteriaScore criteriaScore) {
+        if (details == null || details.isEmpty()) return;
+
+        // Ensure details set is initialized (MapStruct + @Builder may leave it null)
+        if (criteriaScore.getDetails() == null) {
+            criteriaScore.setDetails(new HashSet<>());
+        }
+
+        for (CriteriaScoreDetailData detailData : details) {
+            EvaluationCriteriaDetail detail = EvaluationCriteriaDetail.builder()
+                    .label(detailData.getLabel())
+                    .status(detailData.getStatus())
+                    .description(detailData.getDescription())
+                    .requiredLevel(detailData.getRequiredLevel())
+                    .candidateLevel(detailData.getCandidateLevel())
+                    .startIndex(detailData.getStartIndex())
+                    .endIndex(detailData.getEndIndex())
+                    .impactScore(detailData.getImpactScore())
+                    .evaluationCriteriaScore(criteriaScore)
+                    .build();
+
+            criteriaScore.getDetails().add(detail);
+
+            // Save suggestions for this detail
+            if (detailData.getSuggestions() != null) {
+                if (detail.getSuggestions() == null) {
+                    detail.setSuggestions(new HashSet<>());
+                }
+                for (String suggestionText : detailData.getSuggestions()) {
+                    EvaluationCriteriaSuggestion suggestion = EvaluationCriteriaSuggestion.builder()
+                            .suggestion(suggestionText)
+                            .evaluationCriteriaDetail(detail)
+                            .build();
+                    detail.getSuggestions().add(suggestion);
+                }
+            }
+        }
+
+        // Cascade will persist details and suggestions when criteria score is saved
+        evaluationCriteriaScoreRepository.save(criteriaScore);
+    }
+
+    private void publishMatchingRequest(
+            ResumeEvaluation evaluation,
+            Resume resume,
+            Job job,
+            EvaluationType evaluationType,
+            Map<String, Object> overviewScores
+    ) {
+        MatchingRequestMessage message = matchingRequestMapper.buildMessage(evaluation, resume, job);
+        message.setMatchingType(evaluationType.toString());
+        message.setOverviewScores(overviewScores);
+
+        UsageEvent usageEvent = createMatchingUsageEvent(job.getId(), resume.getId());
+        message.setUsageEventId(usageEvent.getId());
+
+        try {
+            matchingRequestPublisher.publish(message);
+        } catch (Exception exception) {
+            handlePublishFailure(evaluation, usageEvent.getId(), exception);
         }
     }
 
-    private void saveSoftSkills(List<MatchingResultData.SoftSkillData> skills, EvaluationCriteriaScore criteriaScore) {
-        if (skills == null) return;
-        for (MatchingResultData.SoftSkillData data : skills) {
-            EvaluationSoftSkill entity = matchingResultMapper.toSoftSkill(data);
-            entity.setEvaluationCriteriaScore(criteriaScore);
-            evaluationSoftSkillRepository.save(entity);
-        }
+    private UsageEvent createMatchingUsageEvent(Integer jobId, Integer resumeId) {
+        return quotaService.consumeEventQuota(
+                FeatureKey.MATCHING_SCORE,
+                1,
+                List.of(
+                        new UsageContextModel(EventSource.JOB, jobId),
+                        new UsageContextModel(EventSource.RESUME, resumeId)
+                )
+        );
     }
 
-    private void saveExperienceDetails(List<MatchingResultData.ExperienceDetailData> details, EvaluationCriteriaScore criteriaScore) {
-        if (details == null) return;
-        for (MatchingResultData.ExperienceDetailData data : details) {
-            EvaluationExperienceDetail entity = matchingResultMapper.toExperienceDetail(data);
-            entity.setEvaluationCriteriaScore(criteriaScore);
-            evaluationExperienceDetailRepository.save(entity);
-        }
+    private void handlePublishFailure(ResumeEvaluation evaluation, Integer usageEventId, Exception exception) {
+        log.error("Failed to publish matching request for evaluationId={}", evaluation.getId(), exception);
+        evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
+        resumeEvaluationRepository.save(evaluation);
+        quotaService.markUsageEventFailed(usageEventId);
+        throw new MatchingPublishException("Failed to publish matching request", exception);
     }
 
-    private void saveGaps(List<MatchingResultData.GapData> gaps, ResumeEvaluation evaluation) {
-        if (gaps == null) return;
-        for (MatchingResultData.GapData data : gaps) {
-            EvaluationGap entity = matchingResultMapper.toGap(data);
-            entity.setEvaluation(evaluation);
-            evaluationGapRepository.save(entity);
-        }
-    }
-
-    private void saveWeaknesses(List<MatchingResultData.WeaknessData> weaknesses, ResumeEvaluation evaluation) {
-        if (weaknesses == null) return;
-        for (MatchingResultData.WeaknessData data : weaknesses) {
-            EvaluationWeakness entity = matchingResultMapper.toWeakness(data);
-            entity.setEvaluation(evaluation);
-            evaluationWeaknessRepository.save(entity);
-        }
+    private void markMatchingFailed(ResumeEvaluation evaluation, Integer usageEventId, String errorMessage) {
+        evaluation.setEvaluationStatus(EvaluationStatus.FAIL);
+        resumeEvaluationRepository.save(evaluation);
+        quotaService.markUsageEventFailed(usageEventId);
+        log.warn("Matching failed for evaluationId={}: {}", evaluation.getId(), errorMessage);
     }
 }

@@ -673,9 +673,19 @@ Table Usage_Events {
   subscription_id int [not null]
   feature_id int [not null]
   amount int [not null]
-  event_source enum('JOB', 'APPLICATION', 'RESUME', 'EXPORT_RECORD')
-  source_id int
+  status enum('SUCCESS', 'FAIL') [not null, default: 'SUCCESS']
   created_at datetime [default: `now()`]
+}
+
+Table Usage_Event_Contexts {
+  id int [pk, increment]
+  usage_event_id int [not null]
+  event_source enum('JOB', 'APPLICATION', 'RESUME', 'EXPORT_RECORD') [not null]
+  source_id int [not null]
+
+  indexes {
+    (usage_event_id, event_source, source_id) [unique]
+  }
 }
 
 Table Payment_Histories {
@@ -698,6 +708,7 @@ Ref: Subscriptions.candidate_id > Candidates.id [delete: cascade]
 Ref: Subscriptions.plan_id > Plans.id
 Ref: Usage_Events.subscription_id > Subscriptions.id [delete: cascade]
 Ref: Usage_Events.feature_id > Features.id [delete: cascade]
+Ref: Usage_Event_Contexts.usage_event_id > Usage_Events.id [delete: cascade]
 Ref: Payment_Histories.subscription_id > Subscriptions.id [delete: cascade]
 Ref: Applications.candidate_id > Candidates.id
 

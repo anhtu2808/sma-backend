@@ -15,6 +15,7 @@ import java.util.Set;
 public class MatchingRequestMessage {
 
     Integer evaluationId;
+    Integer usageEventId;
     Integer resumeId;
     Integer jobId;
     String resumeName;
@@ -22,11 +23,7 @@ public class MatchingRequestMessage {
     String candidateFullName;
     String jobTitle;
     Set<JobScoringCriteriaRequest> criteria;
-    Set<ResumeExperienceRequest> experiences;
-    Set<ResumeProjectRequest> projects;
-    Set<ResumeHardSkillRequest> hardSkills;
-    Set<ResumeSoftSkillRequest> softSkills;
-    Set<ResumeEducationRequest> educations;
+    String rawResumeText;
     String matchingType; // "OVERVIEW" or "DETAIL"
     Map<String, Object> overviewScores; // Overview data for detail supplement mode
 

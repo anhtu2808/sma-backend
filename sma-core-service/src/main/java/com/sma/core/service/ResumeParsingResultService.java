@@ -4,4 +4,10 @@ import com.sma.core.dto.message.resume.ResumeParsingResultMessage;
 
 public interface ResumeParsingResultService {
     void processParsingResult(ResumeParsingResultMessage message);
+
+    void markParseFailed(Integer resumeId,
+                         Integer usageEventId,
+                         String parseAttemptId,
+                         String errorMessage,
+                         String processedAt);
 }

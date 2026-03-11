@@ -2,6 +2,7 @@ package com.sma.core.service.quota.impl;
 
 import com.sma.core.entity.Subscription;
 import com.sma.core.enums.EventSource;
+import com.sma.core.enums.UsageEventStatus;
 import com.sma.core.enums.UsageLimitUnit;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -25,7 +26,7 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
             Integer featureId,
             UsageLimitUnit unit,
             EventSource eventSource,
-            Integer entityId
+            Integer sourceId
     ) {
         LocalDateTime now = LocalDateTime.now();
         long total = 0L;
@@ -39,25 +40,27 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
             switch (unit) {
 
                 case TOTAL -> {
-                    usage = eventSource == null && entityId == null
-                            ? usageEventRepository.sumTotal(subscription.getId(), featureId)
+                    usage = eventSource == null && sourceId == null
+                            ? usageEventRepository.sumTotal(subscription.getId(), featureId, UsageEventStatus.SUCCESS)
                             : usageEventRepository.sumTotalByContext(
                             subscription.getId(),
                             featureId,
                             eventSource,
-                            entityId
+                            sourceId,
+                            UsageEventStatus.SUCCESS
                     );
                 }
 
                 case PER_MONTH -> {
                     var window = windowResolver.resolveAnchoredMonthlyWindow(subscription, now);
 
-                    usage = eventSource == null && entityId == null
+                    usage = eventSource == null && sourceId == null
                             ? usageEventRepository.sumInPeriod(
                             subscription.getId(),
                             featureId,
                             window.periodStart(),
-                            window.periodEnd()
+                            window.periodEnd(),
+                            UsageEventStatus.SUCCESS
                     )
                             : usageEventRepository.sumInPeriodByContext(
                             subscription.getId(),
@@ -65,7 +68,8 @@ public class EventUsageCalculatorImpl implements EventUsageCalculator {
                             window.periodStart(),
                             window.periodEnd(),
                             eventSource,
-                            entityId
+                            sourceId,
+                            UsageEventStatus.SUCCESS
                     );
                 }
 
