@@ -10,6 +10,7 @@ on:
     branches: [ main, develop ]
     paths:
       - 'sma-backend/sma-core-service/**'
+  workflow_dispatch:
 
 jobs:
   unit-tests:
