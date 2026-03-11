@@ -1,6 +1,7 @@
 package com.sma.core.dto.request.job;
 
 import com.sma.core.enums.JobStatus;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -12,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class UpdateJobStatusRequest {
 
+    @NotNull
     JobStatus jobStatus;
 
 }

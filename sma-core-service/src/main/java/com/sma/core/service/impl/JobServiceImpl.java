@@ -200,21 +200,15 @@ public class JobServiceImpl implements JobService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        if (role == Role.RECRUITER) {
-            Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
-            Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
-                                                     .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-
-            boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
-            if (!sameCompany) {
-                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-            }
-            if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED || job.getStatus().equals(JobStatus.SUSPENDED)) {
-                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-            }
-        }
         JobStatus currentStatus = job.getStatus();
         JobStatus targetStatus = request.getJobStatus();
+        if (targetStatus == null) {
+            throw new AppException(ErrorCode.INVALID_JOB_STATUS);
+        }
+
+        if (role == Role.RECRUITER) {
+            validateRecruiterPermission(job, currentStatus, targetStatus);
+        }
 
         switch (targetStatus) {
             case CLOSED -> {
@@ -222,12 +216,30 @@ public class JobServiceImpl implements JobService {
                 job.setStatus(JobStatus.CLOSED);
             }
             case DRAFT -> {
-                if (currentStatus != JobStatus.PENDING_REVIEW && currentStatus != JobStatus.CLOSED)
+                if (currentStatus != JobStatus.PENDING_REVIEW
+                        && currentStatus != JobStatus.CLOSED
+                        && currentStatus != JobStatus.ARCHIVED)
                     throw new AppException(ErrorCode.CAN_NOT_DRAFTED);
                 job.setStatus(JobStatus.DRAFT);
             }
-            case PUBLISHED, SUSPENDED -> {
-                job.setStatus(targetStatus);
+            case PUBLISHED -> {
+                if (currentStatus != JobStatus.DRAFT
+                        && currentStatus != JobStatus.CLOSED
+                        && currentStatus != JobStatus.PENDING_REVIEW)
+                    throw new AppException(ErrorCode.CAN_NOT_PUBLISH);
+                job.setStatus(JobStatus.PUBLISHED);
+            }
+            case SUSPENDED -> {
+                if (currentStatus != JobStatus.PUBLISHED && currentStatus != JobStatus.PENDING_REVIEW)
+                    throw new AppException(ErrorCode.INVALID_JOB_STATUS);
+                job.setStatus(JobStatus.SUSPENDED);
+            }
+            case ARCHIVED -> {
+                if (currentStatus != JobStatus.DRAFT
+                        && currentStatus != JobStatus.CLOSED
+                        && currentStatus != JobStatus.SUSPENDED)
+                    throw new AppException(ErrorCode.CAN_NOT_ARCHIVED);
+                job.setStatus(JobStatus.ARCHIVED);
             }
             case PENDING_REVIEW -> throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
             default -> throw new AppException(ErrorCode.INVALID_JOB_STATUS);
@@ -235,6 +247,25 @@ public class JobServiceImpl implements JobService {
 
         jobRepository.save(job);
         return jobMapper.toJobDetailResponse(job);
+    }
+
+    private void validateRecruiterPermission(Job job, JobStatus currentStatus, JobStatus targetStatus) {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                                                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+        boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
+        if (!sameCompany) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (targetStatus == JobStatus.SUSPENDED) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (currentStatus == JobStatus.PENDING_REVIEW && targetStatus == JobStatus.PUBLISHED) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
     }
 
     /**

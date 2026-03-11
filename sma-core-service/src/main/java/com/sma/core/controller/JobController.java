@@ -87,7 +87,7 @@ public class JobController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
-    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody UpdateJobStatusRequest request,
+    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody @Valid UpdateJobStatusRequest request,
                                                           @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update job status successfully")
