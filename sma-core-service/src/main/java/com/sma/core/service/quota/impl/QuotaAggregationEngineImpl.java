@@ -12,6 +12,8 @@ import com.sma.core.service.quota.QuotaAggregationEngine;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -21,6 +23,8 @@ public class QuotaAggregationEngineImpl implements QuotaAggregationEngine {
 
     private final EventUsageCalculatorImpl eventUsageCalculator;
     private final ResumeUploadLimitStateChecker resumeUploadLimitStateChecker;
+    private final SubscriptionQuotaWindowResolver windowResolver;
+    private final Clock clock;
 
     public QuotaAggregate aggregate(
             Feature feature,
@@ -58,6 +62,8 @@ public class QuotaAggregationEngineImpl implements QuotaAggregationEngine {
             default -> 0L;
         };
 
+        LocalDateTime renewDate = calculateRenewDate(unit, subscriptions);
+
         return QuotaAggregate.builder()
                 .featureId(feature.getId())
                 .featureKey(feature.getFeatureKey())
@@ -67,7 +73,33 @@ public class QuotaAggregationEngineImpl implements QuotaAggregationEngine {
                 .maxQuota(maxQuota)
                 .used(used)
                 .remaining(Math.max(0L, maxQuota - used))
+                .renewDate(renewDate)
                 .build();
+    }
+
+    private LocalDateTime calculateRenewDate(UsageLimitUnit unit, List<Subscription> subscriptions) {
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            return null;
+        }
+
+        LocalDateTime now = LocalDateTime.now(clock);
+
+        return switch (unit) {
+            case PER_MONTH -> {
+                // Lấy subscription đầu tiên để tính window (tất cả subscriptions cùng owner)
+                Subscription subscription = subscriptions.get(0);
+                var window = windowResolver.resolveAnchoredMonthlyWindow(subscription, now);
+                yield window.periodEnd();
+            }
+            case TOTAL -> {
+                // Với TOTAL, renew date là endDate sớm nhất của các subscriptions
+                yield subscriptions.stream()
+                        .map(Subscription::getEndDate)
+                        .filter(Objects::nonNull)
+                        .min(Comparator.naturalOrder())
+                        .orElse(null);
+            }
+        };
     }
 
     private UsageLimitUnit resolveUnit(List<UsageLimit> limits) {

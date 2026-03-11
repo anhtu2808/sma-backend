@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,4 +27,5 @@ public class FeatureUsageResponse {
     Long maxQuota;
     Long used;
     Long remaining;
+    LocalDateTime renewDate;
 }
