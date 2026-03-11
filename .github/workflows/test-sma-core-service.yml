@@ -12,6 +12,11 @@ on:
       - 'sma-core-service/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 jobs:
   unit-tests:
     name: Unit Tests
@@ -48,7 +53,7 @@ jobs:
       if: always()
       with:
         name: JUnit Test Results
-        path: target/surefire-reports/*.xml
+        path: sma-core-service/target/surefire-reports/*.xml
         reporter: java-junit
         fail-on-error: false
 
@@ -58,8 +63,8 @@ jobs:
       with:
         name: test-results
         path: |
-          target/surefire-reports/
-          target/site/jacoco/
+          sma-core-service/target/surefire-reports/
+          sma-core-service/target/site/jacoco/
 
   build:
     name: Build Application
@@ -96,4 +101,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: sma-core-service-jar
-        path: target/*.jar
+        path: sma-core-service/target/*.jar
