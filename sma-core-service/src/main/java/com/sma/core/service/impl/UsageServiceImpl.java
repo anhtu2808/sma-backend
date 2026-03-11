@@ -92,6 +92,7 @@ public class UsageServiceImpl implements UsageService {
                             .maxQuota(aggregate.getMaxQuota())
                             .used(aggregate.getUsed())
                             .remaining(aggregate.getRemaining())
+                            .renewDate(aggregate.getRenewDate())
                             .build()
             );
         }

@@ -6,6 +6,8 @@ import com.sma.core.enums.UsageType;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 public class QuotaAggregate {
@@ -19,6 +21,7 @@ public class QuotaAggregate {
     long maxQuota;
     long used;
     long remaining;
+    LocalDateTime renewDate;
 
     public static QuotaAggregate booleanFeature(Feature feature) {
         return QuotaAggregate.builder()
