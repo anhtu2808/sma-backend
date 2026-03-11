@@ -7,4 +7,6 @@ public interface ResumeProjectService {
     ResumeProjectResponse create(Integer resumeId, UpdateResumeProjectRequest request);
 
     ResumeProjectResponse update(Integer resumeId, Integer projectId, UpdateResumeProjectRequest request);
+
+    void delete(Integer resumeId, Integer projectId);
 }

@@ -7,4 +7,6 @@ public interface ResumeEducationService {
     ResumeEducationDetailResponse create(Integer resumeId, UpdateResumeEducationRequest request);
 
     ResumeEducationDetailResponse update(Integer resumeId, Integer educationId, UpdateResumeEducationRequest request);
+
+    void delete(Integer resumeId, Integer educationId);
 }
