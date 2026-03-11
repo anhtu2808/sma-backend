@@ -61,4 +61,12 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
             @Param("newStatus") ApplicationStatus newStatus,
             @Param("reason") String reason,
             @Param("closedStatuses") List<ApplicationStatus> closedStatuses);
+
+    @EntityGraph(attributePaths = {
+            "resume",
+            "resume.experiences",
+            "resume.skillGroups.skills.skill",
+            "resume.evaluations"
+    })
+    List<Application> findAllByJobIdAndStatus(Integer jobId, ApplicationStatus status);
 }
