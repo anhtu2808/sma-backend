@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -65,6 +66,7 @@ public class JobServiceImpl implements JobService {
     final QuotaService quotaService;
     final CompanyLocationRepository companyLocationRepository;
     final EmbeddingJobRequestPublisher embeddingJobRequestPublisher;
+    final EmailService emailService;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -111,7 +113,10 @@ public class JobServiceImpl implements JobService {
     public void closeExpiredJob() {
         LocalDateTime now = LocalDateTime.now();
         List<Job> expiredJob = jobRepository.findByExpDateBeforeAndStatus(now, JobStatus.PUBLISHED);
-        expiredJob.forEach(job -> job.setStatus(JobStatus.CLOSED));
+        expiredJob.forEach(job -> {
+            job.setStatus(JobStatus.CLOSED);
+            sendJobStatusEmail(job);
+        });
         jobRepository.saveAll(expiredJob);
     }
 
@@ -251,6 +256,7 @@ public class JobServiceImpl implements JobService {
         }
 
         jobRepository.save(job);
+        sendJobStatusEmail(job);
         return jobMapper.toJobDetailResponse(job);
     }
 
@@ -428,6 +434,9 @@ public class JobServiceImpl implements JobService {
                     throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
                 }
             }
+            if (job.getCreatedBy() == null) {
+                job.setCreatedBy(recruiter);
+            }
 
             job.setCompany(recruiter.getCompany());
             job.setIsSample(false);
@@ -500,6 +509,11 @@ public class JobServiceImpl implements JobService {
         jobRepository.save(job);
         if (!isSample && !isSaved && Boolean.TRUE.equals(enableAi) && job.getStatus().equals(JobStatus.PUBLISHED)) {
             scoringCriteriaService.generateAndSetCriteriaContext(job);
+        }
+        if (!isSample && !isSaved) {
+            if (job.getStatus().equals(JobStatus.PUBLISHED) || job.getStatus().equals(JobStatus.PENDING_REVIEW)) {
+                sendJobStatusEmail(job);
+            }
         }
         return job;
     }
@@ -720,5 +734,48 @@ public class JobServiceImpl implements JobService {
         job.setAutoRejectThreshold(request.getRejectThreshold());
         jobRepository.save(job);
         return jobMapper.toJobInternalResponse(job);
+    }
+
+    private void sendJobStatusEmail(Job job) {
+        EnumSet<JobStatus> notifyStatuses = EnumSet.of(
+                JobStatus.PUBLISHED,
+                JobStatus.PENDING_REVIEW,
+                JobStatus.SUSPENDED,
+                JobStatus.CLOSED
+        );
+
+        if (!notifyStatuses.contains(job.getStatus())) return;
+        Recruiter owner = job.getCreatedBy();
+        if (owner == null && job.getCompany() != null) {
+            recruiterRepository.findByCompanyId(job.getCompany().getId())
+                    .ifPresent(root -> sendEmailToRecruiter(root, job));
+            return;
+        }
+
+        if (owner != null) {
+            sendEmailToRecruiter(owner, job);
+        }
+    }
+
+    private void sendEmailToRecruiter(Recruiter recruiter, Job job) {
+        User user = recruiter.getUser();
+        if (user == null || user.getEmail() == null) return;
+
+        Context context = new Context();
+        String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                ? user.getFullName()
+                : user.getEmail().split("@")[0];
+
+        context.setVariable("recruiterName", displayName);
+        context.setVariable("jobTitle", job.getName());
+        context.setVariable("status", job.getStatus().name());
+        context.setVariable("jobId", job.getId());
+
+        emailService.sendEmailWithTemplate(
+                user.getEmail(),
+                "[SmartRecruit] Update on Your Job Posting: " + job.getName(),
+                "job",
+                context
+        );
     }
 }
