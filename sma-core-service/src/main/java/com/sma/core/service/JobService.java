@@ -37,4 +37,5 @@ public interface JobService {
 
     EmbeddingJobRequestMessage embeddingJob(Integer id);
     PagingResponse<ProposedCandidateResponse> getProposedCV(Integer id, Integer page, Integer size);
+    Boolean deleteJob(Integer id);
 }

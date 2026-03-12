@@ -589,6 +589,17 @@ public class JobServiceImpl implements JobService {
         return null;
     }
 
+    @Override
+    public Boolean deleteJob(Integer id) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        EnumSet<JobStatus> enableDelete = EnumSet.of(JobStatus.CLOSED, JobStatus.SUSPENDED);
+        if (enableDelete.contains(job.getStatus())) {
+            jobRepository.delete(job);
+            return true;
+        }
+        return false;
+    }
 
     @Override
     @Transactional

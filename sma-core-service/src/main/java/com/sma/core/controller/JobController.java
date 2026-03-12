@@ -197,6 +197,7 @@ public class JobController {
     }
 
     @PostMapping("/{id}/embedding")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     public ApiResponse<EmbeddingJobRequestMessage> embeddingJob(@PathVariable Integer id) {
         return ApiResponse.<EmbeddingJobRequestMessage>builder()
                 .message("Embedding job successfully")
@@ -205,12 +206,21 @@ public class JobController {
     }
 
     @GetMapping("/{id}/proposed-cv")
+    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<PagingResponse<ProposedCandidateResponse>> getProposedCV(@PathVariable Integer id,
                                                                                 @RequestParam Integer page,
                                                                                 @RequestParam Integer size) {
         return ApiResponse.<PagingResponse<ProposedCandidateResponse>>builder()
                 .message("Get proposed CV successfully")
                 .data(jobService.getProposedCV(id, page, size))
+                .build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Boolean> deleteJob(@PathVariable Integer id) {
+        return ApiResponse.<Boolean>builder()
+                .message("Delete job successfully")
+                .data(jobService.deleteJob(id))
                 .build();
     }
 }
