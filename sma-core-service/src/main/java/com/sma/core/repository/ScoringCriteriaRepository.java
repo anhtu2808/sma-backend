@@ -9,5 +9,6 @@ import java.util.Set;
 public interface ScoringCriteriaRepository extends JpaRepository<ScoringCriteria, Integer> {
 
     Optional<ScoringCriteria> findByCriteria_IdAndJob_Id(Integer criteriaId, Integer jobId);
+    boolean existsByJobId(Integer jobId);
 
 }

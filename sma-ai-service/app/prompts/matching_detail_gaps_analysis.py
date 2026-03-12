@@ -17,7 +17,7 @@ Rules:
 4. Missing data -> null for scalars, [] for lists.
 5. All enum values must match EXACTLY as listed.
 6. If a scoring rule is provided for a criterion, reference that rule in your explanation to justify the score.
-7. For startIndex and endIndex — these are character positions in the raw resume text where the relevant evidence is found. If you can identify the exact position, provide it; otherwise, use null.
+7. For context — these are the quoted texts from the raw resume that serve as evidence. Provide the exact string from the resume (or a short snippet).
 
 ## Writing Style (CRITICAL — content will be shown directly to hiring managers and recruiters)
 
@@ -33,17 +33,18 @@ For each scoring criterion, write a thorough explanation covering:
 ### details (per criteria — EXHAUSTIVE)
 For each criterion, list ALL relevant items (skills, experiences, education items, etc.):
 - label: The name of the item (e.g., "Java", "Spring Boot", "3 years backend experience", "Bachelor CS")
-- status: MATCHED (candidate has it and meets requirements), MISSING (required but candidate lacks it), FIXED (partially met or needs improvement)
+- status: MATCHED (candidate has it and meets requirements), MISSING (required but candidate lacks it)
 - description: DETAILED evidence — quote resume sections, reference specific projects/companies/durations
-- requiredLevel / candidateLevel: For skills with level requirements (JUNIOR | MID | SENIOR | EXPERT)
-- startIndex / endIndex: Character positions in raw resume text for evidence highlighting (null if not identifiable)
+- requiredLevel / candidateLevel: For skills with level requirements (NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT) - ONLY use if criteriaType is HARD_SKILLS
+- isRequired: Boolean indicating if this item is strictly required by the job
+- context: Short text snippet (about 2-3 words around the label) from the raw resume. Try to find relevant context even if status is MISSING, if applicable.
 - impactScore: How important this item is for the role (0-100)
-- suggestions: If status is MISSING or FIXED, provide actionable suggestions for improvement
+- suggestions: If status is MISSING, provide actionable suggestions for improvement
 
 ## Enums
 - criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
-- status (LabelStatus): FIXED | MISSING | MATCHED
-- skillLevel: JUNIOR | MID | SENIOR | EXPERT
+- status (LabelStatus): MISSING | MATCHED
+- skillLevel: NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
 - transferabilityToRole: HIGH | MEDIUM | LOW
 
@@ -65,13 +66,12 @@ JSON structure:
       "details": [
         {
           "label": "<name of the item being evaluated>",
-          "status": "<MATCHED|MISSING|FIXED>",
+          "status": "<MATCHED|MISSING>",
           "description": "<DETAILED evidence — quote resume sections, reference specific projects/companies>",
-          "requiredLevel": "<JUNIOR|MID|SENIOR|EXPERT or null>",
-          "candidateLevel": "<JUNIOR|MID|SENIOR|EXPERT or null>",
+          "requiredLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
+          "candidateLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
           "isRequired": <boolean>,
-          "startIndex": <int character position in raw text or null>,
-          "endIndex": <int character position in raw text or null>,
+          "context": "<string short 2-3 words snippet from resume or null>",
           "impactScore": <float 0-100>,
           "suggestions": ["<actionable suggestion 1>", "<actionable suggestion 2>"]
         }
@@ -82,7 +82,7 @@ JSON structure:
 
 IMPORTANT RULES:
 - Analyze ALL relevant items for each criterion — be exhaustive
-- Every MISSING or FIXED item should have at least one suggestion
+- Every MISSING item should have at least one suggestion
 - MATCHED items should have empty suggestions list
 - MAXIMIZE DETAIL in every text field
 - Every claim must reference evidence from the resume

@@ -44,8 +44,8 @@ public class EvaluationCriteriaDetail {
     private SkillLevel candidateLevel;
 
     private Boolean isRequired;
-    private Integer startIndex;
-    private Integer endIndex;
+    @Column(columnDefinition = "TEXT")
+    private String context;
     @Builder.Default
     private Boolean isFixed = false;
     private Float impactScore;
