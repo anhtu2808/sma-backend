@@ -7,4 +7,6 @@ public interface ResumeCertificationService {
     ResumeCertificationDetailResponse create(Integer resumeId, UpdateResumeCertificationRequest request);
 
     ResumeCertificationDetailResponse update(Integer resumeId, Integer certificationId, UpdateResumeCertificationRequest request);
+
+    void delete(Integer resumeId, Integer certificationId);
 }

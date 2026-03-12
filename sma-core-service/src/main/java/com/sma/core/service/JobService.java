@@ -38,4 +38,5 @@ public interface JobService {
 
     EmbeddingJobRequestMessage embeddingJob(Integer id);
     void updateEmbeddingJob(EmbeddingResultMessage message);
+    Boolean deleteJob(Integer id);
 }

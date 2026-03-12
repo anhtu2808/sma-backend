@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -19,6 +20,7 @@ public class EvaluationCriteriaScoreResponse {
     Integer id;
     Integer scoringCriteriaId;
     String scoringCriteriaContext;
+    String criteriaName;
     Double scoringCriteriaWeight;
     CriteriaType criteriaType;
     Float aiScore;
@@ -26,6 +28,6 @@ public class EvaluationCriteriaScoreResponse {
     Float weightedScore;
     String aiExplanation;
     String manualExplanation;
-    List<EvaluationCriteriaDetailResponse> details;
+    Set<EvaluationCriteriaDetailResponse> details;
 
 }

@@ -20,8 +20,8 @@ public class CriteriaScoreDetailData {
     String description;
     SkillLevel requiredLevel;
     SkillLevel candidateLevel;
-    Integer startIndex;
-    Integer endIndex;
+    Boolean isRequired;
+    String context;
     Float impactScore;
     List<String> suggestions;
 }

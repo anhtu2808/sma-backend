@@ -5,12 +5,15 @@ import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.invitation.InvitationResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.InvitationStatus;
+import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.InvitationMapper;
 import com.sma.core.repository.*;
+import com.sma.core.service.EmailService;
 import com.sma.core.service.InvitationService;
+import com.sma.core.service.NotificationService;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,8 @@ public class InvitationServiceImpl implements InvitationService {
     CandidateRepository candidateRepository;
     JobRepository jobRepository;
     RecruiterRepository recruiterRepository;
+    NotificationService notificationService;
+    EmailService emailService;
 
     @Override
     public PagingResponse<InvitationResponse> getMyInvitations(Integer candidateId, Integer size, Integer page) {
@@ -77,14 +82,30 @@ public class InvitationServiceImpl implements InvitationService {
                 + " for position "
                 + job.getName()
                 + ". Click here for apply: ";
-        Invitation invitation = invitationRepository
-                .save(Invitation.builder()
-                        .content(content)
-                        .candidate(candidate)
-                        .company(recruiter.getCompany())
-                        .job(job)
-                        .status(InvitationStatus.INVITED)
-                        .build());
+        Invitation invitation = Invitation.builder()
+                .content(content)
+                .candidate(candidate)
+                .company(recruiter.getCompany())
+                .job(job)
+                .status(InvitationStatus.INVITED)
+                .build();
+
+        Invitation savedInvitation = invitationRepository.save(invitation);
+
+        if (candidate.getUser() != null) {
+            String notiTitle = "New Job Invitation!";
+            String notiMessage = recruiter.getCompany().getName() + " has invited you to apply for: " + job.getName();
+
+            notificationService.sendCandidateNotification(
+                    candidate.getUser(),
+                    NotificationType.INVITATION,
+                    notiTitle,
+                    notiMessage,
+                    "INVITATION",
+                    savedInvitation.getId()
+            );
+        }
+        sendInvitationEmail(candidate, recruiter.getCompany(), job);
         return invitationMapper.toInvitationResponse(invitation);
     }
 
@@ -106,5 +127,36 @@ public class InvitationServiceImpl implements InvitationService {
             }
         }
         return invitationMapper.toInvitationResponse(invitation);
+    }
+    private void sendInvitationEmail(Candidate candidate, Company company, Job job) {
+        if (candidate.getUser() != null && candidate.getUser().getEmail() != null) {
+            try {
+                org.thymeleaf.context.Context context = new org.thymeleaf.context.Context();
+
+                context.setVariable("companyName", company.getName());
+                context.setVariable("jobTitle", job.getName());
+                context.setVariable("jobId", job.getId());
+
+                String locationStr = "See details in job post";
+                if (job.getLocations() != null && !job.getLocations().isEmpty()) {
+                    locationStr = job.getLocations().stream()
+                            .map(loc -> loc.getCity())
+                            .collect(java.util.stream.Collectors.joining(", "));
+                }
+                context.setVariable("location", locationStr);
+
+                String subject = "[SmartRecruit] You've Been Invited to Apply at " + company.getName();
+
+                emailService.sendEmailWithTemplate(
+                        candidate.getUser().getEmail(),
+                        subject,
+                        "job-invite",
+                        context
+                );
+                log.info("Invitation email sent successfully to: {}", candidate.getUser().getEmail());
+            } catch (Exception e) {
+                log.error("Failed to send invitation email to candidate: {}", candidate.getUser().getEmail(), e);
+            }
+        }
     }
 }

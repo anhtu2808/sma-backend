@@ -39,6 +39,8 @@ public class ResumeResponse {
 
      String fullName;
 
+     String jobTitle;
+
      String avatar;
 
      String resumeUrl;

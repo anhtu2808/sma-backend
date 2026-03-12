@@ -9,6 +9,8 @@ import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Candidate;
 import com.sma.core.entity.UsageEvent;
 import com.sma.core.enums.*;
+import com.sma.core.entity.User;
+import com.sma.core.enums.FeatureKey;
 import com.sma.core.entity.Resume;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -189,6 +191,7 @@ public class ResumeServiceImpl implements ResumeService {
 
         Resume source = getOwnedResume(resumeId);
         if (targetType == ResumeType.PROFILE && source.getType() == ResumeType.PROFILE) {
+            syncCandidateProfileFromResume(source);
             return resumeMapper.toResponse(source);
         }
 
@@ -211,7 +214,31 @@ public class ResumeServiceImpl implements ResumeService {
         resumeCloneService.cloneAll(source, clone);
 
         Resume saved = resumeRepository.save(clone);
+        if (targetType == ResumeType.PROFILE) {
+            syncCandidateProfileFromResume(saved);
+        }
         return resumeMapper.toResponse(saved);
+    }
+
+    private void syncCandidateProfileFromResume(Resume profileResume) {
+        Candidate candidate = profileResume.getCandidate();
+        if (candidate == null) {
+            return;
+        }
+
+        candidate.setJobTitle(profileResume.getJobTitle());
+        candidate.setLinkedinUrl(profileResume.getLinkedinLink());
+        candidate.setGithubUrl(profileResume.getGithubLink());
+        candidate.setWebsiteUrl(profileResume.getPortfolioLink());
+        candidate.setAddress(profileResume.getAddressInResume());
+
+        User user = candidate.getUser();
+        if (user != null) {
+            user.setFullName(profileResume.getFullName());
+            user.setAvatar(profileResume.getAvatar());
+        }
+
+        candidateRepository.save(candidate);
     }
 
     @Override

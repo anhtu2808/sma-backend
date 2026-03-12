@@ -15,6 +15,7 @@ import com.sma.core.repository.CompanyLocationRepository;
 import com.sma.core.repository.CompanyRepository;
 import com.sma.core.repository.RecruiterRepository;
 import com.sma.core.repository.UserRepository;
+import com.sma.core.service.EmailService;
 import com.sma.core.service.NotificationService;
 import com.sma.core.service.RecruiterService;
 import com.sma.core.utils.JwtTokenProvider;
@@ -25,8 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -41,6 +44,7 @@ public class RecruiterServiceImpl implements RecruiterService {
     private final PasswordEncoder passwordEncoder;
     private final RecruiterMapper recruiterMapper;
     private final NotificationService notificationService;
+    final EmailService emailService;
 
     @Override
     public void registerRecruiter(RecruiterRegisterRequest request) {
@@ -92,7 +96,8 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .isRootRecruiter(true)
                 .build();
         recruiterRepository.save(recruiter);
-
+        sendRegistrationEmail(user, company, CompanyStatus.PENDING_VERIFICATION, null);
+        sendAdminNotificationEmail(company, user);
         Notification noti = Notification.builder()
                 .notificationType(NotificationType.COMPANY_REGISTRATION)
                 .title("New Company Registration")
@@ -143,4 +148,58 @@ public class RecruiterServiceImpl implements RecruiterService {
         return recruiterMapper.toRecruiterMyInfoResponse(recruiterMember);
     }
 
+    private void sendRegistrationEmail(User user, Company company, CompanyStatus status, String reason) {
+        Context context = new Context();
+        String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                ? user.getFullName()
+                : user.getEmail().split("@")[0];
+
+        context.setVariable("recruiterName", displayName);
+        context.setVariable("companyName", company.getName());
+        context.setVariable("status", status.name());
+        context.setVariable("rejectReason", reason);
+
+        String subject = "[SmartRecruit] Registration Received - " + company.getName();
+
+        emailService.sendEmailWithTemplate(
+                user.getEmail(),
+                subject,
+                "company-registration-result",
+                context
+        );
+    }
+
+    private void sendAdminNotificationEmail(Company company, User recruiterUser) {
+        List<User> adminUsers = userRepository.findAllByRole(Role.ADMIN);
+        if (adminUsers.isEmpty()) {
+            log.warn("No Admin found in system to send registration notification.");
+            return;
+        }
+
+        Context context = new Context();
+        context.setVariable("companyName", company.getName());
+        context.setVariable("industry", company.getCompanyIndustry());
+        context.setVariable("companyEmail", company.getEmail());
+        context.setVariable("taxId", company.getTaxIdentificationNumber());
+        context.setVariable("recruiterEmail", recruiterUser.getEmail());
+        context.setVariable("companyId", company.getId());
+
+        String formattedTime = LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
+        );
+        context.setVariable("registerTime", formattedTime);
+
+        for (User admin : adminUsers) {
+            try {
+                emailService.sendEmailWithTemplate(
+                        admin.getEmail(),
+                        "[URGENT] New Company Registration: " + company.getName(),
+                        "company-register",
+                        context
+                );
+            } catch (Exception e) {
+                log.error("Failed to send admin notification email to: {}", admin.getEmail(), e);
+            }
+        }
+    }
 }

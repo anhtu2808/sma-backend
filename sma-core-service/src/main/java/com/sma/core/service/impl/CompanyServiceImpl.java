@@ -3,10 +3,7 @@ package com.sma.core.service.impl;
 import com.sma.core.dto.request.company.*;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.company.*;
-import com.sma.core.entity.Company;
-import com.sma.core.entity.CompanyImage;
-import com.sma.core.entity.CompanyLocation;
-import com.sma.core.entity.Recruiter;
+import com.sma.core.entity.*;
 import com.sma.core.enums.CompanyStatus;
 import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.UserStatus;
@@ -23,6 +20,7 @@ import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.enums.Role;
 import com.sma.core.mapper.company.CompanyMapper;
+import com.sma.core.service.EmailService;
 import com.sma.core.service.NotificationService;
 import com.sma.core.specification.CompanySpecification;
 import com.sma.core.utils.JwtTokenProvider;
@@ -35,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.EnumSet;
@@ -57,6 +56,7 @@ public class CompanyServiceImpl implements CompanyService {
     CompanyLocationRepository companyLocationRepository;
     CompanyLocationMapper companyLocationMapper;
     NotificationService notificationService;
+    EmailService emailService;
 
     @Override
     @Transactional
@@ -86,6 +86,9 @@ public class CompanyServiceImpl implements CompanyService {
             recruiter.getUser().setStatus(UserStatus.INACTIVE);
         }
 
+        if (nextStatus == CompanyStatus.APPROVED || nextStatus == CompanyStatus.REJECTED) {
+            sendRegistrationEmail(recruiter.getUser(), company, nextStatus, company.getRejectReason());
+        }
         notificationService.markAsProcessed(companyId, NotificationType.COMPANY_REGISTRATION);
     }
 
@@ -240,5 +243,28 @@ public class CompanyServiceImpl implements CompanyService {
         response.setTotalJobs(jobRepository.countByCompanyId(company.getId()));
 
         return response;
+    }
+
+    private void sendRegistrationEmail(User user, Company company, CompanyStatus status, String reason) {
+        Context context = new Context();
+        String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                ? user.getFullName()
+                : user.getEmail().split("@")[0];
+
+        context.setVariable("recruiterName", displayName);
+        context.setVariable("companyName", company.getName());
+        context.setVariable("status", status.name());
+        context.setVariable("rejectReason", reason);
+
+        String subject = (status == CompanyStatus.APPROVED)
+                ? "[SmartRecruit] Welcome! Your company has been verified"
+                : "[SmartRecruit] Update on your company registration";
+
+        emailService.sendEmailWithTemplate(
+                user.getEmail(),
+                subject,
+                "company-registration-result",
+                context
+        );
     }
 }

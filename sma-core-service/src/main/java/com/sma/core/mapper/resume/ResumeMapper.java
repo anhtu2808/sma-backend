@@ -62,6 +62,7 @@ public interface ResumeMapper {
     @Mapping(target = "linkedinLink", source = "source.linkedinLink")
     @Mapping(target = "portfolioLink", source = "source.portfolioLink")
     @Mapping(target = "fullName", source = "source.fullName")
+    @Mapping(target = "jobTitle", source = "source.jobTitle")
     @Mapping(target = "avatar", source = "source.avatar")
     @Mapping(target = "resumeUrl", source = "source.resumeUrl")
     @Mapping(target = "type", source = "targetType")

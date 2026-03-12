@@ -318,6 +318,7 @@ CREATE TABLE resumes (
   linkedin_link varchar,
   portfolio_link varchar,
   full_name varchar,
+  job_title varchar,
   avatar varchar,
   type resume_type DEFAULT 'ORIGINAL',
   root_resume_id int,

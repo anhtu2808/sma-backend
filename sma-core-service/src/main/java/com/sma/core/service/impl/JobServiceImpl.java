@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -61,6 +62,7 @@ public class JobServiceImpl implements JobService {
     final QuotaService quotaService;
     final CompanyLocationRepository companyLocationRepository;
     final EmbeddingJobRequestPublisher embeddingJobRequestPublisher;
+    final EmailService emailService;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -84,13 +86,18 @@ public class JobServiceImpl implements JobService {
                 return response;
             }
             if (currentCandidateId != null) {
-                long totalAttempts = applicationRepository.countByCandidateIdAndJobId(currentCandidateId, id);
-                response.setAppliedAttempt((int) totalAttempts);
-                applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(currentCandidateId, id)
-                                     .ifPresent(lastApp -> {
-                                         response.setLastApplicationStatus(lastApp.getStatus());
-                                     });
-                response.setCanApply(totalAttempts < 2);
+                Application lastApp = applicationRepository
+                        .findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(currentCandidateId, id)
+                        .orElse(null);
+
+                int attempt = lastApp != null ? lastApp.getAttempt() : 0;
+
+                response.setAppliedAttempt(attempt);
+                response.setCanApply(attempt < 3);
+
+                if (lastApp != null) {
+                    response.setLastApplicationStatus(lastApp.getStatus());
+                }
             }
             return response;
         }
@@ -102,7 +109,10 @@ public class JobServiceImpl implements JobService {
     public void closeExpiredJob() {
         LocalDateTime now = LocalDateTime.now();
         List<Job> expiredJob = jobRepository.findByExpDateBeforeAndStatus(now, JobStatus.PUBLISHED);
-        expiredJob.forEach(job -> job.setStatus(JobStatus.CLOSED));
+        expiredJob.forEach(job -> {
+            job.setStatus(JobStatus.CLOSED);
+            sendJobStatusEmail(job);
+        });
         jobRepository.saveAll(expiredJob);
     }
 
@@ -196,21 +206,15 @@ public class JobServiceImpl implements JobService {
             throw new AppException(ErrorCode.UNAUTHORIZED);
         }
 
-        if (role == Role.RECRUITER) {
-            Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
-            Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
-                                                     .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
-
-            boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
-            if (!sameCompany) {
-                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-            }
-            if (request.getJobStatus() == JobStatus.PUBLISHED || request.getJobStatus() == JobStatus.SUSPENDED || job.getStatus().equals(JobStatus.SUSPENDED)) {
-                throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
-            }
-        }
         JobStatus currentStatus = job.getStatus();
         JobStatus targetStatus = request.getJobStatus();
+        if (targetStatus == null) {
+            throw new AppException(ErrorCode.INVALID_JOB_STATUS);
+        }
+
+        if (role == Role.RECRUITER) {
+            validateRecruiterPermission(job, currentStatus, targetStatus);
+        }
 
         switch (targetStatus) {
             case CLOSED -> {
@@ -218,19 +222,57 @@ public class JobServiceImpl implements JobService {
                 job.setStatus(JobStatus.CLOSED);
             }
             case DRAFT -> {
-                if (currentStatus != JobStatus.PENDING_REVIEW && currentStatus != JobStatus.CLOSED)
+                if (currentStatus != JobStatus.PENDING_REVIEW
+                        && currentStatus != JobStatus.CLOSED
+                        && currentStatus != JobStatus.ARCHIVED)
                     throw new AppException(ErrorCode.CAN_NOT_DRAFTED);
                 job.setStatus(JobStatus.DRAFT);
             }
-            case PUBLISHED, SUSPENDED -> {
-                job.setStatus(targetStatus);
+            case PUBLISHED -> {
+                if (currentStatus != JobStatus.DRAFT
+                        && currentStatus != JobStatus.CLOSED
+                        && currentStatus != JobStatus.PENDING_REVIEW)
+                    throw new AppException(ErrorCode.CAN_NOT_PUBLISH);
+                job.setStatus(JobStatus.PUBLISHED);
+            }
+            case SUSPENDED -> {
+                if (currentStatus != JobStatus.PUBLISHED && currentStatus != JobStatus.PENDING_REVIEW)
+                    throw new AppException(ErrorCode.INVALID_JOB_STATUS);
+                job.setStatus(JobStatus.SUSPENDED);
+            }
+            case ARCHIVED -> {
+                if (currentStatus != JobStatus.DRAFT
+                        && currentStatus != JobStatus.CLOSED
+                        && currentStatus != JobStatus.SUSPENDED)
+                    throw new AppException(ErrorCode.CAN_NOT_ARCHIVED);
+                job.setStatus(JobStatus.ARCHIVED);
             }
             case PENDING_REVIEW -> throw new AppException(ErrorCode.CAN_NOT_CHANGE_DIRECT_TO_PENDING);
             default -> throw new AppException(ErrorCode.INVALID_JOB_STATUS);
         }
 
         jobRepository.save(job);
+        sendJobStatusEmail(job);
         return jobMapper.toJobDetailResponse(job);
+    }
+
+    private void validateRecruiterPermission(Job job, JobStatus currentStatus, JobStatus targetStatus) {
+        Integer currentRecruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(currentRecruiterId)
+                                                 .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+
+        boolean sameCompany = recruiter.getCompany().getId().equals(job.getCompany().getId());
+        if (!sameCompany) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (targetStatus == JobStatus.SUSPENDED) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (currentStatus == JobStatus.PENDING_REVIEW && targetStatus == JobStatus.PUBLISHED) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
     }
 
     /**
@@ -258,7 +300,7 @@ public class JobServiceImpl implements JobService {
             if (request.getStatus() != null && !request.getStatus().isEmpty())
                 allowedStatus = request.getStatus();
             else
-                allowedStatus = EnumSet.noneOf(JobStatus.class);
+                allowedStatus = getDefaultNonArchivedStatuses();
             if (role.equals(Role.RECRUITER)) {
                 Recruiter recruiter = recruiterRepository.getReferenceById(JwtTokenProvider.getCurrentRecruiterId());
                 request.setCompanyId(recruiter.getCompany().getId());
@@ -388,6 +430,9 @@ public class JobServiceImpl implements JobService {
                     throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
                 }
             }
+            if (job.getCreatedBy() == null) {
+                job.setCreatedBy(recruiter);
+            }
 
             job.setCompany(recruiter.getCompany());
             job.setIsSample(false);
@@ -461,6 +506,15 @@ public class JobServiceImpl implements JobService {
         if (!isSample && !isSaved && Boolean.TRUE.equals(enableAi) && job.getStatus().equals(JobStatus.PUBLISHED)) {
             scoringCriteriaService.generateAndSetCriteriaContext(job);
         }
+        if (!isSample && !isSaved) {
+            if (job.getStatus().equals(JobStatus.PUBLISHED)) {
+                scoringCriteriaService.generateAndSetCriteriaContext(job);
+                sendJobStatusEmail(job);
+            } else if (job.getStatus().equals(JobStatus.PENDING_REVIEW)) {
+                sendJobStatusEmail(job);
+                sendViolationEmailToAdmin(job);
+            }
+        }
         return job;
     }
 
@@ -476,7 +530,7 @@ public class JobServiceImpl implements JobService {
         if (request.getStatus() != null && !request.getStatus().isEmpty()) {
             allowedStatus = request.getStatus();
         } else {
-            allowedStatus = EnumSet.noneOf(JobStatus.class);
+            allowedStatus = getDefaultNonArchivedStatuses();
         }
         Page<Job> jobPage = jobRepository.findAll(
                 JobSpecification.withFilter(request, allowedStatus, null),
@@ -514,6 +568,12 @@ public class JobServiceImpl implements JobService {
                                        .build();
     }
 
+    private EnumSet<JobStatus> getDefaultNonArchivedStatuses() {
+        EnumSet<JobStatus> statuses = EnumSet.allOf(JobStatus.class);
+        statuses.remove(JobStatus.ARCHIVED);
+        return statuses;
+    }
+
     @Override
     public EmbeddingJobRequestMessage embeddingJob(Integer id) {
         Job job = jobRepository.findById(id)
@@ -537,6 +597,18 @@ public class JobServiceImpl implements JobService {
 
         job.setEmbedStatus(EmbedStatus.SUCCESS);
         jobRepository.save(job);
+    }
+
+    @Override
+    public Boolean deleteJob(Integer id) {
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        EnumSet<JobStatus> enableDelete = EnumSet.of(JobStatus.CLOSED, JobStatus.SUSPENDED);
+        if (enableDelete.contains(job.getStatus())) {
+            jobRepository.delete(job);
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -683,5 +755,72 @@ public class JobServiceImpl implements JobService {
         job.setAutoRejectThreshold(request.getRejectThreshold());
         jobRepository.save(job);
         return jobMapper.toJobInternalResponse(job);
+    }
+
+    private void sendJobStatusEmail(Job job) {
+        EnumSet<JobStatus> notifyStatuses = EnumSet.of(
+                JobStatus.PUBLISHED,
+                JobStatus.PENDING_REVIEW,
+                JobStatus.SUSPENDED,
+                JobStatus.CLOSED
+        );
+
+        if (!notifyStatuses.contains(job.getStatus())) return;
+        Recruiter owner = job.getCreatedBy();
+        if (owner == null && job.getCompany() != null) {
+            recruiterRepository.findByCompanyId(job.getCompany().getId())
+                    .ifPresent(root -> sendEmailToRecruiter(root, job));
+            return;
+        }
+
+        if (owner != null) {
+            sendEmailToRecruiter(owner, job);
+        }
+    }
+
+    private void sendEmailToRecruiter(Recruiter recruiter, Job job) {
+        User user = recruiter.getUser();
+        if (user == null || user.getEmail() == null) return;
+
+        Context context = new Context();
+        String displayName = (user.getFullName() != null && !user.getFullName().isEmpty())
+                ? user.getFullName()
+                : user.getEmail().split("@")[0];
+
+        context.setVariable("recruiterName", displayName);
+        context.setVariable("jobTitle", job.getName());
+        context.setVariable("status", job.getStatus().name());
+        context.setVariable("jobId", job.getId());
+
+        emailService.sendEmailWithTemplate(
+                user.getEmail(),
+                "[SmartRecruit] Update on Your Job Posting: " + job.getName(),
+                "job",
+                context
+        );
+    }
+
+    private void sendViolationEmailToAdmin(Job job) {
+        List<User> adminUsers = userRepository.findAllByRole(Role.ADMIN);
+        if (adminUsers.isEmpty()) return;
+
+        Context context = new Context();
+        context.setVariable("jobTitle", job.getName());
+        context.setVariable("companyName", job.getCompany().getName());
+        context.setVariable("recruiterEmail", job.getCreatedBy().getUser().getEmail());
+        context.setVariable("jobId", job.getId());
+
+        for (User admin : adminUsers) {
+            try {
+                emailService.sendEmailWithTemplate(
+                        admin.getEmail(),
+                        "[SECURITY ALERT] Job Review Required: " + job.getName(),
+                        "job-violate",
+                        context
+                );
+            } catch (Exception e) {
+                log.error("Failed to notify Admin {} about job violation", admin.getEmail(), e);
+            }
+        }
     }
 }

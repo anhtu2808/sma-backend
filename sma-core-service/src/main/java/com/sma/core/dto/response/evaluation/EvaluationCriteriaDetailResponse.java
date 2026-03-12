@@ -23,8 +23,7 @@ public class EvaluationCriteriaDetailResponse {
     SkillLevel candidateLevel;
     Boolean isRequired;
     Boolean isFixed;
-    Integer startIndex;
-    Integer endIndex;
+    String context;
     Float impactScore;
     Set<String> suggestions;
 }

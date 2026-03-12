@@ -140,4 +140,8 @@ public class Job {
 
     @Column(name = "is_sample")
     private Boolean isSample;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recruiter_id")
+    private Recruiter createdBy;
 }

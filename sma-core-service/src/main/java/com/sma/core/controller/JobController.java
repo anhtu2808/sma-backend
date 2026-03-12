@@ -89,7 +89,7 @@ public class JobController {
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyRole('RECRUITER', 'ADMIN')")
-    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody UpdateJobStatusRequest request,
+    public ApiResponse<JobDetailResponse> updateJobStatus(@RequestBody @Valid UpdateJobStatusRequest request,
                                                           @PathVariable Integer id) {
         return ApiResponse.<JobDetailResponse>builder()
                 .message("Update job status successfully")
@@ -199,6 +199,7 @@ public class JobController {
     }
 
     @PostMapping("/{id}/embedding")
+    @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER')")
     public ApiResponse<EmbeddingJobRequestMessage> embeddingJob(@PathVariable Integer id) {
         return ApiResponse.<EmbeddingJobRequestMessage>builder()
                 .message("Embedding job successfully")
@@ -207,12 +208,21 @@ public class JobController {
     }
 
     @GetMapping("/{id}/proposed-cv")
+    @PreAuthorize("hasRole('RECRUITER')")
     public ApiResponse<PagingResponse<ProposedCVResponse>> getProposedCV(@PathVariable Integer id,
-                                                                         @RequestParam Integer page,
-                                                                         @RequestParam Integer size) {
+                                                                                @RequestParam Integer page,
+                                                                                @RequestParam Integer size) {
         return ApiResponse.<PagingResponse<ProposedCVResponse>>builder()
                 .message("Get proposed CV successfully")
                 .data(proposedResumeService.getProposedCV(id, page, size))
+                .build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Boolean> deleteJob(@PathVariable Integer id) {
+        return ApiResponse.<Boolean>builder()
+                .message("Delete job successfully")
+                .data(jobService.deleteJob(id))
                 .build();
     }
 }

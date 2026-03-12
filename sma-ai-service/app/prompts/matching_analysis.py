@@ -18,7 +18,7 @@ Rules:
 6. Missing data -> null for scalars, [] for lists.
 7. All enum values must match EXACTLY as listed.
 8. If a scoring rule is provided for a criterion, you MUST follow that rule exactly to determine the score. This ensures consistency across multiple scoring sessions.
-9. For startIndex and endIndex — these are character positions in the raw resume text where the relevant evidence is found. If you can identify the exact position, provide it; otherwise, use null.
+9. For context — these are the quoted texts from the raw resume that serve as evidence. Provide the exact string from the resume (or a short snippet).
 
 ## Writing Style (CRITICAL — content will be shown directly to hiring managers and recruiters)
 
@@ -54,17 +54,19 @@ For each scoring criterion, write a thorough explanation covering:
 ### details (per criteria — EXHAUSTIVE)
 For each criterion, list ALL relevant items (skills, experiences, education items, etc.):
 - label: The name of the item
-- status: MATCHED / MISSING / FIXED
+- status: MATCHED / MISSING
 - description: DETAILED evidence from resume
-- requiredLevel / candidateLevel: Skill level if applicable
+- requiredLevel / candidateLevel: Skill level if applicable (ONLY use if criteriaType is HARD_SKILLS)
+- isRequired: Boolean indicating if this item is strictly required by the job
+- context: Short text snippet (about 2-3 words around the label) from the raw resume serving as evidence. Try to find relevant context even if status is MISSING, if applicable.
 - impactScore: Importance for the role (0-100)
-- suggestions: Actionable improvement suggestions for MISSING/FIXED items
+- suggestions: Actionable improvement suggestions for MISSING items
 
 ## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
 - criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
-- status (LabelStatus): FIXED | MISSING | MATCHED
-- skillLevel: JUNIOR | MID | SENIOR | EXPERT
+- status (LabelStatus): MISSING | MATCHED
+- skillLevel: NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT
 - transferabilityToRole: HIGH | MEDIUM | LOW
 
 JSON structure:
@@ -85,12 +87,12 @@ JSON structure:
       "details": [
         {
           "label": "<name of the item being evaluated>",
-          "status": "<MATCHED|MISSING|FIXED>",
+          "status": "<MATCHED|MISSING>",
           "description": "<DETAILED evidence>",
-          "requiredLevel": "<JUNIOR|MID|SENIOR|EXPERT or null>",
-          "candidateLevel": "<JUNIOR|MID|SENIOR|EXPERT or null>",
-          "startIndex": <int or null>,
-          "endIndex": <int or null>,
+          "requiredLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
+          "candidateLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
+          "isRequired": <boolean>,
+          "context": "<string short 2-3 words snippet from resume or null>",
           "impactScore": <float 0-100>,
           "suggestions": ["<actionable suggestion>"]
         }
@@ -101,7 +103,7 @@ JSON structure:
 
 IMPORTANT RULES:
 - Analyze ALL relevant items for each criterion — be exhaustive
-- Every MISSING or FIXED item should have at least one suggestion
+- Every MISSING item should have at least one suggestion
 - MATCHED items should have empty suggestions list
 - MAXIMIZE DETAIL in every text field
 - Every score must be justified. Every claim must reference evidence from the resume."""

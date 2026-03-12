@@ -47,6 +47,16 @@ public class ResumeEducationServiceImpl implements ResumeEducationService {
         return save(education, request);
     }
 
+    @Override
+    public void delete(Integer resumeId, Integer educationId) {
+        Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
+        ResumeEducation education = resumeEducationRepository
+                .findByIdAndResume_IdAndResume_Candidate_Id(educationId, resumeId, candidateId)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+
+        resumeEducationRepository.delete(education);
+    }
+
     private Resume getOwnedResume(Integer resumeId) {
         Integer candidateId = JwtTokenProvider.getCurrentCandidateId();
         return resumeRepository.findByIdAndCandidate_Id(resumeId, candidateId)

@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -109,9 +110,10 @@ public class NotificationServiceImpl implements NotificationService {
                     cb.equal(root.get("isRead"), filter.getIsRead()));
         }
 
-        if (filter.getType() != null) {
+        if (filter.getTypes() != null && !filter.getTypes().isEmpty()) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("notificationType"), filter.getType()));
+                    root.get("notificationType").in(filter.getTypes())
+            );
         }
 
         if (filter.getKeyword() != null && !filter.getKeyword().trim().isEmpty()) {
@@ -191,6 +193,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendCandidateNotification(User user, NotificationType type, String title, String message, String entityType, Integer entityId) {
         Notification noti = Notification.builder()
                 .user(user)
@@ -214,6 +217,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendRecruiterNotification(Integer companyId, NotificationType type, String title, String message, String entityType, Integer entityId) {
         List<User> companyUsers = userRepository.findAllRecruitersByCompanyId(companyId);
 
