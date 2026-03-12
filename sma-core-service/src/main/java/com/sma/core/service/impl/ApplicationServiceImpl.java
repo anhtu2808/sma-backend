@@ -132,6 +132,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         Application savedApplication = applicationRepository.save(application);
         sendNewApplyNotificationToRecruiters(savedApplication);
+        sendApplyConfirmationEmail(savedApplication);
         return applicationMapper.toResponse(savedApplication);
     }
 
@@ -406,6 +407,30 @@ public class ApplicationServiceImpl implements ApplicationService {
                         context
                 );
             }
+        }
+    }
+
+    private void sendApplyConfirmationEmail(Application app) {
+        try {
+            Context context = new Context();
+            context.setVariable("candidateName", app.getFullName());
+            context.setVariable("jobTitle", app.getJob().getName());
+            context.setVariable("companyName", app.getJob().getCompany().getName());
+
+            String formattedDate = app.getAppliedAt().format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
+            );
+            context.setVariable("appliedDate", formattedDate);
+            context.setVariable("status", formatStatus(app.getStatus()));
+            emailService.sendEmailWithTemplate(
+                    app.getEmail(),
+                    "[SmartRecruit] Application Submitted: " + app.getJob().getName(),
+                    "new-application",
+                    context
+            );
+            log.info("Confirmation email sent to candidate: {}", app.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send confirmation email to candidate: {}", app.getEmail(), e);
         }
     }
 }

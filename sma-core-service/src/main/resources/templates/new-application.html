@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Submitted</title>
+</head>
+
+<body
+        style="font-family: 'Inter', Arial, sans-serif; background-color: #F3F4F6; padding: 20px; margin: 0; -webkit-font-smoothing: antialiased;">
+
+<div
+        style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);">
+
+    <div style="background: #FF6B35; height: 8px;"></div>
+
+    <div style="padding: 40px 30px 10px 30px;">
+
+        <div style="margin-bottom: 32px; display: flex; align-items: center;">
+            <img src="https://smartrecruit.tech/static/media/sma-logo.a080dcf97000caef0bbfe0a549fdac82.svg"
+                 alt="SmartRecruit Logo" style="height: 40px; width: auto; margin-right: 12px;">
+            <span style="font-size: 22px; font-weight: 800; color: #111827;">
+                    SmartRecruit
+                </span>
+        </div>
+
+        <h2 style="color: #111827; margin-top: 0; font-size: 24px; font-weight: 700;">
+            Application Submitted
+        </h2>
+
+        <p style="color: #374151; font-size: 15px;">
+            Dear <strong th:text="${candidateName}">Candidate</strong>,
+        </p>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+            Your application for the position of
+            <strong style="color:#FF6B35;" th:text="${jobTitle}">Job Title</strong>
+            at <strong th:text="${companyName}">Company Name</strong>
+            has been successfully submitted through the SmartRecruit platform.
+        </p>
+
+        <h2 style="color:#111827;font-size:24px;font-weight:700;">
+            Application Details
+        </h2>
+
+        <div
+                style="background-color:#F9FAFB;padding:22px;border-radius:12px;margin:28px 0;border:1px solid #E5E7EB;">
+            <table style="width:100%;font-size:14px;border-collapse:collapse;">
+
+                <tr>
+                    <td style="color:#6B7280;padding-bottom:10px;">Position</td>
+                    <td style="text-align:right;font-weight:600;" th:text="${jobTitle}">
+                        Job Title
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="color:#6B7280;padding-bottom:10px;">Company</td>
+                    <td style="text-align:right;font-weight:600;" th:text="${companyName}">
+                        Company Name
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="color:#6B7280;padding-bottom:10px;">Applied Date</td>
+                    <td style="text-align:right;font-weight:600;" th:text="${appliedDate}">
+                        2026-03-12
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="color:#6B7280;">Application Status</td>
+                    <td style="text-align:right;">
+                            <span
+                                    style="background:#DBEAFE;color:#1E40AF;padding:4px 10px;border-radius:20px;font-weight:600;font-size:12px;"
+                                    th:text="${status}">
+                            </span>
+                    </td>
+                </tr>
+
+            </table>
+        </div>
+
+        <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+            The recruitment team at
+            <strong th:text="${companyName}">Company Name</strong>
+            will review your application. If your profile matches the job requirements,
+            the employer may contact you for the next steps in the recruitment process.
+        </p>
+
+        <p style="color:#4B5563;font-size:15px;line-height:1.6;">
+            You can monitor the progress of your application at any time through your
+            SmartRecruit candidate dashboard.
+        </p>
+
+        <div style="text-align:center;margin:32px 0;">
+            <a href="https://smartrecruit.tech/dashboard/jobs"
+               style="background-color:#FF6B35;color:#ffffff;padding:14px 35px;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;display:inline-block;">
+                View Application Status
+            </a>
+        </div>
+
+        <p style="color:#6B7280;font-size:13px;margin-top:32px;">
+            If you did not submit this application or believe this message was sent in error,
+            please contact our support team at
+            <strong style="color:#FF6B35;">smart.recruit.business@gmail.com</strong>.
+        </p>
+
+        <p style="color:#111827;font-size:14px;font-weight:600;margin-top:28px;">
+            Best regards,<br>
+            SmartRecruit Team
+        </p>
+
+        <hr style="border:0;border-top:1px solid #E5E7EB;margin:32px 0 16px 0;">
+
+        <p style="color:#9CA3AF;font-size:12px;">
+            This is an automated email from SmartRecruit confirming that your job application
+            has been successfully submitted.
+        </p>
+
+    </div>
+
+    <div style="background:#111827;padding:22px;text-align:center;">
+        <p style="margin:0;color:#D1D5DB;font-size:12px;">
+            © 2026 SmartRecruit. All rights reserved.
+        </p>
+    </div>
+
+</div>
+
+</body>
+
+</html>
