@@ -30,6 +30,7 @@ import com.sma.core.repository.*;
 import com.sma.core.service.QuotaService;
 import com.sma.core.service.ResumeEvaluationService;
 import com.sma.core.service.ResumeService;
+import com.sma.core.service.ScoringCriteriaService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -62,6 +63,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     QuotaService quotaService;
     SuggestionRequestPublisher suggestionRequestPublisher;
     EvaluationMapper evaluationMapper;
+    ScoringCriteriaRepository scoringCriteriaRepository;
+    ScoringCriteriaService scoringCriteriaService;
 
     @Override
     @Transactional(noRollbackFor = MatchingPublishException.class)
@@ -75,7 +78,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         Optional<ResumeEvaluation> existingOverview = resumeEvaluationRepository
                 .findByResumeIdAndJobId(resumeId, jobId);
 
-        if (existingOverview.isPresent() && existingOverview.get().getEvaluationStatus() == EvaluationStatus.FINISH) {
+        if (existingOverview.isPresent()) {
             // Supplement mode: reuse overview record, only request gaps/explanations/skills
             ResumeEvaluation evaluation = existingOverview.get();
             evaluation.setEvaluationType(EvaluationType.DETAIL);
@@ -276,9 +279,11 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         if (!job.getStatus().equals(JobStatus.PUBLISHED)) {
             throw new AppException(ErrorCode.JOB_NOT_AVAILABLE);
         }
+        if (!scoringCriteriaRepository.existsByJobId(job.getId())){
+            scoringCriteriaService.generateAndSetCriteriaContext(job);
+        }
         if (!resume.getParseStatus().equals(ResumeParseStatus.FINISH)) {
             resumeService.parseResume(resume.getId());
-            throw new AppException(ErrorCode.RESUME_NOT_PARSED);
         }
     }
 
@@ -456,8 +461,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                     .description(detailData.getDescription())
                     .requiredLevel(detailData.getRequiredLevel())
                     .candidateLevel(detailData.getCandidateLevel())
-                    .startIndex(detailData.getStartIndex())
-                    .endIndex(detailData.getEndIndex())
+                    .isRequired(detailData.getIsRequired())
+                    .context(detailData.getContext())
                     .impactScore(detailData.getImpactScore())
                     .evaluationCriteriaScore(criteriaScore)
                     .build();

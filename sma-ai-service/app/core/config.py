@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     RABBITMQ_EMBEDDING_RESUME_RESULT_QUEUE: str = "embedding.resume.result"
     RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE: str = "embedding.job.request"
     RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE: str = "embedding.job.result"
+    RABBITMQ_PROPOSED_CV_REQUEST_QUEUE: str = "proposed.cv.request"
+    RABBITMQ_PROPOSED_CV_RESULT_QUEUE: str = "proposed.cv.result"
     RABBITMQ_RECONNECT_DELAY_SECONDS: int = 5
 
 

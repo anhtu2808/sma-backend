@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 MatchLevel = Literal["EXCELLENT", "GOOD", "FAIR", "POOR", "NOT_MATCHED"]
 CriteriaType = Literal["HARD_SKILLS", "SOFT_SKILLS", "EXPERIENCE", "EDUCATION", "JOB_TITLE", "JOB_LEVEL"]
 RelevanceType = Literal["HIGH", "MEDIUM", "LOW"]
-LabelStatus = Literal["FIXED", "MISSING", "MATCHED"]
-SkillLevel = Literal["JUNIOR", "MID", "SENIOR", "EXPERT"]
+LabelStatus = Literal["MISSING", "MATCHED"]
+SkillLevel = Literal["NONE", "FRESHER", "JUNIOR", "MID", "SENIOR", "EXPERT"]
 
 
 class CriteriaScoreDetailResult(BaseModel):
@@ -20,8 +20,7 @@ class CriteriaScoreDetailResult(BaseModel):
     description: Optional[str] = None
     requiredLevel: Optional[SkillLevel] = None
     candidateLevel: Optional[SkillLevel] = None
-    startIndex: Optional[int] = None
-    endIndex: Optional[int] = None
+    context: Optional[str] = None
     isRequired: Optional[bool] = None
     impactScore: Optional[float] = Field(default=None, ge=0, le=100)
     suggestions: List[str] = Field(default_factory=list)
