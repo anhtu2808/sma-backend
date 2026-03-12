@@ -217,8 +217,25 @@ public class QuotaServiceImpl implements QuotaService {
         StateQuotaChecker checker = getStateChecker(featureKey);
         if (checker != null) {
             long currentUsage = checker.getCurrentUsage(ownerContext, input);
+            long remainingQuota = limit - currentUsage;
+
             if (currentUsage >= limit) {
+                if (ownerContext.getRole() == Role.CANDIDATE) {
+                    notifyCandidateQuota(ownerContext.getCandidateId(), feature, 0, true);
+                } else if (ownerContext.getRole() == Role.RECRUITER) {
+                    notifyRecruiterQuota(ownerContext.getCompanyId(), feature, 0, true);
+                }
                 throw new AppException(ErrorCode.FEATURE_QUOTA_EXCEEDED, String.format("Quota exceeded for '%s': limit=%d, current=%d", feature.getName(), limit, currentUsage));
+            }
+            else {
+                if (ownerContext.getRole() == Role.CANDIDATE && remainingQuota == 1) {
+                    notifyCandidateQuota(ownerContext.getCandidateId(), feature, remainingQuota, false);
+                } else if (ownerContext.getRole() == Role.RECRUITER) {
+                    int threshold = RECRUITER_FEATURE_THRESHOLDS.getOrDefault(featureKey, 5);
+                    if (remainingQuota > 0 && remainingQuota <= threshold) {
+                        notifyRecruiterQuota(ownerContext.getCompanyId(), feature, remainingQuota, false);
+                    }
+                }
             }
         }
     }
@@ -234,6 +251,7 @@ public class QuotaServiceImpl implements QuotaService {
     public UsageEvent consumeEventQuota(FeatureKey featureKey, int amount, List<UsageContextModel> contexts) {
         LocalDateTime now = LocalDateTime.now();
         QuotaOwnerContext ownerContext = resolveOwnerContext();
+        ensureQuotaAvailable(featureKey, now, ownerContext);
         List<Subscription> subscriptions = subscriptionService.findEligibleSubscriptions(ownerContext, now);
 
         Feature feature = featureService.getActiveFeature(featureKey);
@@ -305,43 +323,28 @@ public class QuotaServiceImpl implements QuotaService {
         );
 
         long remainingQuota = usageLimit.getMaxQuota() - usedAmount;
-        if (isRecruiterFeature(featureKey)) {
+        if (ownerContext.getRole() == Role.RECRUITER) {
             int threshold = RECRUITER_FEATURE_THRESHOLDS.getOrDefault(featureKey, 5);
-
             if (remainingQuota > 0 && remainingQuota <= threshold) {
-                if (ownerContext.getRole() == Role.RECRUITER) {
-                    notificationService.sendRecruiterNotification(
-                            ownerContext.getCompanyId(),
-                            NotificationType.SYSTEM,
-                            "AI Credits Running Low",
-                            "Your company has only " + remainingQuota + " credits left for " + feature.getName() + ". Please consider upgrading your plan to avoid interruption of service.",
-                            "QUOTA",
-                            feature.getId()
-                    );
-                }
+                notifyRecruiterQuota(ownerContext.getCompanyId(), feature, remainingQuota, false);
+            }
+        } else if (ownerContext.getRole() == Role.CANDIDATE) {
+            int threshold = 1;
+            if (remainingQuota > 0 && remainingQuota <= threshold) {
+                notifyCandidateQuota(ownerContext.getCandidateId(), feature, remainingQuota, false);
             }
         }
 
         if (usedAmount >= usageLimit.getMaxQuota()) {
+            if (ownerContext.getRole() == Role.CANDIDATE) {
+                notifyCandidateQuota(ownerContext.getCandidateId(), feature, 0, true);
+            } else if (ownerContext.getRole() == Role.RECRUITER) {
+                notifyRecruiterQuota(ownerContext.getCompanyId(), feature, 0, true); // BỔ SUNG CHO RECRUITER
+            }
             throw buildQuotaExceeded(feature);
         }
     }
 
-    private boolean isRecruiterFeature(FeatureKey key) {
-        return EnumSet.of(
-                FeatureKey.MATCHING_SCORE,
-                FeatureKey.DETAIL_MATCHING_SCORE,
-                FeatureKey.TALENT_UNLOCK,
-                FeatureKey.API_SCORING,
-                FeatureKey.JOB_POST_LIMIT,
-                FeatureKey.TEAM_MEMBER_LIMIT,
-                FeatureKey.CUSTOM_CAREER_PAGE,
-                FeatureKey.API_PARSING,
-                FeatureKey.TALENT_SEARCH,
-                FeatureKey.EXPORT_SHORTLIST,
-                FeatureKey.RESUME_PARSING
-        ).contains(key);
-    }
 
     private StateQuotaChecker getStateChecker(FeatureKey featureKey) {
         return switch (featureKey) {
@@ -393,5 +396,41 @@ public class QuotaServiceImpl implements QuotaService {
                         .sourceId(context.sourceId())
                         .build())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private void notifyCandidateQuota(Integer candidateId, Feature feature, long remainingQuota, boolean isExceeded) {
+        candidateRepository.findById(candidateId).ifPresent(candidate -> {
+            if (candidate.getUser() != null) {
+                String title = isExceeded ? "Quota Limit Reached" : "Quota Running Low";
+                String message = isExceeded
+                        ? "You have reached your usage limit for " + feature.getName() + ". Please upgrade your plan to continue using this feature."
+                        : "You only have " + remainingQuota + " uses left for " + feature.getName() + ". Consider upgrading your plan to avoid interruption.";
+
+                notificationService.sendCandidateNotification(
+                        candidate.getUser(),
+                        NotificationType.SYSTEM,
+                        title,
+                        message,
+                        "QUOTA",
+                        feature.getId()
+                );
+            }
+        });
+    }
+
+    private void notifyRecruiterQuota(Integer companyId, Feature feature, long remainingQuota, boolean isExceeded) {
+        String title = isExceeded ? "Quota Limit Reached" : "Quota Running Low";
+        String message = isExceeded
+                ? "Your company has reached the usage limit for " + feature.getName() + ". Please upgrade your plan to continue using this feature."
+                : "Your company has only " + remainingQuota + " uses left for " + feature.getName() + ". Please consider upgrading your plan to avoid interruption.";
+
+        notificationService.sendRecruiterNotification(
+                companyId,
+                NotificationType.SYSTEM,
+                title,
+                message,
+                "QUOTA",
+                feature.getId()
+        );
     }
 }

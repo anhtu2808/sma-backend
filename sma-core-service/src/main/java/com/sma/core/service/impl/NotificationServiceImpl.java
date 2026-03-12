@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -192,6 +193,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendCandidateNotification(User user, NotificationType type, String title, String message, String entityType, Integer entityId) {
         Notification noti = Notification.builder()
                 .user(user)
@@ -215,6 +217,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sendRecruiterNotification(Integer companyId, NotificationType type, String title, String message, String entityType, Integer entityId) {
         List<User> companyUsers = userRepository.findAllRecruitersByCompanyId(companyId);
 
