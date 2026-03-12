@@ -109,9 +109,10 @@ public class NotificationServiceImpl implements NotificationService {
                     cb.equal(root.get("isRead"), filter.getIsRead()));
         }
 
-        if (filter.getType() != null) {
+        if (filter.getTypes() != null && !filter.getTypes().isEmpty()) {
             spec = spec.and((root, query, cb) ->
-                    cb.equal(root.get("notificationType"), filter.getType()));
+                    root.get("notificationType").in(filter.getTypes())
+            );
         }
 
         if (filter.getKeyword() != null && !filter.getKeyword().trim().isEmpty()) {

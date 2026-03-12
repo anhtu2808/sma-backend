@@ -10,6 +10,7 @@ import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.ApplicationStatus;
+import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -19,6 +20,7 @@ import com.sma.core.repository.*;
 import com.sma.core.service.ApplicationService;
 import com.sma.core.service.CompanyBlockedCandidateService;
 import com.sma.core.service.EmailService;
+import com.sma.core.service.NotificationService;
 import com.sma.core.utils.JwtTokenProvider;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -59,6 +61,7 @@ public class ApplicationServiceImpl implements ApplicationService {
     ResumeDetailMapper resumeDetailMapper;
     EmailService emailService;
     CompanyBlockedCandidateService blacklistService;
+    NotificationService notificationService;
 
     @Override
     @Transactional
@@ -133,6 +136,7 @@ public class ApplicationServiceImpl implements ApplicationService {
         Application savedApplication = applicationRepository.save(application);
         sendNewApplyNotificationToRecruiters(savedApplication);
         sendApplyConfirmationEmail(savedApplication);
+        sendApplyInAppNotification(savedApplication);
         return applicationMapper.toResponse(savedApplication);
     }
 
@@ -431,6 +435,42 @@ public class ApplicationServiceImpl implements ApplicationService {
             log.info("Confirmation email sent to candidate: {}", app.getEmail());
         } catch (Exception e) {
             log.error("Failed to send confirmation email to candidate: {}", app.getEmail(), e);
+        }
+    }
+
+    private void sendApplyInAppNotification(Application app) {
+        String candidateTitle = "Application Submitted Successfully";
+        String candidateMessage = "Your application for " + app.getJob().getName() + " at " + app.getJob().getCompany().getName() + " has been send.";
+
+        notificationService.sendCandidateNotification(
+                app.getCandidate().getUser(),
+                NotificationType.APPLICATION_STATUS,
+                candidateTitle,
+                candidateMessage,
+                "APPLICATION",
+                app.getId()
+        );
+        String recruiterTitle = "New Job Application";
+        String recruiterMessage = app.getFullName() + " has applied for the position: " + app.getJob().getName() + ".";
+
+        Recruiter owner = app.getJob().getCreatedBy();
+        User targetRecruiterUser = null;
+
+        if (owner != null && owner.getUser() != null) {
+            targetRecruiterUser = owner.getUser();
+        } else {
+            targetRecruiterUser = recruiterRepository.findRootUserByCompanyId(app.getJob().getCompany().getId()).orElse(null);
+        }
+
+        if (targetRecruiterUser != null) {
+            notificationService.sendCandidateNotification(
+                    targetRecruiterUser,
+                    NotificationType.APPLICATION_STATUS,
+                    recruiterTitle,
+                    recruiterMessage,
+                    "APPLICATION",
+                    app.getId()
+            );
         }
     }
 }
