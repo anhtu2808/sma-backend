@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Posting Requires Review</title>
+</head>
+
+<body
+        style="font-family: 'Inter', Arial, sans-serif; background-color: #F3F4F6; padding: 20px; margin: 0; -webkit-font-smoothing: antialiased;">
+
+<div
+        style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);">
+
+    <div style="background: #EF4444; height: 8px;"></div>
+
+    <div style="padding: 40px 30px 10px 30px;">
+
+        <!-- Logo -->
+        <div style="margin-bottom: 32px; display: flex; align-items: center;">
+            <img src="https://smartrecruit.tech/static/media/sma-logo.a080dcf97000caef0bbfe0a549fdac82.svg"
+                 alt="SmartRecruit Logo" style="height: 32px; width: auto; margin-right: 10px; border-radius: 6px;">
+            <span style="font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                    SmartRecruit
+                </span>
+        </div>
+
+        <h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700; line-height: 1.2;">
+            Job Posting Requires Review
+        </h2>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6; margin-top: 16px;">
+            Our automated content monitoring system has detected that a newly submitted job posting may contain
+            restricted or sensitive keywords. As a precaution, the job has been placed in
+            <strong>PENDING REVIEW</strong> status.
+        </p>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+            Please review the job details below and determine whether the posting complies with our platform
+            policies.
+        </p>
+
+        <div
+                style="background-color: #FEF2F2; padding: 24px; border-radius: 12px; margin: 28px 0; border: 1px solid #FCA5A5;">
+
+            <h3
+                    style="margin-top: 0; font-size: 13px; color: #991B1B; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                Job Information
+            </h3>
+
+            <table style="width: 100%; margin-top: 12px; font-size: 14px; border-collapse: collapse;">
+
+                <tr>
+                    <td style="padding: 8px 0; color: #7F1D1D;">Job Title:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #111827;"
+                        th:text="${jobTitle}">
+                        Software Engineer
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 8px 0; color: #7F1D1D;">Company:</td>
+                    <td style="padding: 8px 0; text-align: right; color: #111827;" th:text="${companyName}">
+                        ABC Corp
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 8px 0; color: #7F1D1D;">Posted By:</td>
+                    <td style="padding: 8px 0; text-align: right; color: #111827;" th:text="${recruiterEmail}">
+                        recruiter@email.com
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+        <p style="color: #4B5563; font-size: 14px; line-height: 1.6;">
+            You may choose to <strong>Approve</strong> the posting if it complies with our guidelines, or
+            <strong>Reject</strong> it if the content violates platform policies.
+        </p>
+
+        <div style="text-align: center; margin-top: 32px;">
+
+            <a th:href="${'https://admin.smartrecruit.tech/jobs/' + jobId}"
+               style="background-color: #111827; color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">
+                Review Job Posting
+            </a>
+
+        </div>
+        <p style="color: #111827; font-size: 15px; line-height: 1.6; margin-top: 20px;">
+            Best regards,<br>
+            <strong>SmartRecruit Team</strong>
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 20px 0 20px 0;">
+
+        <p style="font-size: 12px; color: #6B7280; text-align: center; line-height: 1.8;">
+            If you have any questions, please contact our support team at
+            <strong>smart.recruit.business@gmail.com</strong>.
+        </p>
+
+        <p style="font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.8;">
+            This is an automated email sent by SmartRecruit regarding system notifications.
+        </p>
+
+    </div>
+
+    <div style="background: #111827; padding: 24px; text-align: center;">
+        <p style="margin: 0; color: #D1D5DB; font-size: 12px;">
+            © 2026 SmartRecruit. All rights reserved.
+        </p>
+    </div>
+
+</div>
+
+</body>
+
+</html>

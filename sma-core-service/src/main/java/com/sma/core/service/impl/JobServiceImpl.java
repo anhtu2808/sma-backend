@@ -511,8 +511,12 @@ public class JobServiceImpl implements JobService {
             scoringCriteriaService.generateAndSetCriteriaContext(job);
         }
         if (!isSample && !isSaved) {
-            if (job.getStatus().equals(JobStatus.PUBLISHED) || job.getStatus().equals(JobStatus.PENDING_REVIEW)) {
+            if (job.getStatus().equals(JobStatus.PUBLISHED)) {
+                scoringCriteriaService.generateAndSetCriteriaContext(job);
                 sendJobStatusEmail(job);
+            } else if (job.getStatus().equals(JobStatus.PENDING_REVIEW)) {
+                sendJobStatusEmail(job);
+                sendViolationEmailToAdmin(job);
             }
         }
         return job;
@@ -777,5 +781,29 @@ public class JobServiceImpl implements JobService {
                 "job",
                 context
         );
+    }
+
+    private void sendViolationEmailToAdmin(Job job) {
+        List<User> adminUsers = userRepository.findAllByRole(Role.ADMIN);
+        if (adminUsers.isEmpty()) return;
+
+        Context context = new Context();
+        context.setVariable("jobTitle", job.getName());
+        context.setVariable("companyName", job.getCompany().getName());
+        context.setVariable("recruiterEmail", job.getCreatedBy().getUser().getEmail());
+        context.setVariable("jobId", job.getId());
+
+        for (User admin : adminUsers) {
+            try {
+                emailService.sendEmailWithTemplate(
+                        admin.getEmail(),
+                        "[SECURITY ALERT] Job Review Required: " + job.getName(),
+                        "job-violate",
+                        context
+                );
+            } catch (Exception e) {
+                log.error("Failed to notify Admin {} about job violation", admin.getEmail(), e);
+            }
+        }
     }
 }
