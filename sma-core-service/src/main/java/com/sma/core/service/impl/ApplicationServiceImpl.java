@@ -304,6 +304,8 @@ public class ApplicationServiceImpl implements ApplicationService {
                     .orElse(null);
             responseBuilder.aiEvaluation(aiEvaluation);
         }
+        app.setStatus(ApplicationStatus.VIEWED);
+        applicationRepository.save(app);
         return responseBuilder.build();
     }
 
