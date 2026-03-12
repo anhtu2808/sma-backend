@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -96,6 +97,7 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .build();
         recruiterRepository.save(recruiter);
         sendRegistrationEmail(user, company, CompanyStatus.PENDING_VERIFICATION, null);
+        sendAdminNotificationEmail(company, user);
         Notification noti = Notification.builder()
                 .notificationType(NotificationType.COMPANY_REGISTRATION)
                 .title("New Company Registration")
@@ -165,5 +167,39 @@ public class RecruiterServiceImpl implements RecruiterService {
                 "company-registration-result",
                 context
         );
+    }
+
+    private void sendAdminNotificationEmail(Company company, User recruiterUser) {
+        List<User> adminUsers = userRepository.findAllByRole(Role.ADMIN);
+        if (adminUsers.isEmpty()) {
+            log.warn("No Admin found in system to send registration notification.");
+            return;
+        }
+
+        Context context = new Context();
+        context.setVariable("companyName", company.getName());
+        context.setVariable("industry", company.getCompanyIndustry());
+        context.setVariable("companyEmail", company.getEmail());
+        context.setVariable("taxId", company.getTaxIdentificationNumber());
+        context.setVariable("recruiterEmail", recruiterUser.getEmail());
+        context.setVariable("companyId", company.getId());
+
+        String formattedTime = LocalDateTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm")
+        );
+        context.setVariable("registerTime", formattedTime);
+
+        for (User admin : adminUsers) {
+            try {
+                emailService.sendEmailWithTemplate(
+                        admin.getEmail(),
+                        "[URGENT] New Company Registration: " + company.getName(),
+                        "company-register",
+                        context
+                );
+            } catch (Exception e) {
+                log.error("Failed to send admin notification email to: {}", admin.getEmail(), e);
+            }
+        }
     }
 }
