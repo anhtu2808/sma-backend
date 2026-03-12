@@ -335,6 +335,7 @@ Table Resumes {
   linkedin_link varchar
   portfolio_link varchar
   full_name varchar
+  job_title varchar
   avatar varchar
   type enum('ORIGINAL', 'TEMPLATE', 'PROFILE') [default: 'ORIGINAL']
   root_resume_id int

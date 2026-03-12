@@ -23,6 +23,7 @@ public class ParsedResume {
     String linkedinLink;
     String portfolioLink;
     String fullName;
+    String jobTitle;
     String avatar;
     String resumeUrl;
     ResumeLanguage language;

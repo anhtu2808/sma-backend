@@ -56,6 +56,9 @@ public class Resume {
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "job_title")
+    private String jobTitle;
+
     private String avatar;
 
     @Column(name = "resume_url")

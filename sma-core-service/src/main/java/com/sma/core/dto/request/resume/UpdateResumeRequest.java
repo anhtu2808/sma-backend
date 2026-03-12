@@ -24,6 +24,7 @@ public class UpdateResumeRequest {
     String linkedinLink;
     String portfolioLink;
     String fullName;
+    String jobTitle;
     String avatar;
     ResumeLanguage language;
     Boolean isDefault;

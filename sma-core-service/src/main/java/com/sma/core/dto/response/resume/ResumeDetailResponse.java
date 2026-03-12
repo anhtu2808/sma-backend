@@ -32,6 +32,7 @@ public class ResumeDetailResponse {
     String linkedinLink;
     String portfolioLink;
     String fullName;
+    String jobTitle;
     String avatar;
     String resumeUrl;
     ResumeType type;

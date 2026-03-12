@@ -301,6 +301,7 @@ public class ResumeParsingResultServiceImpl implements ResumeParsingResultServic
         setIfNotBlank(resume::setLinkedinLink, parsedResume.getLinkedinLink());
         setIfNotBlank(resume::setPortfolioLink, parsedResume.getPortfolioLink());
         setIfNotBlank(resume::setFullName, parsedResume.getFullName());
+        setIfNotBlank(resume::setJobTitle, parsedResume.getJobTitle());
         setIfNotBlank(resume::setAvatar, parsedResume.getAvatar());
         setIfNotBlank(resume::setResumeUrl, parsedResume.getResumeUrl());
 
