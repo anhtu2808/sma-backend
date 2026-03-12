@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Job Invitation</title>
+</head>
+
+<body
+        style="font-family: 'Inter', Arial, sans-serif; background-color: #F3F4F6; padding: 20px; margin: 0; -webkit-font-smoothing: antialiased;">
+
+<div
+        style="max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #E5E7EB; box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);">
+
+    <div style="background: #FF6B35; height: 8px;"></div>
+
+    <div style="padding: 40px 30px 10px 30px;">
+
+        <!-- Logo -->
+        <div style="margin-bottom: 32px; display: flex; align-items: center;">
+            <img src="https://smartrecruit.tech/static/media/sma-logo.a080dcf97000caef0bbfe0a549fdac82.svg"
+                 alt="SmartRecruit Logo" style="height: 32px; width: auto; margin-right: 10px; border-radius: 6px;">
+            <span style="font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                    SmartRecruit
+                </span>
+        </div>
+
+        <h2 style="color: #111827; margin-top: 0; font-size: 22px; font-weight: 700;">
+            You've Been Invited to Apply
+        </h2>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6; margin-top: 16px;">
+            A recruiter from <strong th:text="${companyName}">Company Name</strong> has invited you to apply for
+            the following job opportunity on SmartRecruit.
+        </p>
+
+        <div
+                style="background-color: #F9FAFB; padding: 24px; border-radius: 12px; margin: 28px 0; border: 1px solid #E5E7EB;">
+
+            <h3
+                    style="margin-top: 0; font-size: 13px; color: #374151; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">
+                Job Details
+            </h3>
+
+            <table style="width: 100%; margin-top: 12px; font-size: 14px; border-collapse: collapse;">
+
+                <tr>
+                    <td style="padding: 8px 0; color: #6B7280;">Job Title:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 700; color: #111827;"
+                        th:text="${jobTitle}">
+                        Software Engineer
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 8px 0; color: #6B7280;">Company:</td>
+                    <td style="padding: 8px 0; text-align: right; color: #111827;" th:text="${companyName}">
+                        ABC Company
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 8px 0; color: #6B7280;">Location:</td>
+                    <td style="padding: 8px 0; text-align: right; color: #111827;" th:text="${location}">
+                        Ho Chi Minh City
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6;">
+            If you're interested in this opportunity, you can review the job details and submit your application
+            directly through SmartRecruit.
+        </p>
+
+        <div style="text-align: center; margin-top: 32px;">
+            <a th:href="${'https://smartrecruit.tech/jobs/' + jobId}"
+               style="background-color: #111827; color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 10px; font-weight: 700; font-size: 15px; display: inline-block;">
+                View Job Details
+            </a>
+        </div>
+
+        <p style="color: #4B5563; font-size: 15px; line-height: 1.6; margin-top: 28px;">
+            We encourage you to explore this opportunity and connect with the recruiting team if the role matches
+            your career goals.
+        </p>
+
+        <p style="color: #111827; font-size: 15px; line-height: 1.6; margin-top: 16px;">
+            Best regards,<br>
+            <strong>SmartRecruit Team</strong>
+        </p>
+
+        <hr style="border: 0; border-top: 1px solid #E5E7EB; margin: 40px 0 20px 0;">
+
+        <p style="font-size: 12px; color: #6B7280; text-align: center; line-height: 1.8;">
+            If you have any questions, please contact our support team at
+            <strong>smart.recruit.business@gmail.com</strong>.
+        </p>
+
+        <p style="font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.8;">
+            This is an automated email sent by SmartRecruit regarding your job invitation.
+        </p>
+
+    </div>
+
+    <div style="background: #111827; padding: 24px; text-align: center;">
+        <p style="margin: 0; color: #D1D5DB; font-size: 12px;">
+            © 2026 SmartRecruit. All rights reserved.
+        </p>
+    </div>
+
+</div>
+
+</body>
+
+</html>
