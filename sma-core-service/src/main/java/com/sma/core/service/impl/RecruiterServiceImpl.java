@@ -2,9 +2,13 @@ package com.sma.core.service.impl;
 
 import com.sma.core.dto.request.auth.RecruiterRegisterRequest;
 import com.sma.core.dto.request.user.CreateRecruiterMemberRequest;
+import com.sma.core.dto.request.user.UpdateRecruiterMemberRequest;
+import com.sma.core.dto.request.user.UpdateRecruiterMemberStatusRequest;
 import com.sma.core.dto.response.myinfo.RecruiterMyInfoResponse;
+import com.sma.core.dto.response.recruiter.RecruiterMemberResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.CompanyStatus;
+import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.enums.UserStatus;
@@ -17,6 +21,7 @@ import com.sma.core.repository.RecruiterRepository;
 import com.sma.core.repository.UserRepository;
 import com.sma.core.service.EmailService;
 import com.sma.core.service.NotificationService;
+import com.sma.core.service.QuotaService;
 import com.sma.core.service.RecruiterService;
 import com.sma.core.utils.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -29,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -44,6 +50,7 @@ public class RecruiterServiceImpl implements RecruiterService {
     private final PasswordEncoder passwordEncoder;
     private final RecruiterMapper recruiterMapper;
     private final NotificationService notificationService;
+    private final QuotaService quotaService;
     final EmailService emailService;
 
     @Override
@@ -130,13 +137,16 @@ public class RecruiterServiceImpl implements RecruiterService {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AppException(ErrorCode.EMAIL_EXISTS);
         }
+        quotaService.validateStateQuota(FeatureKey.TEAM_MEMBER_LIMIT, null);
         User user = User.builder()
                 .fullName(request.getFullName())
                 .gender(request.getGender())
                 .email(request.getEmail())
                 .role(Role.RECRUITER)
+                .status(UserStatus.ACTIVE)
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .build();
+        userRepository.save(user);
         Recruiter recruiterMember = Recruiter.builder()
                 .company(rootRecruiter.getCompany())
                 .isRootRecruiter(false)
@@ -146,6 +156,75 @@ public class RecruiterServiceImpl implements RecruiterService {
                 .build();
         recruiterRepository.save(recruiterMember);
         return recruiterMapper.toRecruiterMyInfoResponse(recruiterMember);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecruiterMemberResponse> getMembers() {
+        Integer recruiterId = JwtTokenProvider.getCurrentRecruiterId();
+        Recruiter recruiter = recruiterRepository.findById(recruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        Integer companyId = recruiter.getCompany().getId();
+
+        return recruiterRepository.findAllByCompanyId(companyId)
+                .stream()
+                .sorted(Comparator
+                        .comparing((Recruiter r) -> Boolean.TRUE.equals(r.getIsRootRecruiter())).reversed()
+                        .thenComparing(r -> r.getUser() != null ? r.getUser().getFullName() : null, Comparator.nullsLast(String::compareToIgnoreCase))
+                        .thenComparing(Recruiter::getId))
+                .map(recruiterMapper::toRecruiterMemberResponse)
+                .toList();
+    }
+
+    @Override
+    public RecruiterMemberResponse updateMember(Integer recruiterId, UpdateRecruiterMemberRequest request) {
+        Recruiter rootRecruiter = recruiterRepository
+                .findById(JwtTokenProvider.getCurrentRecruiterId())
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        if (!Boolean.TRUE.equals(rootRecruiter.getIsRootRecruiter())) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        Recruiter targetRecruiter = recruiterRepository.findById(recruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        if (!targetRecruiter.getCompany().getId().equals(rootRecruiter.getCompany().getId())) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        User user = targetRecruiter.getUser();
+        user.setFullName(request.getFullName());
+        user.setGender(request.getGender());
+
+        return recruiterMapper.toRecruiterMemberResponse(targetRecruiter);
+    }
+
+    @Override
+    public RecruiterMemberResponse updateMemberStatus(Integer recruiterId, UpdateRecruiterMemberStatusRequest request) {
+        Recruiter rootRecruiter = recruiterRepository
+                .findById(JwtTokenProvider.getCurrentRecruiterId())
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        if (!Boolean.TRUE.equals(rootRecruiter.getIsRootRecruiter())) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        if (rootRecruiter.getId().equals(recruiterId)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Root recruiter cannot change their own status");
+        }
+
+        Recruiter targetRecruiter = recruiterRepository.findById(recruiterId)
+                .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
+        if (!targetRecruiter.getCompany().getId().equals(rootRecruiter.getCompany().getId())) {
+            throw new AppException(ErrorCode.NOT_HAVE_PERMISSION);
+        }
+
+        UserStatus nextStatus = request.getStatus();
+        if (nextStatus != UserStatus.ACTIVE && nextStatus != UserStatus.INACTIVE) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Status must be ACTIVE or INACTIVE");
+        }
+
+        targetRecruiter.getUser().setStatus(nextStatus);
+
+        return recruiterMapper.toRecruiterMemberResponse(targetRecruiter);
     }
 
     private void sendRegistrationEmail(User user, Company company, CompanyStatus status, String reason) {

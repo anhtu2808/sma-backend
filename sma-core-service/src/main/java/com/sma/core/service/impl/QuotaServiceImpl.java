@@ -22,6 +22,7 @@ import com.sma.core.service.SubscriptionService;
 import com.sma.core.service.quota.EventUsageCalculator;
 import com.sma.core.service.quota.StateQuotaChecker;
 import com.sma.core.service.quota.impl.ResumeUploadLimitStateChecker;
+import com.sma.core.service.quota.impl.TeamMemberLimitStateChecker;
 import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.utils.JwtTokenProvider;
 import org.springframework.context.ApplicationContext;
@@ -362,6 +363,7 @@ public class QuotaServiceImpl implements QuotaService {
     private StateQuotaChecker getStateChecker(FeatureKey featureKey) {
         return switch (featureKey) {
             case CV_UPLOAD_LIMIT -> getBean(ResumeUploadLimitStateChecker.class);
+            case TEAM_MEMBER_LIMIT -> getBean(TeamMemberLimitStateChecker.class);
             default -> null;
         };
     }

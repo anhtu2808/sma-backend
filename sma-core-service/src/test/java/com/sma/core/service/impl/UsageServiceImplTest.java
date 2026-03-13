@@ -21,6 +21,7 @@ import com.sma.core.service.quota.impl.EventUsageCalculatorImpl;
 import com.sma.core.service.quota.impl.QuotaAggregationEngineImpl;
 import com.sma.core.service.quota.impl.ResumeUploadLimitStateChecker;
 import com.sma.core.service.quota.impl.SubscriptionQuotaWindowResolver;
+import com.sma.core.service.quota.impl.TeamMemberLimitStateChecker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -68,6 +69,9 @@ class UsageServiceImplTest {
     private ResumeUploadLimitStateChecker resumeUploadLimitStateChecker;
 
     @Mock
+    private TeamMemberLimitStateChecker teamMemberLimitStateChecker;
+
+    @Mock
     private UsageEventMapper usageEventMapper;
 
     private UsageServiceImpl usageService;
@@ -84,6 +88,7 @@ class UsageServiceImplTest {
         quotaEngine = new QuotaAggregationEngineImpl(
                 eventUsageCalculator,
                 resumeUploadLimitStateChecker,
+                teamMemberLimitStateChecker,
                 windowResolver,
                 fixedClock
         );
