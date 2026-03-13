@@ -68,11 +68,11 @@ public class ApplicationController {
                 .build();
     }
 
-    @GetMapping("/export-shortlisted")
+    @GetMapping("/export-approved")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<List<ApplicationExportResponse>> getShortlistedForExport(@RequestParam Integer jobId,
+    public ApiResponse<List<ApplicationExportResponse>> getApprovedForExport(@RequestParam Integer jobId,
                                                                                 @RequestParam(defaultValue = "XLSX") ExportType type) {
-        List<ApplicationExportResponse> data = applicationService.getShortlistedForExport(jobId, type);
+        List<ApplicationExportResponse> data = applicationService.getApprovedForExport(jobId, type);
         return ApiResponse.<List<ApplicationExportResponse>>builder()
                 .message("Get approved candidates for export successfully.")
                 .data(data)

@@ -17,5 +17,5 @@ public interface ApplicationService {
     Page<ApplicationListResponse> getApplicationsForRecruiter(ApplicationFilter filter);
     ApplicationDetailResponse getApplicationDetail(Integer applicationId);
     void updateStatus(Integer applicationId, ApplicationStatus status, String rejectReason);
-    List<ApplicationExportResponse> getShortlistedForExport(Integer jobId, ExportType type);
+    List<ApplicationExportResponse> getApprovedForExport(Integer jobId, ExportType type);
 }

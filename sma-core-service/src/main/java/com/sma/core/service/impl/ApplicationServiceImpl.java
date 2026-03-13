@@ -292,13 +292,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         } else if (currentRole == Role.RECRUITER) {
             validateRecruiterPermission(app.getJob().getId());
         }
-        if (currentRole == Role.RECRUITER && app.getStatus() == ApplicationStatus.APPLIED) {
-            app.setStatus(ApplicationStatus.VIEWED);
-            applicationRepository.save(app);
-
-            sendApplicationResultInAppNotification(app);
-            sendNotificationEmail(app);
-        }
 
         ResumeDetailResponse resumeDetail = resumeDetailMapper.toDetailResponse(app.getResume());
         ApplicationDetailResponse.ApplicationDetailResponseBuilder responseBuilder = ApplicationDetailResponse.builder()
@@ -329,7 +322,6 @@ public class ApplicationServiceImpl implements ApplicationService {
         if (currentStatus == ApplicationStatus.APPROVED && newStatus != ApplicationStatus.APPROVED) {
             throw new AppException(ErrorCode.APPLICATION_ALREADY_CLOSED);
         }
-
         boolean isRescuing = currentStatus == ApplicationStatus.REJECTED
                 && Boolean.TRUE.equals(application.getIsRejectedByAi())
                 && (newStatus == ApplicationStatus.SHORTLISTED || newStatus == ApplicationStatus.APPROVED);
@@ -338,7 +330,6 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
         application.setStatus(newStatus);
-
         if (newStatus == ApplicationStatus.REJECTED) {
             application.setRejectReason(rejectReason);
             application.setIsRejectedByAi(false);
@@ -349,7 +340,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
         applicationRepository.save(application);
 
-        if (newStatus == ApplicationStatus.REJECTED) {
+        if (newStatus == ApplicationStatus.REJECTED || newStatus == ApplicationStatus.VIEWED) {
             sendApplicationResultInAppNotification(application);
             sendNotificationEmail(application);
         }
@@ -555,7 +546,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     @Override
     @Transactional
-    public List<ApplicationExportResponse> getShortlistedForExport(Integer jobId, ExportType type) {
+    public List<ApplicationExportResponse> getApprovedForExport(Integer jobId, ExportType type) {
         validateRecruiterPermission(jobId);
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
