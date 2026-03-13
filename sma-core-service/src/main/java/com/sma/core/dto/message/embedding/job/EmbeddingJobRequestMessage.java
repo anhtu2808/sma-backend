@@ -2,6 +2,7 @@ package com.sma.core.dto.message.embedding.job;
 
 import com.sma.core.entity.JobExpertise;
 import com.sma.core.enums.JobLevel;
+import com.sma.core.enums.WorkingModel;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -21,7 +22,7 @@ public class EmbeddingJobRequestMessage {
     String responsibilities;
     String requirement;
     JobLevel jobLevel;
+    WorkingModel workingModel;
     String expertiseName;
-    List<String> locations;
     Set<EmbeddingJobSkill> skills;
 }

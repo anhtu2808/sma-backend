@@ -74,7 +74,6 @@ public interface JobMapper {
 
     @Mapping(target = "title", source = "name")
     @Mapping(target = "expertiseName", source = "expertise.name")
-    @Mapping(target = "locations", ignore = true)
     EmbeddingJobRequestMessage toEmbeddingJobMessage(Job job);
 
     EmbeddingJobSkill toJobSkill(Skill skill);

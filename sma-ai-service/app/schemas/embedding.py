@@ -12,9 +12,16 @@ class EmbedStatus(str, Enum):
     SUCCESS = "SUCCESS"
     FAIL = "FAIL"
 
+class WorkingModel(str, Enum):
+    ONSITE = "ONSITE"
+    REMOTE = "REMOTE"
+    HYBRID = "HYBRID"
+
 
 class EmbeddingResumeSkill(BaseSchema):
     name: Optional[str] = None
+    category: Optional[str] = None
+    group: Optional[str] = None
     yearsOfExperience: Optional[int] = None
 
 
@@ -84,6 +91,7 @@ class EmbeddingJobRequestMessage(BaseSchema):
     requirement: Optional[str] = None
     jobLevel: Optional[str] = None
     expertiseName: Optional[str] = None
+    workingModel: Optional[WorkingModel] = None
     skills: List[EmbeddingJobSkill] = Field(default_factory=list)
 
 

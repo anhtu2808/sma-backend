@@ -12,6 +12,8 @@ import lombok.experimental.FieldDefaults;
 public class EmbeddingResumeSkill {
 
     Integer yearsOfExperience;
+    String category;
+    String group;
     String name;
 
 }

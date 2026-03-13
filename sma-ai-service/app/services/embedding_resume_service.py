@@ -30,12 +30,17 @@ Based on the provided JSON data, generate a JSON object containing the exact fie
 1. "overview" (string or null): A single summary paragraph combining the candidate's job title and key skills.
    Example: "Senior Backend Engineer building scalable microservices using Java, Spring Boot, Kafka and PostgreSQL."
 
-2. "skills" (string or null): A single formatted text block listing all skills with years of experience if available.
+2. "skills" (list of strings): A list where each element is a formatted text block for a specific skill context. Group skills by their `group` field if it exists, otherwise use their `category` field. If both are missing, use "other". Each string in the list should begin with the context name followed by the skills in that context.
    Example:
-   Skills:
-   Java (5 years)
-   Spring Boot (4 years)
-   React (2 years)
+   [
+  "Backend Development Skills\nJava (5 years)\nSpring Boot (4 years)\nREST API\nMicroservices",
+
+  "Database Technologies\nPostgreSQL (4 years)\nMongoDB (2 years)\nMySQL",
+
+  "DevOps and Infrastructure\nDocker\nGit\nAWS",
+
+  "Other Tools\nPostman\nJira"
+]
 
 3. "experiences" (list of strings): A list where each element is a formatted text block for an experience detail.
    Example:
@@ -121,9 +126,14 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
         metadata.append({"type": "overview", "sourceId": 0})
         
     skills = ai_chunks_dict.get("skills")
-    if skills:
+    if skills and isinstance(skills, list):
+        for i, skill_chunk in enumerate(skills):
+            if not skill_chunk: continue
+            chunks.append(skill_chunk)
+            metadata.append({"type": "skill", "sourceId": i})
+    elif skills and isinstance(skills, str):
         chunks.append(skills)
-        metadata.append({"type": "skills", "sourceId": 0})
+        metadata.append({"type": "skill", "sourceId": 0})
         
     for exp_index, exp in enumerate(ai_chunks_dict.get("experiences") or []):
         if not exp: continue

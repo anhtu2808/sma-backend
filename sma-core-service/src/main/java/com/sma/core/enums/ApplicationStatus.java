@@ -6,4 +6,5 @@ public enum ApplicationStatus {
     SHORTLISTED,
     AUTO_REJECTED,
     NOT_SUITABLE,
+    REJECTED,
 }

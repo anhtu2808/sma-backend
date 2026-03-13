@@ -112,6 +112,7 @@ class VectorService:
         collection_name: str,
         scroll_filter: Filter,
         limit: int = 100,
+        with_vectors: bool = True,
     ) -> list:
         """
         Retrieve points from a Qdrant collection by filter.
@@ -124,7 +125,7 @@ class VectorService:
                 scroll_filter=scroll_filter,
                 limit=limit,
                 with_payload=True,
-                with_vectors=True,
+                with_vectors=with_vectors,
             )
             return points
         except Exception as e:

@@ -94,11 +94,6 @@ public class Job {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private EmbedStatus embedStatus;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "propose_status", columnDefinition = "propose_status")
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private ProposeStatus proposeStatus;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expertise_id")
     private JobExpertise expertise;

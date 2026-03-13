@@ -1,6 +1,7 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.message.embedding.job.EmbeddingJobRequestMessage;
+import com.sma.core.dto.message.proposed.ProposedCVData;
 import com.sma.core.dto.message.proposed.ProposedCVRequestMessage;
 import com.sma.core.dto.message.proposed.ProposedCVResultMessage;
 import com.sma.core.dto.response.PagingResponse;
@@ -30,10 +31,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -53,31 +52,40 @@ public class ProposedResumeServiceImpl implements ProposedResumeService {
     public void addProposedResume(ProposedCVResultMessage message) {
         Job job = jobRepository.findById(message.getJobId())
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-        if (message.getStatus().equals(ProposeStatus.FAILED)) {
-            job.setProposeStatus(ProposeStatus.FAILED);
-            jobRepository.save(job);
-            log.info("Error message: {}", message.getErrorMessage());
+        if (message.getStatus() == ProposeStatus.FAILED) {
+            log.error("Propose failed for job {} : {}", job.getId(), message.getErrorMessage());
             throw new AppException(ErrorCode.SERVER_ERROR_PROPOSE);
         }
-        job.setProposeStatus(message.getStatus());
-        jobRepository.save(job);
+        Set<Integer> resumeIds = message.getProposedCVs()
+                .stream()
+                .map(ProposedCVData::getResumeId)
+                .collect(Collectors.toSet());
+        List<ProposedResume> existingProposedResumes =
+                proposedResumeRepository.findByJobIdAndResumeIdIn(job.getId(), resumeIds);
+        Map<Integer, Resume> resumeMap = resumeRepository.findAllById(resumeIds)
+                .stream()
+                .collect(Collectors.toMap(Resume::getId, r -> r));
+        Map<Integer, ProposedResume> proposedResumeMap =
+                existingProposedResumes.stream()
+                        .collect(Collectors.toMap(
+                                pr -> pr.getResume().getId(),
+                                pr -> pr
+                        ));
         List<ProposedResume> proposedResumes = new ArrayList<>();
-        message.getProposedCVs()
-                .forEach(proposedCVData -> {
-                    Resume resume = resumeRepository.findById(proposedCVData.getResumeId())
-                            .orElse(null);
-                    if (resume != null) {
-                        if (!proposedResumeRepository.existsByJobIdAndResumeId(job.getId(), resume.getId())) {
-                            ProposedResume proposedResume = ProposedResume.builder()
-                                    .job(job)
-                                    .resume(resume)
-                                    .matchRate(proposedCVData.getMatchRate())
-                                    .build();
-                            proposedResumes.add(proposedResume);
-                        }
-                    }
-                });
-
+        for (ProposedCVData proposedCVData : message.getProposedCVs()) {
+            Resume resume = resumeMap.get(proposedCVData.getResumeId());
+            if (resume == null) continue;
+            ProposedResume proposedResume =
+                    proposedResumeMap.get(resume.getId());
+            if (proposedResume == null) {
+                proposedResume = ProposedResume.builder()
+                        .job(job)
+                        .resume(resume)
+                        .build();
+            }
+            proposedResume.setMatchRate(proposedCVData.getMatchRate());
+            proposedResumes.add(proposedResume);
+        }
         proposedResumeRepository.saveAll(proposedResumes);
     }
 
@@ -85,19 +93,21 @@ public class ProposedResumeServiceImpl implements ProposedResumeService {
     public PagingResponse<ProposedCVResponse> getProposedCV(Integer jobId, Integer page, Integer size) {
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
-        boolean isNotEmbedYet = false;
         if (!job.getEmbedStatus().equals(EmbedStatus.SUCCESS)) {
             embeddingJobRequestPublisher.publish(jobMapper.toEmbeddingJobMessage(job));
         }
-        if (!job.getProposeStatus().equals(ProposeStatus.FINISHED)) {
-            job.setProposeStatus(ProposeStatus.PROCESSING);
-            isNotEmbedYet = true;
-            proposedCVRequestPublisher.publish(ProposedCVRequestMessage.builder()
-                    .id(jobId)
-                    .build());
-        }
-        if (isNotEmbedYet)
-            jobRepository.save(job);
+//        if (!job.getProposeStatus().equals(ProposeStatus.FINISHED)) {
+//            job.setProposeStatus(ProposeStatus.PROCESSING);
+//            isNotEmbedYet = true;
+//            proposedCVRequestPublisher.publish(ProposedCVRequestMessage.builder()
+//                    .id(jobId)
+//                    .build());
+//        }
+
+        proposedCVRequestPublisher.publish(ProposedCVRequestMessage.builder()
+                        .id(job.getId())
+                .build());
+        jobRepository.save(job);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "matchRate"));
         Page<ProposedResume> proposedResumes = proposedResumeRepository.findByJobId(jobId, pageable);
 

@@ -57,7 +57,7 @@ def find_proposed_resumes(request: dict) -> ProposedCVResultMessage:
     logger.info("Found {} job chunks for jobId={}", len(job_points), job_id)
 
     # 2. For each job chunk, search for similar resume chunks
-    resume_scores: dict[int, list[float]] = defaultdict(list)
+    resume_scores: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
 
     for job_point in job_points:
         job_vector = job_point.vector
@@ -71,9 +71,20 @@ def find_proposed_resumes(request: dict) -> ProposedCVResultMessage:
         )
 
         for scored_point in results:
-            resume_id = scored_point.payload.get("resume_id")
-            if resume_id is not None:
-                resume_scores[resume_id].append(scored_point.score)
+            payload = scored_point.payload
+            resume_id = payload.get("resume_id")
+            chunk_type = payload.get("chunk_type")
+
+            if resume_id is None or chunk_type is None:
+                continue
+
+            if chunk_type == "education":
+                continue
+            score = scored_point.score
+
+            # keep the best score per chunk type
+            if score > resume_scores[resume_id].get(chunk_type, 0):
+                resume_scores[resume_id][chunk_type] = score
 
     if not resume_scores:
         logger.info("No matching resumes found for jobId={}", job_id)
@@ -83,9 +94,21 @@ def find_proposed_resumes(request: dict) -> ProposedCVResultMessage:
 
     # 3. Aggregate: average score per resume
     aggregated = []
-    for resume_id, scores in resume_scores.items():
-        avg_score = sum(scores) / len(scores)
-        aggregated.append((resume_id, avg_score))
+
+    for resume_id, type_scores in resume_scores.items():
+        experience_score = type_scores.get("experience", 0)
+        skill_score = type_scores.get("skill", 0)
+        overview_score = type_scores.get("overview", 0)
+        project_score = type_scores.get("project", 0)
+
+        final_score = (
+                experience_score * 0.6
+                + skill_score * 0.25
+                + overview_score * 0.1
+                + project_score * 0.05
+        )
+
+        aggregated.append((resume_id, final_score))
 
     # 4. Sort descending by score and take top N
     aggregated.sort(key=lambda x: x[1], reverse=True)
