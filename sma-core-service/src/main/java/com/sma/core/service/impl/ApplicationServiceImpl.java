@@ -4,12 +4,14 @@ import com.sma.core.dto.request.application.AnswerRequest;
 import com.sma.core.dto.request.application.ApplicationFilter;
 import com.sma.core.dto.request.application.ApplicationRequest;
 import com.sma.core.dto.response.application.ApplicationDetailResponse;
+import com.sma.core.dto.response.application.ApplicationExportResponse;
 import com.sma.core.dto.response.application.ApplicationListResponse;
 import com.sma.core.dto.response.application.ApplicationResponse;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.ApplicationStatus;
+import com.sma.core.enums.ExportType;
 import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
@@ -39,6 +41,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -62,6 +65,8 @@ public class ApplicationServiceImpl implements ApplicationService {
     EmailService emailService;
     CompanyBlockedCandidateService blacklistService;
     NotificationService notificationService;
+    ExportRecordRepository exportRecordRepository;
+    UserRepository userRepository;
 
     @Override
     @Transactional
@@ -141,21 +146,16 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     private void validateApplicationRules(Integer candidateId, Integer jobId) {
-        List<ApplicationStatus> rejectStatuses = List.of(
-                ApplicationStatus.AUTO_REJECTED,
-                ApplicationStatus.NOT_SUITABLE
-        );
-
-        if (applicationRepository.hasBeenRejected(candidateId, jobId, rejectStatuses)) {
+        if (applicationRepository.hasBeenRejectedByRecruiter(candidateId, jobId)) {
             throw new AppException(ErrorCode.ALREADY_REJECTED_FOR_THIS_JOB);
         }
 
         applicationRepository.findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(candidateId, jobId)
-                .ifPresent(lastApp -> { 
+                .ifPresent(lastApp -> {
                     if (lastApp.getAttempt() >= 3) {
                         throw new AppException(ErrorCode.MAX_APPLY_ATTEMPTS_REACHED);
                     }
-                    if (lastApp.getStatus() != ApplicationStatus.APPLIED) {
+                    if (lastApp.getStatus() != ApplicationStatus.APPLIED && lastApp.getStatus() != ApplicationStatus.REJECTED) {
                         throw new AppException(ErrorCode.CANNOT_REAPPLY_AFTER_PROCESSING);
                     }
                 });
@@ -292,10 +292,19 @@ public class ApplicationServiceImpl implements ApplicationService {
         } else if (currentRole == Role.RECRUITER) {
             validateRecruiterPermission(app.getJob().getId());
         }
+        if (currentRole == Role.RECRUITER && app.getStatus() == ApplicationStatus.APPLIED) {
+            app.setStatus(ApplicationStatus.VIEWED);
+            applicationRepository.save(app);
+
+            sendApplicationResultInAppNotification(app);
+            sendNotificationEmail(app);
+        }
+
         ResumeDetailResponse resumeDetail = resumeDetailMapper.toDetailResponse(app.getResume());
         ApplicationDetailResponse.ApplicationDetailResponseBuilder responseBuilder = ApplicationDetailResponse.builder()
                 .applicationInfo(applicationMapper.toResponse(app))
                 .resumeDetail(resumeDetail);
+
         if (currentRole == Role.RECRUITER) {
             ResumeEvaluationResponse aiEvaluation = app.getResume().getEvaluations().stream()
                     .filter(e -> e.getJob().getId().equals(app.getJob().getId()))
@@ -304,8 +313,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                     .orElse(null);
             responseBuilder.aiEvaluation(aiEvaluation);
         }
-        app.setStatus(ApplicationStatus.VIEWED);
-        applicationRepository.save(app);
+
         return responseBuilder.build();
     }
 
@@ -316,35 +324,38 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .orElseThrow(() -> new AppException(ErrorCode.APPLICATION_NOT_FOUND));
 
         validateRecruiterPermission(application.getJob().getId());
-
         ApplicationStatus currentStatus = application.getStatus();
 
-        if (currentStatus == ApplicationStatus.NOT_SUITABLE ||
-                currentStatus == ApplicationStatus.AUTO_REJECTED) {
+        if (currentStatus == ApplicationStatus.APPROVED && newStatus != ApplicationStatus.APPROVED) {
             throw new AppException(ErrorCode.APPLICATION_ALREADY_CLOSED);
         }
-        if (newStatus != ApplicationStatus.NOT_SUITABLE && newStatus.ordinal() <= currentStatus.ordinal()) {
+
+        boolean isRescuing = currentStatus == ApplicationStatus.REJECTED
+                && Boolean.TRUE.equals(application.getIsRejectedByAi())
+                && (newStatus == ApplicationStatus.SHORTLISTED || newStatus == ApplicationStatus.APPROVED);
+
+        if (!isRescuing && newStatus.ordinal() < currentStatus.ordinal()) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
         application.setStatus(newStatus);
-        if (newStatus == ApplicationStatus.NOT_SUITABLE || newStatus == ApplicationStatus.AUTO_REJECTED) {
+
+        if (newStatus == ApplicationStatus.REJECTED) {
             application.setRejectReason(rejectReason);
+            application.setIsRejectedByAi(false);
         } else {
             application.setRejectReason(null);
+            application.setIsRejectedByAi(false);
         }
 
         applicationRepository.save(application);
-        List<ApplicationStatus> notifyStatuses = List.of(
-                ApplicationStatus.APPLIED,
-                ApplicationStatus.SHORTLISTED,
-                ApplicationStatus.AUTO_REJECTED,
-                ApplicationStatus.NOT_SUITABLE
-        );
 
-        if (notifyStatuses.contains(newStatus)) {
+        if (newStatus == ApplicationStatus.REJECTED) {
+            sendApplicationResultInAppNotification(application);
             sendNotificationEmail(application);
         }
-        log.info("Application {} updated from {} to {}", applicationId, currentStatus, newStatus);
+
+        log.info("Application {} updated from {} to {}. AI Rejected flag reset to false.",
+                applicationId, currentStatus, newStatus);
     }
 
 
@@ -442,7 +453,7 @@ public class ApplicationServiceImpl implements ApplicationService {
 
     private void sendApplyInAppNotification(Application app) {
         String candidateTitle = "Application Submitted Successfully";
-        String candidateMessage = "Your application for " + app.getJob().getName() + " at " + app.getJob().getCompany().getName() + " has been send.";
+        String candidateMessage = "Your application for " + app.getJob().getName() + " at " + app.getJob().getCompany().getName() + " has been sent.";
 
         notificationService.sendCandidateNotification(
                 app.getCandidate().getUser(),
@@ -474,5 +485,99 @@ public class ApplicationServiceImpl implements ApplicationService {
                     app.getId()
             );
         }
+    }
+
+    private void sendApplicationResultInAppNotification(Application app) {
+        String title = "Application Update!";
+        String message = "";
+
+        switch (app.getStatus()) {
+            case VIEWED -> {
+                title = "Resume Viewed!";
+                message = "The recruiter has opened and reviewed your resume for the position '" + app.getJob().getName() + "'.";
+            }
+            case REJECTED -> {
+                title = "Application Status Update";
+                message = "Thank you for your interest in '" + app.getJob().getName() + "'. We regret to inform you that the recruiter has decided not to proceed with your application at this time.";
+            }
+            default -> { return; }
+        }
+
+        notificationService.sendCandidateNotification(
+                app.getCandidate().getUser(),
+                NotificationType.APPLICATION_STATUS,
+                title,
+                message,
+                "APPLICATION",
+                app.getId()
+        );
+    }
+
+    private ApplicationExportResponse convertToExportResponse(Application app) {
+        Resume resume = app.getResume();
+
+        double totalYears = 0;
+        if (resume.getExperiences() != null) {
+            totalYears = resume.getExperiences().stream()
+                    .filter(exp -> exp.getStartDate() != null && exp.getEndDate() != null)
+                    .mapToDouble(exp -> {
+                        long days = java.time.temporal.ChronoUnit.DAYS.between(exp.getStartDate(), exp.getEndDate());
+                        return days / 365.0;
+                    }).sum();
+        }
+
+        ResumeEvaluation eval = resume.getEvaluations().stream()
+                .filter(e -> e.getJob().getId().equals(app.getJob().getId()))
+                .findFirst().orElse(null);
+
+        String topSkills = resume.getSkillGroups().stream()
+                .flatMap(group -> group.getSkills().stream())
+                .map(s -> s.getSkill().getName())
+                .distinct().limit(5).collect(Collectors.joining(", "));
+
+        return ApplicationExportResponse.builder()
+                .fullName(app.getFullName())
+                .email(app.getEmail())
+                .phone(app.getPhone())
+                .appliedAt(app.getAppliedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                .jobTitle(app.getJob().getName())
+                .aiScore(eval != null ? eval.getAiOverallScore() : null)
+                .matchLevel((eval != null && eval.getMatchLevel() != null)
+                        ? eval.getMatchLevel().toString()
+                        : "N/A")
+                .aiSummary(eval != null ? eval.getSummary() : "")
+                .totalExperienceYears(Math.round(totalYears * 10.0) / 10.0)
+                .topSkills(topSkills)
+                .location(resume.getAddressInResume())
+                .resumeUrl(resume.getResumeUrl())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public List<ApplicationExportResponse> getShortlistedForExport(Integer jobId, ExportType type) {
+        validateRecruiterPermission(jobId);
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new AppException(ErrorCode.JOB_NOT_EXISTED));
+        List<Application> approvedApps = applicationRepository.findAllByJobIdAndStatus(
+                jobId, ApplicationStatus.APPROVED);
+
+        if (approvedApps.isEmpty()) {
+            throw new AppException(ErrorCode.NO_DATA_TO_EXPORT);
+        }
+        Integer currentUserId = JwtTokenProvider.getCurrentUserId();
+        User currentUser = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        ExportRecord record = ExportRecord.builder()
+                .exportedBy(currentUser)
+                .job(job)
+                .exportType(type)
+                .candidateCount(approvedApps.size())
+                .build();
+        exportRecordRepository.save(record);
+        return approvedApps.stream()
+                .map(this::convertToExportResponse)
+                .collect(Collectors.toList());
     }
 }

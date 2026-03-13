@@ -118,6 +118,7 @@ public enum ErrorCode {
     CANDIDATE_BLOCKED_BY_COMPANY(HttpStatus.FORBIDDEN, "You have been blocked by this company"),
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
     WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
+    NO_DATA_TO_EXPORT(HttpStatus.NOT_FOUND, "No data to export"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
