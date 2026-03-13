@@ -27,7 +27,7 @@ public class UsageEventSpecification {
             predicates.add(root.get("subscription").get("id").in(subscriptionIds));
 
             if (featureKey != null) {
-                predicates.add(cb.equal(root.get("feature").get("featureKey"), featureKey));
+                predicates.add(cb.equal(root.get("feature").get("featureKey"), featureKey.name()));
             }
 
             if (startDate != null) {
