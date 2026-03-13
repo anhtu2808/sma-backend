@@ -1,9 +1,14 @@
 package com.sma.core.service.impl;
 
 import com.sma.core.dto.model.QuotaOwnerContext;
+import com.sma.core.dto.request.usage.UsageHistoryFilterRequest;
+import com.sma.core.dto.response.usage.UsageEventResponse;
+import com.sma.core.enums.EventSource;
+import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.Role;
 import com.sma.core.dto.response.featureusage.FeatureUsageResponse;
 import com.sma.core.entity.*;
+import com.sma.core.mapper.UsageEventMapper;
 import com.sma.core.enums.UsageLimitUnit;
 import com.sma.core.enums.UsageType;
 import com.sma.core.repository.UsageEventRepository;
@@ -23,6 +28,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -32,6 +41,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @DisplayName("UsageServiceImpl Tests")
@@ -55,6 +66,9 @@ class UsageServiceImplTest {
 
     @Mock
     private ResumeUploadLimitStateChecker resumeUploadLimitStateChecker;
+
+    @Mock
+    private UsageEventMapper usageEventMapper;
 
     private UsageServiceImpl usageService;
     private SubscriptionQuotaWindowResolver windowResolver;
@@ -82,7 +96,7 @@ class UsageServiceImplTest {
                 quotaEngine,
                 eventUsageCalculator,
                 featureService,
-                null  // UsageEventMapper không cần cho getCurrentUsage
+                usageEventMapper
         );
     }
 
@@ -316,6 +330,83 @@ class UsageServiceImplTest {
             assertThat(totalResponse.getRenewDate())
                     .as("TOTAL renew date should be subscription endDate")
                     .isEqualTo(endDate);
+        }
+    }
+
+    @Nested
+    @DisplayName("getUsageHistory")
+    class GetUsageHistoryTests {
+
+        @Test
+        @DisplayName("Should use recruiter usage-history owner context and map page content")
+        void shouldUseRecruiterUsageHistoryOwnerContext() {
+            QuotaOwnerContext ownerContext = QuotaOwnerContext.builder().role(Role.RECRUITER).companyId(11).build();
+            UsageHistoryFilterRequest request = UsageHistoryFilterRequest.builder()
+                    .featureKey(FeatureKey.MATCHING_SCORE)
+                    .eventSource(EventSource.JOB)
+                    .sourceId(79)
+                    .page(0)
+                    .size(10)
+                    .build();
+            UsageEvent usageEvent = UsageEvent.builder().id(1).amount(1).build();
+            UsageEventResponse response = UsageEventResponse.builder().id(1).amount(1).featureKey("MATCHING_SCORE").build();
+            Page<UsageEvent> page = new PageImpl<>(List.of(usageEvent), PageRequest.of(0, 10), 1);
+
+            when(quotaService.resolveUsageHistoryOwnerContext()).thenReturn(ownerContext);
+            when(usageEventRepository.findAll(any(Specification.class), eq(PageRequest.of(0, 10)))).thenReturn(page);
+            when(usageEventMapper.toResponse(usageEvent)).thenReturn(response);
+
+            Page<UsageEventResponse> result = usageService.getUsageHistory(request);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(quotaService).resolveUsageHistoryOwnerContext();
+            verify(subscriptionService, never()).findAllSubscriptions(any());
+        }
+
+        @Test
+        @DisplayName("Should use candidate usage-history owner context and map page content")
+        void shouldUseCandidateUsageHistoryOwnerContext() {
+            QuotaOwnerContext ownerContext = QuotaOwnerContext.builder().role(Role.CANDIDATE).candidateId(22).build();
+            UsageHistoryFilterRequest request = UsageHistoryFilterRequest.builder()
+                    .page(1)
+                    .size(5)
+                    .build();
+            UsageEvent usageEvent = UsageEvent.builder().id(2).amount(2).build();
+            UsageEventResponse response = UsageEventResponse.builder().id(2).amount(2).featureKey("MATCHING_SCORE").build();
+            Page<UsageEvent> page = new PageImpl<>(List.of(usageEvent), PageRequest.of(1, 5), 1);
+
+            when(quotaService.resolveUsageHistoryOwnerContext()).thenReturn(ownerContext);
+            when(usageEventRepository.findAll(any(Specification.class), eq(PageRequest.of(1, 5)))).thenReturn(page);
+            when(usageEventMapper.toResponse(usageEvent)).thenReturn(response);
+
+            Page<UsageEventResponse> result = usageService.getUsageHistory(request);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(quotaService).resolveUsageHistoryOwnerContext();
+            verify(subscriptionService, never()).findAllSubscriptions(any());
+        }
+
+        @Test
+        @DisplayName("Should allow admin usage-history context without tenant subscription lookup")
+        void shouldAllowAdminUsageHistoryContext() {
+            QuotaOwnerContext ownerContext = QuotaOwnerContext.builder().role(Role.ADMIN).build();
+            UsageHistoryFilterRequest request = UsageHistoryFilterRequest.builder()
+                    .page(0)
+                    .size(10)
+                    .build();
+            UsageEvent usageEvent = UsageEvent.builder().id(3).amount(3).build();
+            UsageEventResponse response = UsageEventResponse.builder().id(3).amount(3).featureKey("MATCHING_SCORE").build();
+            Page<UsageEvent> page = new PageImpl<>(List.of(usageEvent), PageRequest.of(0, 10), 1);
+
+            when(quotaService.resolveUsageHistoryOwnerContext()).thenReturn(ownerContext);
+            when(usageEventRepository.findAll(any(Specification.class), eq(PageRequest.of(0, 10)))).thenReturn(page);
+            when(usageEventMapper.toResponse(usageEvent)).thenReturn(response);
+
+            Page<UsageEventResponse> result = usageService.getUsageHistory(request);
+
+            assertThat(result.getContent()).containsExactly(response);
+            verify(quotaService).resolveUsageHistoryOwnerContext();
+            verify(subscriptionService, never()).findAllSubscriptions(any());
         }
     }
 }

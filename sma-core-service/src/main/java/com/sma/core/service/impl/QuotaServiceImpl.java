@@ -71,9 +71,22 @@ public class QuotaServiceImpl implements QuotaService {
 
     @Override
     public QuotaOwnerContext resolveOwnerContext() {
+        return buildOwnerContext(false);
+    }
+
+    @Override
+    public QuotaOwnerContext resolveUsageHistoryOwnerContext() {
+        return buildOwnerContext(true);
+    }
+
+    private QuotaOwnerContext buildOwnerContext(boolean allowAdmin) {
         Role role = JwtTokenProvider.getCurrentRole();
         if (role == null) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
+        }
+
+        if (allowAdmin && role == Role.ADMIN) {
+            return QuotaOwnerContext.builder().role(role).build();
         }
 
         if (role == Role.CANDIDATE) {

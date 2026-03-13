@@ -35,7 +35,7 @@ public class FeatureUsageController {
     }
 
     @GetMapping("/history")
-    @PreAuthorize("hasAnyRole('CANDIDATE','RECRUITER')")
+    @PreAuthorize("hasAnyRole('ADMIN','CANDIDATE','RECRUITER')")
     public ApiResponse<PagingResponse<UsageEventResponse>> getUsageHistory(
             @ParameterObject UsageHistoryFilterRequest request) {
         Page<UsageEventResponse> page = usageService.getUsageHistory(request);

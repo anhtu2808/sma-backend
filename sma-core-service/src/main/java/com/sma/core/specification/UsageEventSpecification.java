@@ -1,8 +1,10 @@
 package com.sma.core.specification;
 
+import com.sma.core.dto.model.QuotaOwnerContext;
 import com.sma.core.entity.UsageEvent;
-import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.EventSource;
+import com.sma.core.enums.FeatureKey;
+import com.sma.core.enums.Role;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
@@ -14,17 +16,23 @@ import java.util.List;
 public class UsageEventSpecification {
 
     public static Specification<UsageEvent> filterBy(
+            QuotaOwnerContext ownerContext,
             FeatureKey featureKey,
             LocalDateTime startDate,
             LocalDateTime endDate,
             EventSource entityType,
-            Integer entityId,
-            List<Integer> subscriptionIds) {
+            Integer entityId) {
 
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            predicates.add(root.get("subscription").get("id").in(subscriptionIds));
+            if (ownerContext != null && ownerContext.getRole() == Role.RECRUITER && ownerContext.getCompanyId() != null) {
+                predicates.add(cb.equal(root.get("subscription").get("company").get("id"), ownerContext.getCompanyId()));
+            }
+
+            if (ownerContext != null && ownerContext.getRole() == Role.CANDIDATE && ownerContext.getCandidateId() != null) {
+                predicates.add(cb.equal(root.get("subscription").get("candidate").get("id"), ownerContext.getCandidateId()));
+            }
 
             if (featureKey != null) {
                 predicates.add(cb.equal(root.get("feature").get("featureKey"), featureKey.name()));
