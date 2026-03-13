@@ -369,9 +369,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
                 Map<String, Object> csMap = new HashMap<>();
-                if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    csMap.put("criteriaType", cs.getScoringCriteria().getCriteria().getCriteriaType().name());
-                }
                 csMap.put("aiScore", cs.getAiScore());
                 criteriaScoresList.add(csMap);
             }
@@ -389,18 +386,18 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                                           ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
-        // Build lookup map: criteriaType -> existing EvaluationCriteriaScore
-        Map<CriteriaType, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
+        // Build lookup map: criteriaName -> existing EvaluationCriteriaScore
+        Map<String, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
                 if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getCriteriaType(), cs);
+                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getName(), cs);
                 }
             }
         }
 
         for (CriteriaScoreData csData : criteriaScores) {
-            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaType());
+            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaName());
             if (existing != null) {
                 // Supplement existing record with explanation
                 if (csData.getAiExplanation() != null) {
@@ -412,8 +409,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 saveDetails(csData.getDetails(), existing);
 
             } else {
-                log.warn("No existing criteria score found for criteriaType={} in evaluationId={}",
-                        csData.getCriteriaType(), evaluation.getId());
+                log.warn("No existing criteria score found for criteriaName={} in evaluationId={}",
+                        csData.getCriteriaName(), evaluation.getId());
             }
         }
     }
@@ -425,11 +422,11 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             EvaluationCriteriaScore criteriaScore = matchingResultMapper.toCriteriaScore(csData);
             criteriaScore.setEvaluation(evaluation);
 
-            // Link to existing ScoringCriteria by criteriaType
-            if (csData.getCriteriaType() != null && evaluation.getJob() != null) {
+            // Link to existing ScoringCriteria by criteriaName
+            if (csData.getCriteriaName() != null && evaluation.getJob() != null) {
                 evaluation.getJob().getScoringCriterias().stream()
                         .filter(sc -> sc.getCriteria() != null
-                                && sc.getCriteria().getCriteriaType() == csData.getCriteriaType())
+                                && csData.getCriteriaName().equals(sc.getCriteria().getName()))
                         .findFirst()
                         .ifPresent(criteriaScore::setScoringCriteria);
             }

@@ -58,7 +58,6 @@ public interface MatchingRequestMapper {
 
     // ---- Scoring Criteria mapping ----
 
-    @Mapping(target = "criteriaType", source = "criteria.criteriaType")
     JobScoringCriteriaRequest toCriteriaRequest(ScoringCriteria scoringCriteria);
 
     default Set<JobScoringCriteriaRequest> toCriteriaRequests(Set<ScoringCriteria> criterias) {

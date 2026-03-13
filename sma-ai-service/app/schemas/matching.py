@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 
 MatchLevel = Literal["EXCELLENT", "GOOD", "FAIR", "POOR", "NOT_MATCHED"]
-CriteriaType = Literal["HARD_SKILLS", "SOFT_SKILLS", "EXPERIENCE", "EDUCATION", "JOB_TITLE", "JOB_LEVEL"]
 RelevanceType = Literal["HIGH", "MEDIUM", "LOW"]
 LabelStatus = Literal["MISSING", "MATCHED"]
 SkillLevel = Literal["NONE", "FRESHER", "JUNIOR", "MID", "SENIOR", "EXPERT"]
@@ -29,7 +28,7 @@ class CriteriaScoreDetailResult(BaseModel):
 class CriteriaScoreResult(BaseModel):
     """Evaluation result for a single scoring criterion."""
 
-    criteriaType: CriteriaType
+    criteriaName: str
     aiScore: float = Field(ge=0, le=100)
     aiExplanation: Optional[str] = None
     details: List[CriteriaScoreDetailResult] = Field(default_factory=list)

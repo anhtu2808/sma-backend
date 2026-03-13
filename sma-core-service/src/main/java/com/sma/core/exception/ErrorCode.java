@@ -28,6 +28,7 @@ public enum ErrorCode {
     MISSING_SEPAY_CONTENT(HttpStatus.BAD_REQUEST, "Missing sepay content"),
     INVALID_EXPIRED_DATE(HttpStatus.BAD_REQUEST, "Invalid expired date"),
     RECRUITER_NOT_HAVE_COMPANY(HttpStatus.BAD_REQUEST, "Current company is not available"),
+
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),

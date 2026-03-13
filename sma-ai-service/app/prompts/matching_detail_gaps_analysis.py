@@ -35,14 +35,14 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 - label: The name of the item (e.g., "Java", "Spring Boot", "3 years backend experience", "Bachelor CS")
 - status: MATCHED (candidate has it and meets requirements), MISSING (required but candidate lacks it)
 - description: DETAILED evidence — quote resume sections, reference specific projects/companies/durations
-- requiredLevel / candidateLevel: For skills with level requirements (NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT) - ONLY use if criteriaType is HARD_SKILLS
+- requiredLevel / candidateLevel: For skills with level requirements (NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT) - ONLY use if criteria is related to technical or hard skills
 - isRequired: Boolean indicating if this item is strictly required by the job
 - context: Short text snippet (about 2-3 words around the label) from the raw resume. Try to find relevant context even if status is MISSING, if applicable.
 - impactScore: How important this item is for the role (0-100)
 - suggestions: If status is MISSING, provide actionable suggestions for improvement
 
 ## Enums
-- criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
+- criteriaName: string (the exact name of the criteria provided)
 - status (LabelStatus): MISSING | MATCHED
 - skillLevel: NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
@@ -60,7 +60,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
-      "criteriaType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
+      "criteriaName": "<string (exact name of the criteria)>",
       "aiScore": <float 0-100>,
       "aiExplanation": "<3-5 sentence DETAILED explanation with specific evidence, comparisons, and reasoning>",
       "details": [
@@ -109,7 +109,7 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- Type: {c.get('criteriaType', 'N/A')}, "
+                f"- Name: {c.get('criteriaName', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )
@@ -137,7 +137,7 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
             overview_lines.append("\nCriteria Scores:")
             for cs in criteria_scores:
                 overview_lines.append(
-                    f"  - {cs.get('criteriaType', 'N/A')}: "
+                    f"  - {cs.get('criteriaName', 'N/A')}: "
                     f"score={cs.get('aiScore', 'N/A')}"
                 )
         overview_text = "\n".join(overview_lines)

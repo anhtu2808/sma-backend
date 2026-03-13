@@ -46,7 +46,7 @@ List ALL specific gaps with impact assessment. For each weakness:
 
 ## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
-- criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
+- criteriaName: string (the exact name of the criteria provided)
 - transferabilityToRole: HIGH | MEDIUM | LOW
 
 JSON structure:
@@ -61,7 +61,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
-      "criteriaType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
+      "criteriaName": "<string (exact name of the criteria)>",
       "aiScore": <float 0-100>
     }
   ]
@@ -86,7 +86,7 @@ def build_matching_overview_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- Type: {c.get('criteriaType', 'N/A')}, "
+                f"- Name: {c.get('criteriaName', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )

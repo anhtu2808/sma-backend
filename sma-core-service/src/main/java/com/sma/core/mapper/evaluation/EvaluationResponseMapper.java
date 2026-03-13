@@ -27,7 +27,6 @@ public interface EvaluationResponseMapper {
     @Mapping(target = "scoringCriteriaId", source = "scoringCriteria.id")
     @Mapping(target = "scoringCriteriaContext", source = "scoringCriteria.context")
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")
-    @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
     EvaluationCriteriaScoreResponse toCriteriaScoreResponse(EvaluationCriteriaScore criteriaScore);
 

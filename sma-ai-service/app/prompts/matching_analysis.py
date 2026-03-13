@@ -56,7 +56,7 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 - label: The name of the item
 - status: MATCHED / MISSING
 - description: DETAILED evidence from resume
-- requiredLevel / candidateLevel: Skill level if applicable (ONLY use if criteriaType is HARD_SKILLS)
+- requiredLevel / candidateLevel: Skill level if applicable (ONLY use if criteria is related to technical or hard skills)
 - isRequired: Boolean indicating if this item is strictly required by the job
 - context: Short text snippet (about 2-3 words around the label) from the raw resume serving as evidence. Try to find relevant context even if status is MISSING, if applicable.
 - impactScore: Importance for the role (0-100)
@@ -64,7 +64,7 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 
 ## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
-- criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
+- criteriaName: string (the exact name of the criteria provided)
 - status (LabelStatus): MISSING | MATCHED
 - skillLevel: NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT
 - transferabilityToRole: HIGH | MEDIUM | LOW
@@ -81,7 +81,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
-      "criteriaType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
+      "criteriaName": "<string (exact name of the criteria)>",
       "aiScore": <float 0-100>,
       "aiExplanation": "<3-5 sentence DETAILED explanation>",
       "details": [
@@ -125,7 +125,7 @@ def build_matching_analysis_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- Type: {c.get('criteriaType', 'N/A')}, "
+                f"- Name: {c.get('criteriaName', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )

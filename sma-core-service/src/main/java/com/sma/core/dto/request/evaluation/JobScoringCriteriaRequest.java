@@ -1,6 +1,5 @@
 package com.sma.core.dto.request.evaluation;
 
-import com.sma.core.enums.CriteriaType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -15,6 +14,5 @@ public class JobScoringCriteriaRequest {
     String context;
     Double weight;
     String rule;
-    CriteriaType criteriaType;
 
 }

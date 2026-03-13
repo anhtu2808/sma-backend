@@ -6,14 +6,13 @@ from pydantic import BaseModel, Field
 
 
 MatchLevel = Literal["EXCELLENT", "GOOD", "FAIR", "POOR", "NOT_MATCHED"]
-CriteriaType = Literal["HARD_SKILLS", "SOFT_SKILLS", "EXPERIENCE", "EDUCATION", "JOB_TITLE", "JOB_LEVEL"]
 RelevanceType = Literal["HIGH", "MEDIUM", "LOW"]
 
 
 class OverviewCriteriaScoreResult(BaseModel):
     """Lightweight criteria score — scores only, no explanations or nested details."""
 
-    criteriaType: CriteriaType
+    criteriaName: str
     aiScore: float = Field(ge=0, le=100)
 
 

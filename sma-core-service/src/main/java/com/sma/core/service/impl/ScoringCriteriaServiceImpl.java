@@ -54,7 +54,7 @@ public class ScoringCriteriaServiceImpl implements ScoringCriteriaService {
             }
             double weight = request.getWeight() != null
                     ? request.getWeight()
-                    : criteria.getDefaultWeight();
+                    : criteria.getWeight();
 
             totalWeight += weight;
             if (existing == null) {
@@ -84,18 +84,6 @@ public class ScoringCriteriaServiceImpl implements ScoringCriteriaService {
     public void generateAndSetCriteriaContext(Job job) {
         if (job.getScoringCriterias() == null || job.getScoringCriterias().isEmpty()) return;
 
-        List<String> enabledTypes = new ArrayList<>();
-        Map<String, Integer> typeToId = new HashMap<>();
-
-        for (ScoringCriteria sc : job.getScoringCriterias()) {
-            if (sc.getCriteria() != null && sc.getCriteria().getCriteriaType() != null) {
-                String typeName = sc.getCriteria().getCriteriaType().name();
-                enabledTypes.add(typeName);
-                typeToId.put(typeName, sc.getId());
-            }
-        }
-
-        if (enabledTypes.isEmpty()) return;
 
         CriteriaContextRequestMessage message = CriteriaContextRequestMessage.builder()
                 .jobId(job.getId())
@@ -112,8 +100,6 @@ public class ScoringCriteriaServiceImpl implements ScoringCriteriaService {
                 .domains(job.getDomains() != null
                         ? job.getDomains().stream().map(Domain::getName).collect(Collectors.toList())
                         : Collections.emptyList())
-                .criteriaTypes(enabledTypes)
-                .criteriaTypeToScoringCriteriaId(typeToId)
                 .build();
 
         criteriaContextRequestPublisher.publish(message);
