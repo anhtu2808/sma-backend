@@ -58,14 +58,14 @@ public class CompanyBlockedCandidateServiceImpl implements CompanyBlockedCandida
 
         repository.save(entry);
         List<ApplicationStatus> closedStatuses = List.of(
-                ApplicationStatus.NOT_SUITABLE,
-                ApplicationStatus.AUTO_REJECTED
+                ApplicationStatus.REJECTED,
+                ApplicationStatus.APPROVED
         );
 
         applicationRepository.rejectAllApplicationsByBlock(
                 request.getCandidateId(),
                 companyId,
-                ApplicationStatus.NOT_SUITABLE,
+                ApplicationStatus.REJECTED,
                 "Auto-rejected due to candidate being blocked by company",
                 closedStatuses
         );

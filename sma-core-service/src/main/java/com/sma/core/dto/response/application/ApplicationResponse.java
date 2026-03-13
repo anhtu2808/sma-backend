@@ -25,6 +25,6 @@ public class ApplicationResponse {
     String jobTitle;
     Integer resumeId;
     String resumeName;
-
+    Boolean isRejectedByAi;
     List<JobAnswerResponse> answers;
 }

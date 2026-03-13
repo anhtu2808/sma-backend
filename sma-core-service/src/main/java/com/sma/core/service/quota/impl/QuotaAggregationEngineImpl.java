@@ -10,6 +10,7 @@ import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.service.quota.QuotaAggregationEngine;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -19,10 +20,12 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class QuotaAggregationEngineImpl implements QuotaAggregationEngine {
 
     private final EventUsageCalculatorImpl eventUsageCalculator;
     private final ResumeUploadLimitStateChecker resumeUploadLimitStateChecker;
+    private final TeamMemberLimitStateChecker teamMemberLimitStateChecker;
     private final SubscriptionQuotaWindowResolver windowResolver;
     private final Clock clock;
 
@@ -122,12 +125,17 @@ public class QuotaAggregationEngineImpl implements QuotaAggregationEngine {
         try {
             key = FeatureKey.valueOf(feature.getFeatureKey());
         } catch (Exception ex) {
-            throw new AppException(ErrorCode.STATE_CHECKER_NOT_CONFIGURED);
+            log.warn("State checker not configured for featureKey={}", feature.getFeatureKey());
+            return 0L;
         }
 
         return switch (key) {
             case CV_UPLOAD_LIMIT -> resumeUploadLimitStateChecker.getCurrentUsage(context, null);
-            default -> throw new AppException(ErrorCode.STATE_CHECKER_NOT_CONFIGURED);
+            case TEAM_MEMBER_LIMIT -> teamMemberLimitStateChecker.getCurrentUsage(context, null);
+            default -> {
+                log.warn("State checker not configured for featureKey={}", key);
+                yield 0L;
+            }
         };
     }
 }

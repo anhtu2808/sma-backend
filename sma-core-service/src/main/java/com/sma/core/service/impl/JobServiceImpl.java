@@ -9,6 +9,7 @@ import com.sma.core.entity.*;
 import com.sma.core.enums.EmbedStatus;
 import com.sma.core.enums.FeatureKey;
 import com.sma.core.enums.JobStatus;
+import com.sma.core.enums.NotificationType;
 import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
@@ -63,6 +64,7 @@ public class JobServiceImpl implements JobService {
     final CompanyLocationRepository companyLocationRepository;
     final EmbeddingJobRequestPublisher embeddingJobRequestPublisher;
     final EmailService emailService;
+    final NotificationService notificationService;
 
     @Override
     public JobDetailResponse getJobById(Integer id) {
@@ -766,6 +768,7 @@ public class JobServiceImpl implements JobService {
         );
 
         if (!notifyStatuses.contains(job.getStatus())) return;
+        sendJobStatusInAppNotification(job);
         Recruiter owner = job.getCreatedBy();
         if (owner == null && job.getCompany() != null) {
             recruiterRepository.findByCompanyId(job.getCompany().getId())
@@ -804,6 +807,16 @@ public class JobServiceImpl implements JobService {
         List<User> adminUsers = userRepository.findAllByRole(Role.ADMIN);
         if (adminUsers.isEmpty()) return;
 
+        Notification adminNoti = Notification.builder()
+                .notificationType(NotificationType.FLAGGED_JOB)
+                .title("Job Review Required!")
+                .message("Job '" + job.getName() + "' from " + job.getCompany().getName() + " has been flagged and needs review.")
+                .relatedEntityType("JOB_REVIEW")
+                .relatedEntityId(job.getId())
+                .build();
+ 
+        notificationService.sendAdminNotification(adminNoti);
+
         Context context = new Context();
         context.setVariable("jobTitle", job.getName());
         context.setVariable("companyName", job.getCompany().getName());
@@ -822,5 +835,38 @@ public class JobServiceImpl implements JobService {
                 log.error("Failed to notify Admin {} about job violation", admin.getEmail(), e);
             }
         }
+    }
+
+    private void sendJobStatusInAppNotification(Job job) {
+        Recruiter owner = job.getCreatedBy();
+        User targetUser = null;
+
+        if (owner != null && owner.getUser() != null) {
+            targetUser = owner.getUser();
+        } else if (job.getCompany() != null) {
+            targetUser = recruiterRepository.findRootUserByCompanyId(job.getCompany().getId()).orElse(null);
+        }
+
+        if (targetUser == null) return;
+
+        String title = "Job Posting Updated";
+        String message = "";
+
+        switch (job.getStatus()) {
+            case PUBLISHED -> message = "Your job posting '" + job.getName() + "' has been approved and is now live!";
+            case PENDING_REVIEW -> message = "Your job posting '" + job.getName() + "' is under review by our admin team. We will notify you once the review is complete.";
+            case SUSPENDED -> message = "Your job posting '" + job.getName() + "' has been suspended due to policy violations. Please review our guidelines and contact support for more information.";
+            case CLOSED -> message = "Your job posting '" + job.getName() + "' is now closed.";
+            default -> { return; }
+        }
+
+        notificationService.sendCandidateNotification(
+                targetUser,
+                NotificationType.FLAGGED_JOB,
+                title,
+                message,
+                "JOB",
+                job.getId()
+        );
     }
 }

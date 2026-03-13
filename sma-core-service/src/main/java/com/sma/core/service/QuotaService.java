@@ -15,6 +15,8 @@ public interface QuotaService {
 
     QuotaOwnerContext resolveOwnerContext();
 
+    QuotaOwnerContext resolveUsageHistoryOwnerContext();
+
     boolean hasBooleanEntitlement(List<com.sma.core.entity.Subscription> subscriptions, Integer featureId);
 
     long getStateEffectiveLimit(List<Subscription> subscriptions, Integer featureId);

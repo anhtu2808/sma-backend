@@ -43,6 +43,9 @@ class QuotaAggregationEngineImplTest {
     @Mock
     private ResumeUploadLimitStateChecker resumeUploadLimitStateChecker;
 
+    @Mock
+    private TeamMemberLimitStateChecker teamMemberLimitStateChecker;
+
     private QuotaAggregationEngineImpl engine;
     private SubscriptionQuotaWindowResolver windowResolver;
     private EventUsageCalculatorImpl eventUsageCalculator;
@@ -57,6 +60,7 @@ class QuotaAggregationEngineImplTest {
         engine = new QuotaAggregationEngineImpl(
                 eventUsageCalculator,
                 resumeUploadLimitStateChecker,
+                teamMemberLimitStateChecker,
                 windowResolver,
                 fixedClock
         );
@@ -93,6 +97,7 @@ class QuotaAggregationEngineImplTest {
         engine = new QuotaAggregationEngineImpl(
                 eventUsageCalculator,
                 resumeUploadLimitStateChecker,
+                teamMemberLimitStateChecker,
                 windowResolver,
                 fixedClock
         );

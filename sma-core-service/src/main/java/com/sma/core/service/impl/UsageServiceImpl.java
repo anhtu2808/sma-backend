@@ -102,26 +102,17 @@ public class UsageServiceImpl implements UsageService {
 
     @Override
     public Page<UsageEventResponse> getUsageHistory(UsageHistoryFilterRequest request) {
-        QuotaOwnerContext ownerContext = quotaService.resolveOwnerContext();
-        List<Subscription> subscriptions = subscriptionService.findAllSubscriptions(ownerContext);
-
-        if (subscriptions.isEmpty()) {
-            return Page.empty(PageRequest.of(request.getPage(), request.getSize()));
-        }
-
-        var subscriptionIds = subscriptions.stream()
-                .map(Subscription::getId)
-                .toList();
+        QuotaOwnerContext ownerContext = quotaService.resolveUsageHistoryOwnerContext();
 
         PageRequest pageRequest = PageRequest.of(request.getPage(), request.getSize());
 
         var specification = UsageEventSpecification.filterBy(
+                ownerContext,
                 request.getFeatureKey(),
                 request.getStartDate(),
                 request.getEndDate(),
                 request.getEventSource(),
-                request.getSourceId(),
-                subscriptionIds
+                request.getSourceId()
         );
 
         return usageEventRepository.findAll(specification, pageRequest)

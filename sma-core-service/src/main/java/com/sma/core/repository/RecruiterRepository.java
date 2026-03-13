@@ -2,6 +2,7 @@ package com.sma.core.repository;
 
 import com.sma.core.entity.Recruiter;
 import com.sma.core.entity.User;
+import com.sma.core.enums.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,6 +15,7 @@ import java.util.Optional;
 public interface RecruiterRepository extends JpaRepository<Recruiter, Integer> {
     Optional<Recruiter> findByCompanyId(Integer companyId);
     long countByCompanyId(Integer companyId);
+    long countByCompanyIdAndUser_Status(Integer companyId, UserStatus status);
     Optional<Recruiter> findByUserId(Integer userId);
     @Query("SELECT r.user FROM Recruiter r WHERE r.company.id = :companyId AND r.isRootRecruiter = true")
     Optional<User> findRootUserByCompanyId(@Param("companyId") Integer companyId);

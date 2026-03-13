@@ -4,7 +4,6 @@ public enum ApplicationStatus {
     APPLIED,
     VIEWED,
     SHORTLISTED,
-    AUTO_REJECTED,
-    NOT_SUITABLE,
     REJECTED,
+    APPROVED
 }
