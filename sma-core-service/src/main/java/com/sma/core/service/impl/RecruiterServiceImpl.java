@@ -222,6 +222,11 @@ public class RecruiterServiceImpl implements RecruiterService {
             throw new AppException(ErrorCode.BAD_REQUEST, "Status must be ACTIVE or INACTIVE");
         }
 
+        if (nextStatus == UserStatus.ACTIVE
+                && targetRecruiter.getUser().getStatus() != UserStatus.ACTIVE) {
+            quotaService.validateStateQuota(FeatureKey.TEAM_MEMBER_LIMIT, null);
+        }
+
         targetRecruiter.getUser().setStatus(nextStatus);
 
         return recruiterMapper.toRecruiterMemberResponse(targetRecruiter);
