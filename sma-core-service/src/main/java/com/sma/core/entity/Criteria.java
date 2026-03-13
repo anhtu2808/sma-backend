@@ -1,10 +1,7 @@
 package com.sma.core.entity;
 
-import com.sma.core.enums.CriteriaType;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "criterias")
@@ -21,11 +18,20 @@ public class Criteria {
 
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "criteria_type", columnDefinition = "criteria_type")
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private CriteriaType criteriaType;
+    @Column(columnDefinition = "TEXT")
+    private String rule;
+
+    @Column(name = "is_default")
+    private boolean isDefault;
 
     @Column(name = "default_weight")
-    private Double defaultWeight;
+    private Double weight;
+
+    @Builder.Default
+    private Boolean active = true;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id")
+    private Company company;
+
 }
