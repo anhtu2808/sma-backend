@@ -1,7 +1,7 @@
 import uuid
 import asyncio
 from loguru import logger
-from qdrant_client.models import PointStruct
+from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue
 
 from app.core.config import settings
 from app.schemas.embedding import (
@@ -34,6 +34,20 @@ async def process_and_embed_job(request: dict) -> EmbeddingJobResultMessage:
     metadata = []
 
     logger.info(f"Building semantic chunks for job {job_data.id}")
+
+    logger.info(f"Deleting existing vector chunks for job {job_data.id}")
+    delete_filter = Filter(
+        must=[
+            FieldCondition(
+                key="job_id",
+                match=MatchValue(value=job_data.id)
+            )
+        ]
+    )
+    vector_service.delete_points_by_filter(
+        settings.QDRANT_JOB_COLLECTION_NAME,
+        delete_filter
+    )
 
     # ---------- 1. General Info ----------
     info_text = _build_job_info_text(job_data)

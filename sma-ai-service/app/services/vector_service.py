@@ -131,4 +131,21 @@ class VectorService:
             logger.error(f"Error scrolling points in {collection_name}: {e}")
             raise
 
+    def delete_points_by_filter(self, collection_name: str, delete_filter: Filter):
+        """
+        Delete points from a Qdrant collection matching a filter.
+        """
+        try:
+            client = self.get_client()
+            return client.delete(
+                collection_name=collection_name,
+                points_selector=delete_filter
+            )
+        except Exception as e:
+            logger.error(f"Error deleting points from {collection_name}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error deleting points: {str(e)}"
+            )
+
 vector_service = VectorService()

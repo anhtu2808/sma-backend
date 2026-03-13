@@ -88,7 +88,7 @@ public interface ResumeMapper {
     Resume cloneEntity(Resume source, Resume rootResume, ResumeType targetType);
 
 
-    @Mapping(target = "address", source = "addressInResume")
+    @Mapping(target = "location", source = "addressInResume")
     EmbeddingResumeRequestMessage toEmbeddingMessage(Resume resume);
 
 }

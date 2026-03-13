@@ -5,6 +5,7 @@ import com.sma.core.enums.JobLevel;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -21,5 +22,6 @@ public class EmbeddingJobRequestMessage {
     String requirement;
     JobLevel jobLevel;
     String expertiseName;
+    List<String> locations;
     Set<EmbeddingJobSkill> skills;
 }

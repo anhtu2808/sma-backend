@@ -45,14 +45,14 @@ public class CriteriaServiceImpl implements CriteriaService {
             Recruiter recruiter = recruiterRepository.findById(JwtTokenProvider.getCurrentRecruiterId())
                     .orElseThrow(() -> new AppException(ErrorCode.RECRUITER_NOT_EXISTED));
             if (name != null && !name.trim().isEmpty()) {
-                pageData = criteriaRepository.findByNameContainingIgnoreCaseAnAndCompanyIdAndActive(name,
+                pageData = criteriaRepository.findByNameContainingIgnoreCaseAndCompanyIdAndActive(name,
                         recruiter.getCompany().getId(), true, pageable);
             } else {
                 pageData = criteriaRepository.findByCompanyIdAndActive(recruiter.getCompany().getId(), true, pageable);
             }
         } else {
             if (name != null && !name.trim().isEmpty()) {
-                pageData = criteriaRepository.findByNameContainingIgnoreCaseAn(name, pageable);
+                pageData = criteriaRepository.findByNameContainingIgnoreCase(name, pageable);
             } else {
                 pageData = criteriaRepository.findAll(pageable);
             }
@@ -104,7 +104,7 @@ public class CriteriaServiceImpl implements CriteriaService {
 
     @Override
     public void initCriteria(Company company) {
-        Set<Criteria> criteriaSet = criteriaRepository.findByDefault(true);
+        Set<Criteria> criteriaSet = criteriaRepository.findByIsDefault(true);
         Set<Criteria> newCriteriaSet = new HashSet<>();
         criteriaSet.forEach(criteria -> {
             Criteria newCriteria = Criteria.builder()

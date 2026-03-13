@@ -5,6 +5,7 @@ import com.sma.core.enums.WorkingModel;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 @Getter
@@ -17,6 +18,8 @@ public class EmbeddingResumeExperience {
 
     String company;
     WorkingModel workingModel;
+    LocalDate startDate;
+    LocalDate endDate;
     EmploymentType employmentType;
     Set<EmbeddingExperienceDetail> details;
 }

@@ -11,8 +11,8 @@ import java.util.Set;
 
 @Repository
 public interface CriteriaRepository extends JpaRepository<Criteria, Integer> {
-    Page<Criteria> findByNameContainingIgnoreCaseAnAndCompanyIdAndActive(String name, Integer companyId, boolean isActive, Pageable pageable);
-    Page<Criteria> findByNameContainingIgnoreCaseAn(String name, Pageable pageable);
-    Set<Criteria> findByDefault(boolean isDefault);
-    Page<Criteria> findByCompanyIdAndActive(Integer companyId, boolean isActive, Pageable pageable);
+    Page<Criteria> findByNameContainingIgnoreCaseAndCompanyIdAndActive(String name, Integer companyId, Boolean active, Pageable pageable);
+    Page<Criteria> findByNameContainingIgnoreCase(String name, Pageable pageable);
+    Set<Criteria> findByIsDefault(Boolean isDefault);
+    Page<Criteria> findByCompanyIdAndActive(Integer companyId, Boolean active, Pageable pageable);
 }

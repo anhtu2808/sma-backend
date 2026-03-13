@@ -22,7 +22,7 @@ public class Criteria {
     private String rule;
 
     @Column(name = "is_default")
-    private boolean isDefault;
+    private Boolean isDefault;
 
     @Column(name = "default_weight")
     private Double weight;

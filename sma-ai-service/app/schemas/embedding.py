@@ -56,7 +56,9 @@ class EmbeddingResumeProject(BaseSchema):
 
 class EmbeddingResumeRequestMessage(BaseSchema):
     id: int
-    address: Optional[str] = None
+    jobTitle: Optional[str] = None
+    language: Optional[str] = None
+    location: Optional[str] = None
 
     skills: List[EmbeddingResumeSkill] = Field(default_factory=list)
     educations: List[EmbeddingResumeEducation] = Field(default_factory=list)
