@@ -24,10 +24,10 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
     @Query("SELECT COUNT(a) > 0 FROM Application a " +
             "WHERE a.candidate.id = :candidateId " +
             "AND a.job.id = :jobId " +
-            "AND a.status IN (:rejectStatuses)")
-    boolean hasBeenRejected(@Param("candidateId") Integer candidateId,
-                            @Param("jobId") Integer jobId,
-                            @Param("rejectStatuses") List<ApplicationStatus> rejectStatuses);
+            "AND a.status = 'REJECTED' " +
+            "AND a.isRejectedByAi = false")
+    boolean hasBeenRejectedByRecruiter(@Param("candidateId") Integer candidateId,
+                                       @Param("jobId") Integer jobId);
 
     Optional<Application> findFirstByCandidateIdAndJobIdOrderByAppliedAtDesc(Integer candidateId, Integer jobId);
 
@@ -61,4 +61,12 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
             @Param("newStatus") ApplicationStatus newStatus,
             @Param("reason") String reason,
             @Param("closedStatuses") List<ApplicationStatus> closedStatuses);
+
+    @EntityGraph(attributePaths = {
+            "resume",
+            "resume.experiences",
+            "resume.skillGroups.skills.skill",
+            "resume.evaluations"
+    })
+    List<Application> findAllByJobIdAndStatus(Integer jobId, ApplicationStatus status);
 }

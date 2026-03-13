@@ -17,6 +17,7 @@ public interface ApplicationMapper {
     @Mapping(target = "resumeId", source = "resume.id")
     @Mapping(target = "resumeName", source = "resume.resumeName")
     @Mapping(target = "answers", source = "answers")
+    @Mapping(target = "isRejectedByAi", source = "isRejectedByAi")
     ApplicationResponse toResponse(Application application);
 
     @Mapping(target = "questionId", source = "jobQuestion.id")

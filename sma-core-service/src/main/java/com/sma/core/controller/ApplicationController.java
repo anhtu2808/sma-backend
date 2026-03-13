@@ -4,9 +4,11 @@ import com.sma.core.dto.request.application.ApplicationFilter;
 import com.sma.core.dto.request.application.ApplicationRequest;
 import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.application.ApplicationDetailResponse;
+import com.sma.core.dto.response.application.ApplicationExportResponse;
 import com.sma.core.dto.response.application.ApplicationListResponse;
 import com.sma.core.dto.response.application.ApplicationResponse;
 import com.sma.core.enums.ApplicationStatus;
+import com.sma.core.enums.ExportType;
 import com.sma.core.service.ApplicationService;
 import com.sma.core.utils.JwtTokenProvider;
 import jakarta.validation.Valid;
@@ -16,6 +18,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/v1/applications")
@@ -61,6 +65,17 @@ public class ApplicationController {
         applicationService.updateStatus(id, status, rejectReason);
         return ApiResponse.<Void>builder()
                 .message("Update application status successfully.")
+                .build();
+    }
+
+    @GetMapping("/export-approved")
+    @PreAuthorize("hasRole('RECRUITER')")
+    public ApiResponse<List<ApplicationExportResponse>> getApprovedForExport(@RequestParam Integer jobId,
+                                                                                @RequestParam(defaultValue = "XLSX") ExportType type) {
+        List<ApplicationExportResponse> data = applicationService.getApprovedForExport(jobId, type);
+        return ApiResponse.<List<ApplicationExportResponse>>builder()
+                .message("Get approved candidates for export successfully.")
+                .data(data)
                 .build();
     }
 }

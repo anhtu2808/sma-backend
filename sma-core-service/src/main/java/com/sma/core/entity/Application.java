@@ -60,4 +60,8 @@ public class Application {
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<JobAnswer> answers = new HashSet<>();
+
+    @Column(name = "is_rejected_by_ai")
+    @Builder.Default
+    private Boolean isRejectedByAi = false;
 }
