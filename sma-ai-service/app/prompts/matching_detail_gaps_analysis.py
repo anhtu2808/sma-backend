@@ -19,6 +19,10 @@ Rules:
 6. If a scoring rule is provided for a criterion, reference that rule in your explanation to justify the score.
 7. For context — these are the quoted texts from the raw resume that serve as evidence. Provide the exact string from the resume (or a short snippet).
 
+CRITICAL CONSISTENCY RULE:
+- Avoid duplicating the same competency across multiple criteria.
+- Each criterion must evaluate ONLY the aspect it is responsible for and must NOT overlap with other criteria.
+
 ## Writing Style (CRITICAL — content will be shown directly to hiring managers and recruiters)
 
 ### aiExplanation (per criteria, 3-5 sentences each, VERY DETAILED)
@@ -50,7 +54,6 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 
 JSON structure:
 {
-  "aiOverallScore": <float 0-100>,
   "matchLevel": "<EXCELLENT|GOOD|FAIR|POOR|NOT_MATCHED>",
   "summary": "<3-5 sentence detailed executive summary>",
   "strengths": "<detailed multi-line strengths>",
@@ -60,6 +63,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
+      "criteriaId": <int (exact ID of the criteria context provided)>,
       "criteriaName": "<string (exact name of the criteria)>",
       "aiScore": <float 0-100>,
       "aiExplanation": "<3-5 sentence DETAILED explanation with specific evidence, comparisons, and reasoning>",
@@ -72,8 +76,8 @@ JSON structure:
           "candidateLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
           "isRequired": <boolean>,
           "context": "<string short 2-3 words snippet from resume or null>",
-          "impactScore": <float 0-100>,
-          "suggestions": ["<actionable suggestion 1>", "<actionable suggestion 2>"]
+          "impactScore": <float 0-100 represents the estimated score improvement for THIS criterion if the candidate fixes (only for MISSING)>,
+          "suggestions": ["<describe how the candidate should MODIFY their CV to increase the score>"]
         }
       ]
     }
@@ -109,7 +113,8 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- Name: {c.get('criteriaName', 'N/A')}, "
+                f"- ID: {c.get('criteriaId', 'N/A')}, "
+                f"Name: {c.get('criteriaName', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )
@@ -137,7 +142,8 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
             overview_lines.append("\nCriteria Scores:")
             for cs in criteria_scores:
                 overview_lines.append(
-                    f"  - {cs.get('criteriaName', 'N/A')}: "
+                    f"  - ID: {cs.get('criteriaId', 'N/A')}, "
+                    f"Name: {cs.get('criteriaName', 'N/A')}: "
                     f"score={cs.get('aiScore', 'N/A')}"
                 )
         overview_text = "\n".join(overview_lines)

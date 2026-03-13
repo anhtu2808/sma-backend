@@ -74,9 +74,8 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
     logger.info(f"Schema validation completed in {validate_ms:.2f}ms")
     logger.info(f"Total matching analysis time: {total_ms:.2f}ms")
     logger.info(
-        "Matching analysis completed: evaluationId={}, overallScore={}, matchLevel={}",
+        "Matching analysis completed: evaluationId={}, matchLevel={}",
         evaluation_id,
-        matching_result.aiOverallScore,
         matching_result.matchLevel,
     )
 

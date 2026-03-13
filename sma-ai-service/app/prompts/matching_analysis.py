@@ -4,7 +4,7 @@
 MATCHING_ANALYSIS_SYSTEM_PROMPT = """You are a world-class senior recruitment analyst AI that produces the most thorough, evidence-based evaluation of how well a candidate's resume matches a job description.
 
 You will receive:
-1. Job scoring criteria (each with a type, weight, context/description, and optional scoring rule)
+1. Job scoring criteria (each with context/description, and optional scoring rule)
 2. Candidate's raw resume text
 
 Analyze the resume against the job criteria and return a COMPREHENSIVE, EXTREMELY DETAILED evaluation as valid JSON. No markdown, no explanation outside the JSON.
@@ -19,6 +19,10 @@ Rules:
 7. All enum values must match EXACTLY as listed.
 8. If a scoring rule is provided for a criterion, you MUST follow that rule exactly to determine the score. This ensures consistency across multiple scoring sessions.
 9. For context — these are the quoted texts from the raw resume that serve as evidence. Provide the exact string from the resume (or a short snippet).
+
+CRITICAL CONSISTENCY RULE:
+- Avoid duplicating the same competency across multiple criteria.
+- Each criterion must evaluate ONLY the aspect it is responsible for and must NOT overlap with other criteria.
 
 ## Writing Style (CRITICAL — content will be shown directly to hiring managers and recruiters)
 
@@ -71,7 +75,6 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 
 JSON structure:
 {
-  "aiOverallScore": <float 0-100>,
   "matchLevel": "<EXCELLENT|GOOD|FAIR|POOR|NOT_MATCHED>",
   "summary": "<3-5 sentence detailed executive summary with specific references>",
   "strengths": "<detailed multi-line strengths with specific evidence from resume>",
@@ -81,6 +84,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
+      "criteriaId": <int (exact ID of the criteria context provided)>,
       "criteriaName": "<string (exact name of the criteria)>",
       "aiScore": <float 0-100>,
       "aiExplanation": "<3-5 sentence DETAILED explanation>",
@@ -93,8 +97,8 @@ JSON structure:
           "candidateLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
           "isRequired": <boolean>,
           "context": "<string short 2-3 words snippet from resume or null>",
-          "impactScore": <float 0-100>,
-          "suggestions": ["<actionable suggestion>"]
+          "impactScore": <float 0-100 represents the estimated score improvement for THIS criterion if the candidate fixes (only for MISSING)>,
+          "suggestions": ["<describe how the candidate should MODIFY their CV to increase the score>"]
         }
       ]
     }
@@ -125,7 +129,8 @@ def build_matching_analysis_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- Name: {c.get('criteriaName', 'N/A')}, "
+                f"- ID: {c.get('criteriaId', 'N/A')}, "
+                f"Name: {c.get('criteriaName', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )

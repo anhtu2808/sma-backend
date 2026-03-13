@@ -25,7 +25,7 @@ public class Criteria {
     private Boolean isDefault;
 
     @Column(name = "default_weight")
-    private Double weight;
+    private Float weight;
 
     @Builder.Default
     private Boolean active = true;

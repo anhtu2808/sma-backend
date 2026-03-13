@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class JobScoringCriteriaRequest {
 
+    Integer id;
     String context;
     Double weight;
     String rule;

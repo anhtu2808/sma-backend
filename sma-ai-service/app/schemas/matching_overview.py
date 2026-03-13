@@ -12,6 +12,7 @@ RelevanceType = Literal["HIGH", "MEDIUM", "LOW"]
 class OverviewCriteriaScoreResult(BaseModel):
     """Lightweight criteria score — scores only, no explanations or nested details."""
 
+    criteriaId: int
     criteriaName: str
     aiScore: float = Field(ge=0, le=100)
 
@@ -19,7 +20,6 @@ class OverviewCriteriaScoreResult(BaseModel):
 class MatchingOverviewResult(BaseModel):
     """Root response model for overview matching analysis — concise scoring without deep details."""
 
-    aiOverallScore: float = Field(ge=0, le=100)
     matchLevel: MatchLevel
     summary: Optional[str] = None
     strengths: Optional[str] = None

@@ -387,21 +387,25 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         if (criteriaScores == null) return;
 
         // Build lookup map: criteriaName -> existing EvaluationCriteriaScore
-        Map<String, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
+        Map<Integer, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
                 if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getName(), cs);
+                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getId(), cs);
                 }
             }
         }
-
+        float aiScore = 0.0f;
         for (CriteriaScoreData csData : criteriaScores) {
-            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaName());
+            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaId());
             if (existing != null) {
                 // Supplement existing record with explanation
                 if (csData.getAiExplanation() != null) {
                     existing.setAiExplanation(csData.getAiExplanation());
+                }
+                if (csData.getAiScore() != null) {
+                    existing.setWeightedScore(csData.getAiScore() * existing.getScoringCriteria().getWeight());
+                    aiScore += csData.getAiScore();
                 }
                 evaluationCriteriaScoreRepository.save(existing);
 
@@ -413,6 +417,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                         csData.getCriteriaName(), evaluation.getId());
             }
         }
+        evaluation.setAiOverallScore(aiScore);
+        resumeEvaluationRepository.save(evaluation);
     }
 
     private void saveCriteriaScores(List<CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
@@ -423,10 +429,10 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             criteriaScore.setEvaluation(evaluation);
 
             // Link to existing ScoringCriteria by criteriaName
-            if (csData.getCriteriaName() != null && evaluation.getJob() != null) {
+            if (csData.getCriteriaId() != null && evaluation.getJob() != null) {
                 evaluation.getJob().getScoringCriterias().stream()
                         .filter(sc -> sc.getCriteria() != null
-                                && csData.getCriteriaName().equals(sc.getCriteria().getName()))
+                                && csData.getCriteriaId().equals(sc.getCriteria().getId()))
                         .findFirst()
                         .ifPresent(criteriaScore::setScoringCriteria);
             }

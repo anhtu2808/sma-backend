@@ -28,6 +28,7 @@ class CriteriaScoreDetailResult(BaseModel):
 class CriteriaScoreResult(BaseModel):
     """Evaluation result for a single scoring criterion."""
 
+    criteriaId: int
     criteriaName: str
     aiScore: float = Field(ge=0, le=100)
     aiExplanation: Optional[str] = None
@@ -37,7 +38,6 @@ class CriteriaScoreResult(BaseModel):
 class MatchingResult(BaseModel):
     """Root response model for full matching analysis."""
 
-    aiOverallScore: float = Field(ge=0, le=100)
     matchLevel: MatchLevel
     summary: Optional[str] = None
     strengths: Optional[str] = None

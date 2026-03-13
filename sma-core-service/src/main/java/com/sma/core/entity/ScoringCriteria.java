@@ -19,7 +19,7 @@ public class ScoringCriteria {
     @Column(columnDefinition = "TEXT")
     private String context;
 
-    private Double weight;
+    private Float weight;
 
     @Column(columnDefinition = "TEXT")
     private String rule;

@@ -14,7 +14,6 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class MatchingResultData {
 
-    Float aiOverallScore;
     MatchLevel matchLevel;
     String summary;
     String strengths;

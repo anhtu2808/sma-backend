@@ -52,7 +52,7 @@ public class ScoringCriteriaServiceImpl implements ScoringCriteriaService {
                 }
                 continue;
             }
-            double weight = request.getWeight() != null
+            float weight = request.getWeight() != null
                     ? request.getWeight()
                     : criteria.getWeight();
 

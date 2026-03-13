@@ -15,6 +15,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 public class AddJobScoringCriteriaRequest {
     Integer criteriaId;
-    Double weight;
+    Float weight;
     Boolean enable;
 }

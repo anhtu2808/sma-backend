@@ -13,6 +13,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CriteriaScoreData {
 
+    Integer criteriaId;
     String criteriaName;
     Float aiScore;
     String aiExplanation;
