@@ -2,7 +2,7 @@
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 MatchLevel = Literal["EXCELLENT", "GOOD", "FAIR", "POOR", "NOT_MATCHED"]
@@ -23,6 +23,29 @@ class CriteriaScoreDetailResult(BaseModel):
     isRequired: Optional[bool] = None
     impactScore: Optional[float] = Field(default=None, ge=0, le=100)
     suggestions: List[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_status_specific_fields(self) -> "CriteriaScoreDetailResult":
+        """Keep detail payloads consistent with downstream UI expectations."""
+        context = (self.context or "").strip()
+        suggestions = [item.strip() for item in self.suggestions if item and item.strip()]
+
+        if self.status == "MISSING":
+            if not context:
+                raise ValueError("MISSING items must include a non-empty context.")
+            if self.impactScore is None:
+                raise ValueError("MISSING items must include impactScore.")
+            if not suggestions:
+                raise ValueError("MISSING items must include at least one suggestion.")
+        else:
+            if self.impactScore is not None:
+                raise ValueError("MATCHED items must not include impactScore.")
+            if suggestions:
+                raise ValueError("MATCHED items must have an empty suggestions list.")
+
+        self.suggestions = suggestions
+        self.context = context or None
+        return self
 
 
 class CriteriaScoreResult(BaseModel):

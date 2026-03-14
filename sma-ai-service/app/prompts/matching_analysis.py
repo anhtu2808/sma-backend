@@ -64,9 +64,16 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 - description: DETAILED evidence from resume
 - requiredLevel / candidateLevel: Skill level if applicable (ONLY use if criteria is related to technical or hard skills)
 - isRequired: Boolean indicating if this item is strictly required by the job
-- context: Short text snippet (about 2-3 words around the label) from the raw resume serving as evidence. Try to find relevant context even if status is MISSING, if applicable.
-- impactScore: Importance for the role (0-100)
-- suggestions: Actionable improvement suggestions for MISSING items
+- context:
+  - For MATCHED: exact quoted evidence from the raw resume (short snippet or short sentence).
+  - For MISSING: REQUIRED. Return the exact resume line, section tail, or insertion position where the candidate can add the missing item. If the resume has no direct mention, choose the nearest valid insertion point (for example, the last line of the Skills section) and describe it concretely.
+  - For MISSING, context may be a complete sentence or short paragraph, but it must be an exact unique substring or unique insertion anchor from the raw resume and must not duplicate another identical context elsewhere in the raw text.
+- impactScore: Only for MISSING items. It represents the estimated score improvement for THIS criterion (0-100) if the candidate fixes the missing item. MUST be null for MATCHED items.
+- suggestions:
+  - Only for MISSING items. MUST be an array of short resume-ready lines that the candidate can directly paste into the CV to improve matching.
+  - Follow the same style as the re-suggestion prompt: concise, specific, focused on resume edits, and preferably direct replacement/addition lines rather than general advice.
+  - Keep each suggestion short (ideally one resume bullet or one short line, max 1-2 sentences).
+  - MATCHED items MUST have an empty suggestions list.
 
 ## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
@@ -96,9 +103,9 @@ JSON structure:
           "requiredLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
           "candidateLevel": "<NONE|FRESHER|JUNIOR|MID|SENIOR|EXPERT or null> (only for HARD_SKILLS)",
           "isRequired": <boolean>,
-          "context": "<string short 2-3 words snippet from resume or null>",
+          "context": "<exact evidence snippet for MATCHED, or REQUIRED exact insertion anchor from the resume for MISSING>",
           "impactScore": <float 0-100 represents the estimated score improvement for THIS criterion if the candidate fixes (only for MISSING)>,
-          "suggestions": ["<describe how the candidate should MODIFY their CV to increase the score>"]
+          "suggestions": ["<short resume-ready line that can be pasted into the CV to improve matching>"]
         }
       ]
     }
@@ -107,8 +114,11 @@ JSON structure:
 
 IMPORTANT RULES:
 - Analyze ALL relevant items for each criterion — be exhaustive
-- Every MISSING item should have at least one suggestion
-- MATCHED items should have empty suggestions list
+- Every MISSING item MUST have a non-empty context and at least one suggestion
+- For MISSING items, context must identify exactly where the user can add the content in the resume, even if it is only an insertion point
+- If a skill/keyword is missing entirely from the resume, do not leave context null; point to the closest valid place to add it
+- Suggestions for MISSING items must be short CV lines, not generic career advice
+- MATCHED items should have empty suggestions list and null impactScore
 - MAXIMIZE DETAIL in every text field
 - Every score must be justified. Every claim must reference evidence from the resume."""
 
