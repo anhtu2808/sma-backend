@@ -69,6 +69,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     ScoringCriteriaService scoringCriteriaService;
     EvaluationCriteriaSuggestionRepository evaluationCriteriaSuggestionRepository;
     AIServiceClient aiClient;
+    EvaluationCriteriaDetailRepository evaluationCriteriaDetailRepository;
 
     @Override
     @Transactional(noRollbackFor = MatchingPublishException.class)
@@ -199,15 +200,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    public void generateSuggestion(Integer id) {
-        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        SuggestionRequestMessage message = evaluationMapper.toSuggestionRequestMessage(evaluation);
-        suggestionRequestPublisher.publish(message);
-        log.info("generateSuggestion called for evaluationId={} - not yet implemented", id);
-    }
-
-    @Override
     public SuggestionResponse reGenerateSuggestion(Integer suggestionId) {
         EvaluationCriteriaSuggestion suggestion = evaluationCriteriaSuggestionRepository.findById(suggestionId)
                 .orElseThrow(() -> new AppException(ErrorCode.SUGGESTION_NOT_FOUND));
@@ -250,6 +242,15 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
         resumeEvaluationRepository.save(evaluation);
         return evaluationResponseMapper.toDetailResponse(evaluation);
+    }
+
+    @Override
+    public void markAsFixed(Integer scoringDetailId) {
+        EvaluationCriteriaDetail detail = evaluationCriteriaDetailRepository.findById(scoringDetailId)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_CRITERIA_DETAIL_NOT_FOUND));
+
+        detail.setIsFixed(true);
+        evaluationCriteriaDetailRepository.save(detail);
     }
 
     // ---- Private helpers ----

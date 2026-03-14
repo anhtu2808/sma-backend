@@ -18,8 +18,8 @@ public interface ResumeEvaluationService {
     PagingResponse<ResumeEvaluationOverviewResponse> getEvaluationsByJob(Integer jobId, Pageable pageable);
     PagingResponse<ResumeEvaluationOverviewResponse> getAllEvaluations(Pageable pageable);
     void processMatchingResult(MatchingResultMessage message);
-    void generateSuggestion(Integer id);
     SuggestionResponse reGenerateSuggestion(Integer suggestionId);
     void saveSuggestion(SuggestResultMessage message);
     ResumeEvaluationDetailResponse scoreManual(Integer id, ManualScoreMatchingRequest request);
+    void markAsFixed(Integer scoringDetailId);
 }
