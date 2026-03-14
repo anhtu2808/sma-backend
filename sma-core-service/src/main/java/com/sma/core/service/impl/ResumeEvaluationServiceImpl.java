@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.client.AIServiceClient;
 import com.sma.core.dto.model.UsageContextModel;
 import com.sma.core.dto.message.matching.CriteriaScoreData;
 import com.sma.core.dto.message.matching.CriteriaScoreDetailData;
@@ -13,6 +14,7 @@ import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.evaluation.SuggestionResponse;
 import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
 import com.sma.core.dto.response.suggestion.WeaknessSuggestionResponse;
 import com.sma.core.entity.*;
@@ -65,6 +67,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     EvaluationMapper evaluationMapper;
     ScoringCriteriaRepository scoringCriteriaRepository;
     ScoringCriteriaService scoringCriteriaService;
+    EvaluationCriteriaSuggestionRepository evaluationCriteriaSuggestionRepository;
+    AIServiceClient aiClient;
 
     @Override
     @Transactional(noRollbackFor = MatchingPublishException.class)
@@ -204,50 +208,25 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    public void reGenerateSuggestion(Integer id, Integer evaluationWeaknessId) {
-        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        EvaluationWeakness weakness = evaluationWeaknessRepository.findByIdAndEvaluationId(evaluationWeaknessId, id)
-                .orElseThrow(() -> new AppException(ErrorCode.WEAKNESS_NOT_FOUND));
-        ReSuggestRequestMessage message = evaluationMapper.toReSuggestRequestMessage(evaluation);
-        message.setWeakness(evaluationMapper.toWeaknessSuggestionRequest(weakness));
-        suggestionRequestPublisher.publish(message);
-        log.info("reGenerateSuggestion called for evaluationId={}, weaknessId={} - not yet implemented",
-                id, evaluationWeaknessId);
+    public SuggestionResponse reGenerateSuggestion(Integer suggestionId) {
+        EvaluationCriteriaSuggestion suggestion = evaluationCriteriaSuggestionRepository.findById(suggestionId)
+                .orElseThrow(() -> new AppException(ErrorCode.SUGGESTION_NOT_FOUND));
+        ReSuggestRequestMessage message = evaluationMapper.toReSuggestRequestMessage(suggestion);
+        SuggestResultMessage resultMessage = aiClient.reSuggestion(message);
+        if (resultMessage == null || resultMessage.getErrorMessage() != null || !resultMessage.getStatus().equals("SUCCESS")) {
+            throw new AppException(ErrorCode.SERVER_ERROR_RE_SUGGESTION);
+        }
+        suggestion.setSuggestion(resultMessage.getSuggestion());
+        evaluationCriteriaSuggestionRepository.save(suggestion);
+        return SuggestionResponse.builder()
+                .id(suggestion.getId())
+                .suggestion(suggestion.getSuggestion())
+                .build();
     }
 
     @Transactional
     @Override
     public void saveSuggestion(SuggestResultMessage message) {
-
-        resumeEvaluationRepository.findById(message.getEvaluationId())
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-
-        Map<Integer, String> gapSuggestions =
-                message.getGapSuggestion().stream()
-                        .collect(Collectors.toMap(
-                                GapSuggestionResponse::getId,
-                                GapSuggestionResponse::getSuggestion
-                        ));
-
-        evaluationGapRepository
-                .findAllById(gapSuggestions.keySet())
-                .forEach(gap ->
-                        gap.setSuggestion(gapSuggestions.get(gap.getId()))
-                );
-
-        Map<Integer, String> weaknessSuggestions =
-                message.getWeaknessSuggestion().stream()
-                        .collect(Collectors.toMap(
-                                WeaknessSuggestionResponse::getId,
-                                WeaknessSuggestionResponse::getSuggestion
-                        ));
-
-        evaluationWeaknessRepository
-                .findAllById(weaknessSuggestions.keySet())
-                .forEach(w ->
-                        w.setSuggestion(weaknessSuggestions.get(w.getId()))
-                );
     }
 
     @Override
@@ -370,7 +349,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
                 Map<String, Object> csMap = new HashMap<>();
                 if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    csMap.put("criteriaType", cs.getScoringCriteria().getCriteria().getCriteriaType().name());
+                    csMap.put("criteriaId", cs.getScoringCriteria().getCriteria().getId());
                 }
                 csMap.put("aiScore", cs.getAiScore());
                 criteriaScoresList.add(csMap);
@@ -390,17 +369,17 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         if (criteriaScores == null) return;
 
         // Build lookup map: criteriaType -> existing EvaluationCriteriaScore
-        Map<CriteriaType, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
+        Map<Integer, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
                 if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getCriteriaType(), cs);
+                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getId(), cs);
                 }
             }
         }
 
         for (CriteriaScoreData csData : criteriaScores) {
-            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaType());
+            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getId());
             if (existing != null) {
                 // Supplement existing record with explanation
                 if (csData.getAiExplanation() != null) {
@@ -412,8 +391,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 saveDetails(csData.getDetails(), existing);
 
             } else {
-                log.warn("No existing criteria score found for criteriaType={} in evaluationId={}",
-                        csData.getCriteriaType(), evaluation.getId());
+                log.warn("No existing criteria score found for scoring criteria={} in evaluationId={}",
+                        csData.getId(), evaluation.getId());
             }
         }
     }
@@ -426,10 +405,10 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             criteriaScore.setEvaluation(evaluation);
 
             // Link to existing ScoringCriteria by criteriaType
-            if (csData.getCriteriaType() != null && evaluation.getJob() != null) {
+            if (csData.getId() != null && evaluation.getJob() != null) {
                 evaluation.getJob().getScoringCriterias().stream()
                         .filter(sc -> sc.getCriteria() != null
-                                && sc.getCriteria().getCriteriaType() == csData.getCriteriaType())
+                                && Objects.equals(sc.getCriteria().getId(), csData.getId()))
                         .findFirst()
                         .ifPresent(criteriaScore::setScoringCriteria);
             }

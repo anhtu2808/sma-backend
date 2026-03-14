@@ -17,16 +17,18 @@ class WeaknessSuggestionRequest(BaseModel):
     suggestion: Optional[str] = None  # Existing suggestion, if any
 
 class ReSuggestRequestMessage(BaseModel):
-    jobId: Optional[int] = None
-    resumeId: Optional[int] = None
-    evaluationId: Optional[int] = None
-    jobName: Optional[str] = None
+    suggestionId: Optional[int] = None
+    jobTitle: Optional[str] = None
     jobLevel: Optional[str] = None
-    isTrueLevel: Optional[bool] = None
-    hasRelatedExperience: Optional[bool] = None
-    matchLevel: Optional[str] = None
     summary: Optional[str] = None
-    weakness: Optional[WeaknessSuggestionRequest] = None
+    weakness: Optional[str] = None
+    scoringCriteriaContext: Optional[str] = None
+    rule: Optional[str] = None
+    label: Optional[str] = None
+    context: Optional[str] = None
+    suggestion: Optional[str] = None
+    aiExplanation: Optional[str] = None
+    description: Optional[str] = None
 
 class SuggestionRequestMessage(BaseModel):
     jobId: Optional[int] = None
@@ -50,8 +52,7 @@ class WeaknessSuggestionResponse(BaseModel):
     suggestion: str
 
 class SuggestResultMessage(BaseModel):
-    evaluationId: int
-    status: str = "SUCCESS"  # "SUCCESS" or "ERROR"
+    suggestionId: Optional[int] = None
+    suggestion: Optional[str] = None
+    status: Optional[str] = None
     errorMessage: Optional[str] = None
-    weaknessSuggestion: List[WeaknessSuggestionResponse] = []
-    gapSuggestion: List[GapSuggestionResponse] = []

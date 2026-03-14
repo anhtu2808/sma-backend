@@ -25,5 +25,5 @@ public class EvaluationCriteriaDetailResponse {
     Boolean isFixed;
     String context;
     Float impactScore;
-    Set<String> suggestions;
+    Set<SuggestionResponse> suggestions;
 }

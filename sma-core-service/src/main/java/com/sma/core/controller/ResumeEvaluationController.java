@@ -5,6 +5,7 @@ import com.sma.core.dto.response.ApiResponse;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.evaluation.SuggestionResponse;
 import com.sma.core.service.ResumeEvaluationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ public class ResumeEvaluationController {
 
     @PostMapping("/overall")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<Integer> processMatching(@RequestParam Integer jobId, @RequestParam Integer resumeId){
+    public ApiResponse<Integer> processMatching(@RequestParam Integer jobId, @RequestParam Integer resumeId) {
         return ApiResponse.<Integer>builder()
                 .message("Matching is processing")
                 .data(resumeEvaluationService.processMatchingOverview(jobId, resumeId))
@@ -37,7 +38,7 @@ public class ResumeEvaluationController {
 
     @PostMapping("/detail")
     @PreAuthorize("hasAnyRole('RECRUITER', 'CANDIDATE')")
-    public ApiResponse<Integer> processMatchingDetail(@RequestParam Integer jobId, @RequestParam Integer resumeId){
+    public ApiResponse<Integer> processMatchingDetail(@RequestParam Integer jobId, @RequestParam Integer resumeId) {
         return ApiResponse.<Integer>builder()
                 .message("Matching detail is processing")
                 .data(resumeEvaluationService.processMatching(jobId, resumeId))
@@ -48,7 +49,7 @@ public class ResumeEvaluationController {
     @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'CANDIDATE')")
     public ApiResponse<PagingResponse<ResumeEvaluationOverviewResponse>> getAllEvaluations(
             @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size){
+            @RequestParam(defaultValue = "10") Integer size) {
         Pageable pageable = PageRequest.of(page, size);
         return ApiResponse.<PagingResponse<ResumeEvaluationOverviewResponse>>builder()
                 .message("Get all evaluations successfully")
@@ -61,7 +62,7 @@ public class ResumeEvaluationController {
     public ApiResponse<PagingResponse<ResumeEvaluationOverviewResponse>> getEvaluationsByJob(
             @PathVariable Integer jobId,
             @RequestParam(defaultValue = "0") Integer page,
-            @RequestParam(defaultValue = "10") Integer size){
+            @RequestParam(defaultValue = "10") Integer size) {
         Pageable pageable = PageRequest.of(page, size);
         return ApiResponse.<PagingResponse<ResumeEvaluationOverviewResponse>>builder()
                 .message("Get evaluations by job successfully")
@@ -71,32 +72,25 @@ public class ResumeEvaluationController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'CANDIDATE')")
-    public ApiResponse<ResumeEvaluationDetailResponse> getEvaluationDetail(@PathVariable Integer id){
+    public ApiResponse<ResumeEvaluationDetailResponse> getEvaluationDetail(@PathVariable Integer id) {
         return ApiResponse.<ResumeEvaluationDetailResponse>builder()
                 .message("Get evaluation detail successfully")
                 .data(resumeEvaluationService.getEvaluationDetail(id))
                 .build();
     }
 
-    @PostMapping("/{resumeEvaluationId}/suggestion")
+    @PutMapping("/suggestion/{id}")
     @PreAuthorize("hasRole('CANDIDATE')")
-    public ApiResponse<Void> generateSuggestion(@PathVariable Integer resumeEvaluationId,
-                                                @RequestParam(required = false) Integer suggestionId){
-        if (suggestionId == null) {
-            resumeEvaluationService.generateSuggestion(resumeEvaluationId);
-        } else {
-            resumeEvaluationService.reGenerateSuggestion(resumeEvaluationId, suggestionId);
-        }
-        return ApiResponse.<Void>builder()
-                .message(suggestionId == null ?
-                        "Generate suggestion is processing" :
-                        "Re-generate suggestion is processing")
+    public ApiResponse<SuggestionResponse> reGenerateSuggestion(@PathVariable Integer id) {
+        return ApiResponse.<SuggestionResponse>builder()
+                .message("Re-generate suggestion is processing")
+                .data(resumeEvaluationService.reGenerateSuggestion(id))
                 .build();
     }
 
     @GetMapping("/{resumeEvaluationId}/status")
     @PreAuthorize("hasAnyRole('ADMIN', 'RECRUITER', 'CANDIDATE')")
-    public ApiResponse<String> getMatchingStatus(@PathVariable Integer resumeEvaluationId){
+    public ApiResponse<String> getMatchingStatus(@PathVariable Integer resumeEvaluationId) {
         return ApiResponse.<String>builder()
                 .message("Get matching status successfully")
                 .data(resumeEvaluationService.getMatchingStatus(resumeEvaluationId))
@@ -105,7 +99,7 @@ public class ResumeEvaluationController {
 
     @PutMapping("/{id}/score-manual")
     @PreAuthorize("hasRole('RECRUITER')")
-    public ApiResponse<ResumeEvaluationDetailResponse> scoreManual(@PathVariable Integer id, @RequestBody ManualScoreMatchingRequest request){
+    public ApiResponse<ResumeEvaluationDetailResponse> scoreManual(@PathVariable Integer id, @RequestBody ManualScoreMatchingRequest request) {
         return ApiResponse.<ResumeEvaluationDetailResponse>builder()
                 .message("Score manual successfully")
                 .data(resumeEvaluationService.scoreManual(id, request))

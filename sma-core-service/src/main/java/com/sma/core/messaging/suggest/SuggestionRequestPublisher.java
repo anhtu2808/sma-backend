@@ -31,10 +31,7 @@ public class SuggestionRequestPublisher {
     }
 
     public void publish(ReSuggestRequestMessage message) {
-        log.info("Publishing re-suggestion request for evaluationId={}, jobId={}, resumeId={}",
-                message.getEvaluationId(), message.getJobId(), message.getResumeId());
         rabbitTemplate.convertAndSend(reSuggestionRabbitMQProperties.getRequestQueue(), message);
-        log.info("Re-suggestion request published successfully for evaluationId={}", message.getEvaluationId());
     }
 
 

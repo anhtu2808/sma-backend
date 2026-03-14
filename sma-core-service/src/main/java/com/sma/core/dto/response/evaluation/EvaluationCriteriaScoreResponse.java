@@ -22,7 +22,6 @@ public class EvaluationCriteriaScoreResponse {
     String scoringCriteriaContext;
     String criteriaName;
     Double scoringCriteriaWeight;
-    CriteriaType criteriaType;
     Float aiScore;
     Float manualScore;
     Float weightedScore;

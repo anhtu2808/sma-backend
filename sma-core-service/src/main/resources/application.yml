@@ -1,133 +1,134 @@
-server:
-  port: 8080
+  server:
+    port: 8080
 
-spring:
-  application:
-    name: sma-core-service
-  web:
-    resources:
-      add-mappings: false
-  servlet:
-    multipart:
-      max-file-size: 500MB
-      max-request-size: 500MB
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    hibernate:
-      ddl-auto: none
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        jdbc:
-          time_zone: Asia/Ho_Chi_Minh
-  jackson:
-    time-zone: Asia/Ho_Chi_Minh
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
-    virtual-host: ${RABBITMQ_VHOST:/}
-    listener:
-      simple:
-        prefetch: 1
-
-logging:
-  level:
-    org.hibernate.SQL: debug
-    org.hibernate.type.descriptor.sql.BasicBinder: trace
-
-# SpringDoc OpenAPI Configuration
-springdoc:
-  api-docs:
-    path: /api-docs
-    enabled: true
-  swagger-ui:
-    path: /swagger-ui.html
-    enabled: true
-    operationsSorter: method
-    tagsSorter: alpha
-    tryItOutEnabled: true
-    server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
-  show-actuator: true
-
-aws:
-  region: ${AWS_REGION:ap-southeast-1}
-  access-key-id: ${AWS_ACCESS_KEY_ID}
-  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
-  
-  s3:
-    bucket-name: ${S3_BUCKET_NAME}
-
-file:
-  s3-storage-path: ${FILE_S3_STORAGE_PATH:uploads}
-  download-base-url: ${FILE_DOWNLOAD_BASE_URL:https://api.smartrecruit.tech/files}
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION}
-  refresh-expiration: ${JWT_REFRESH_EXPIRATION}
-  refresh-secret: ${JWT_REFRESH_SECRET}
-
-google:
-  client-id: ${GOOGLE_CLIENT_ID}
-
-app:
-  rabbitmq:
-    resume-parsing:
-      request-queue: ${RABBITMQ_RESUME_PARSING_REQUEST_QUEUE:resume.parsing.request}
-      result-queue: ${RABBITMQ_RESUME_PARSING_RESULT_QUEUE:resume.parsing.result}
-    matching:
-      request-queue: ${RABBITMQ_MATCHING_REQUEST_QUEUE:resume.matching.request}
-      result-queue: ${RABBITMQ_MATCHING_RESULT_QUEUE:resume.matching.result}
-    criteria-context:
-      request-queue: ${RABBITMQ_CRITERIA_CONTEXT_REQUEST_QUEUE:criteria.context.request}
-      result-queue: ${RABBITMQ_CRITERIA_CONTEXT_RESULT_QUEUE:criteria.context.result}
-    suggest:
-      request-queue: ${RABBITMQ_SUGGESTION_REQUEST_QUEUE:suggest.request}
-      result-queue: ${RABBITMQ_SUGGESTION_RESULT_QUEUE:suggest.result}
-    re-suggest:
-      request-queue: ${RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE:re.suggest.request}
-      result-queue: ${RABBITMQ_RE_SUGGESTION_RESULT_QUEUE:re.suggest.result}
-    embedding:
-      resume:
-        request-queue: ${RABBITMQ_EMBEDDING_RESUME_REQUEST_QUEUE:embedding.resume.request}
-        result-queue: ${RABBITMQ_EMBEDDING_RESUME_RESULT_QUEUE:embedding.resume.result}
-      job:
-        request-queue: ${RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE:embedding.job.request}
-        result-queue: ${RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE:embedding.job.result}
-    proposed:
-      cv:
-        request-queue: ${RABBITMQ_PROPOSED_CV_REQUEST_QUEUE:proposed.cv.request}
-        result-queue: ${RABBITMQ_PROPOSED_CV_RESULT_QUEUE:proposed.cv.result}
-  resume-parsing:
-    partial-timeout-minutes: ${RESUME_PARSE_PARTIAL_TIMEOUT_MINUTES:1.5}
-    watchdog-interval-ms: ${RESUME_PARSE_WATCHDOG_INTERVAL_MS:30000}
-
-
-sepay:
-  link: ${SEPAY_LINK}
-  api-key: ${SEPAY_API_KEY}
-  prefix: ${SEPAY_PREFIX}
-  bank-account: ${SEPAY_BANK_ACCOUNT}
-  bank: ${SEPAY_BANK}
-
-#Monitoring and Metrics Configuration
-management:
-  endpoints:
+  spring:
+    application:
+      name: sma-core-service
     web:
-      exposure:
-        include: health,info,prometheus,metrics
-  endpoint:
-    prometheus:
+      resources:
+        add-mappings: false
+    servlet:
+      multipart:
+        max-file-size: 500MB
+        max-request-size: 500MB
+    datasource:
+      url: ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+
+    jpa:
+      hibernate:
+        ddl-auto: none
+      show-sql: true
+      properties:
+        hibernate:
+          format_sql: true
+          dialect: org.hibernate.dialect.PostgreSQLDialect
+          jdbc:
+            time_zone: Asia/Ho_Chi_Minh
+    jackson:
+      time-zone: Asia/Ho_Chi_Minh
+    rabbitmq:
+      host: ${RABBITMQ_HOST:localhost}
+      port: ${RABBITMQ_PORT:5672}
+      username: ${RABBITMQ_USER:guest}
+      password: ${RABBITMQ_PASSWORD:guest}
+      virtual-host: ${RABBITMQ_VHOST:/}
+      listener:
+        simple:
+          prefetch: 1
+
+  logging:
+    level:
+      org.hibernate.SQL: debug
+      org.hibernate.type.descriptor.sql.BasicBinder: trace
+
+  # SpringDoc OpenAPI Configuration
+  springdoc:
+    api-docs:
+      path: /api-docs
       enabled: true
-  metrics:
-    tags:
-      application: sma-core-service
+    swagger-ui:
+      path: /swagger-ui.html
+      enabled: true
+      operationsSorter: method
+      tagsSorter: alpha
+      tryItOutEnabled: true
+      server-url: ${SWAGGER_SERVER_URL:http://localhost:8080}
+    show-actuator: true
+
+  aws:
+    region: ${AWS_REGION:ap-southeast-1}
+    access-key-id: ${AWS_ACCESS_KEY_ID}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+
+    s3:
+      bucket-name: ${S3_BUCKET_NAME}
+
+  file:
+    s3-storage-path: ${FILE_S3_STORAGE_PATH:uploads}
+    download-base-url: ${FILE_DOWNLOAD_BASE_URL:https://api.smartrecruit.tech/files}
+
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION}
+    refresh-secret: ${JWT_REFRESH_SECRET}
+
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+
+  app:
+    rabbitmq:
+      resume-parsing:
+        request-queue: ${RABBITMQ_RESUME_PARSING_REQUEST_QUEUE:resume.parsing.request}
+        result-queue: ${RABBITMQ_RESUME_PARSING_RESULT_QUEUE:resume.parsing.result}
+      matching:
+        request-queue: ${RABBITMQ_MATCHING_REQUEST_QUEUE:resume.matching.request}
+        result-queue: ${RABBITMQ_MATCHING_RESULT_QUEUE:resume.matching.result}
+      criteria-context:
+        request-queue: ${RABBITMQ_CRITERIA_CONTEXT_REQUEST_QUEUE:criteria.context.request}
+        result-queue: ${RABBITMQ_CRITERIA_CONTEXT_RESULT_QUEUE:criteria.context.result}
+      suggest:
+        request-queue: ${RABBITMQ_SUGGESTION_REQUEST_QUEUE:suggest.request}
+        result-queue: ${RABBITMQ_SUGGESTION_RESULT_QUEUE:suggest.result}
+      re-suggest:
+        request-queue: ${RABBITMQ_RE_SUGGESTION_REQUEST_QUEUE:re.suggest.request}
+        result-queue: ${RABBITMQ_RE_SUGGESTION_RESULT_QUEUE:re.suggest.result}
+      embedding:
+        resume:
+          request-queue: ${RABBITMQ_EMBEDDING_RESUME_REQUEST_QUEUE:embedding.resume.request}
+          result-queue: ${RABBITMQ_EMBEDDING_RESUME_RESULT_QUEUE:embedding.resume.result}
+        job:
+          request-queue: ${RABBITMQ_EMBEDDING_JOB_REQUEST_QUEUE:embedding.job.request}
+          result-queue: ${RABBITMQ_EMBEDDING_JOB_RESULT_QUEUE:embedding.job.result}
+      proposed:
+        cv:
+          request-queue: ${RABBITMQ_PROPOSED_CV_REQUEST_QUEUE:proposed.cv.request}
+          result-queue: ${RABBITMQ_PROPOSED_CV_RESULT_QUEUE:proposed.cv.result}
+    resume-parsing:
+      partial-timeout-minutes: ${RESUME_PARSE_PARTIAL_TIMEOUT_MINUTES:1.5}
+      watchdog-interval-ms: ${RESUME_PARSE_WATCHDOG_INTERVAL_MS:30000}
+    ai-service: ${AI_SERVICE_URL}
+
+
+  sepay:
+    link: ${SEPAY_LINK}
+    api-key: ${SEPAY_API_KEY}
+    prefix: ${SEPAY_PREFIX}
+    bank-account: ${SEPAY_BANK_ACCOUNT}
+    bank: ${SEPAY_BANK}
+
+  #Monitoring and Metrics Configuration
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: health,info,prometheus,metrics
+    endpoint:
+      prometheus:
+        enabled: true
+    metrics:
+      tags:
+        application: sma-core-service
