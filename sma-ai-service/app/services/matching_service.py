@@ -10,7 +10,6 @@ from pydantic import ValidationError
 from app.schemas.matching import MatchingResult
 from app.services.matching_gpt_client import analyze_matching_with_gpt
 from app.core.config import settings
-from app.utils.matching_trace_logger import append_matching_trace
 
 
 async def analyze_matching(request_data: dict) -> MatchingResult:

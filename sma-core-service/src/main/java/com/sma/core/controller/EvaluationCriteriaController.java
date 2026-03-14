@@ -1,6 +1,7 @@
 package com.sma.core.controller;
 
 import com.sma.core.dto.response.ApiResponse;
+import com.sma.core.dto.response.suggestion.MarkAsFixedResponse;
 import com.sma.core.service.ResumeEvaluationService;
 import com.sma.core.service.ScoringCriteriaService;
 import lombok.AccessLevel;
@@ -22,10 +23,10 @@ public class EvaluationCriteriaController {
     ResumeEvaluationService resumeEvaluationService;
 
     @PutMapping("/detail/{detailId}/mark-as-fixed")
-    public ApiResponse<Void> markAsFixed(@PathVariable Integer detailId) {
-        resumeEvaluationService.markAsFixed(detailId);
-        return ApiResponse.<Void>builder()
+    public ApiResponse<MarkAsFixedResponse> markAsFixed(@PathVariable Integer detailId) {
+        return ApiResponse.<MarkAsFixedResponse>builder()
                 .message("Mark as fixed successfully")
+                .data(resumeEvaluationService.markAsFixed(detailId))
                 .build();
     }
 

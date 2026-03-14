@@ -15,7 +15,6 @@ from app.core.config import settings
 from app.services.matching_service import analyze_matching
 from app.services.matching_overview_service import analyze_matching_overview
 from app.services.matching_detail_service import analyze_matching_detail_supplement
-from app.utils.matching_trace_logger import append_matching_trace
 
 
 class EvaluationStatus(str, Enum):

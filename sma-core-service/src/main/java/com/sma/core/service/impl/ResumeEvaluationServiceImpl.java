@@ -16,6 +16,7 @@ import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
 import com.sma.core.dto.response.evaluation.SuggestionResponse;
 import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
+import com.sma.core.dto.response.suggestion.MarkAsFixedResponse;
 import com.sma.core.dto.response.suggestion.WeaknessSuggestionResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.*;
@@ -245,12 +246,22 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    public void markAsFixed(Integer scoringDetailId) {
+    public MarkAsFixedResponse markAsFixed(Integer scoringDetailId) {
         EvaluationCriteriaDetail detail = evaluationCriteriaDetailRepository.findById(scoringDetailId)
                 .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_CRITERIA_DETAIL_NOT_FOUND));
-
         detail.setIsFixed(true);
         evaluationCriteriaDetailRepository.save(detail);
+        EvaluationCriteriaScore cs = detail.getEvaluationCriteriaScore();
+        ResumeEvaluation re = cs.getEvaluation();
+        float currentOverallScore = re.getAiOverallScore();
+        float oldWeightedScore = cs.getWeightedScore();
+        float newCriteriaScore = cs.getAiScore() + detail.getImpactScore();
+        float newWeightedCriteriaScore = newCriteriaScore * cs.getScoringCriteria().getWeight();
+        float newOverallScore = currentOverallScore - oldWeightedScore + newWeightedCriteriaScore;
+        return MarkAsFixedResponse.builder()
+                .afterOverallScore(newOverallScore)
+                .afterCriteriaScore(newWeightedCriteriaScore)
+                .build();
     }
 
     // ---- Private helpers ----
