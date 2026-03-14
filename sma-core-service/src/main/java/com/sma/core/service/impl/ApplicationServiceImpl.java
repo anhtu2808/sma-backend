@@ -271,6 +271,7 @@ public class ApplicationServiceImpl implements ApplicationService {
                 .aiScore(evaluation != null ? evaluation.getAiOverallScore() : null)
                 .matchLevel(evaluation != null ? evaluation.getMatchLevel() : null)
                 .aiSummary(evaluation != null ? evaluation.getSummary() : null)
+                .isRejectedByAi(app.getIsRejectedByAi())
                 .build();
     }
 
