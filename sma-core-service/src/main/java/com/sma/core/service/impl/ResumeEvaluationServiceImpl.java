@@ -256,7 +256,8 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         float currentOverallScore = re.getAiOverallScore();
         float oldWeightedScore = cs.getWeightedScore();
         float newCriteriaScore = cs.getAiScore() + detail.getImpactScore();
-        float newWeightedCriteriaScore = newCriteriaScore * cs.getScoringCriteria().getWeight();
+        float newWeightedCriteriaScore =
+                newCriteriaScore * cs.getScoringCriteria().getWeight() / 100f;
         float newOverallScore = currentOverallScore - oldWeightedScore + newWeightedCriteriaScore;
         return MarkAsFixedResponse.builder()
                 .afterOverallScore(newOverallScore)
@@ -400,8 +401,11 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                     existing.setAiExplanation(csData.getAiExplanation());
                 }
                 if (csData.getAiScore() != null) {
-                    existing.setWeightedScore(csData.getAiScore() * existing.getScoringCriteria().getWeight());
-                    aiScore += csData.getAiScore();
+                    existing.setWeightedScore(
+                            csData.getAiScore() * existing.getScoringCriteria().getWeight() / 100f
+                    );
+
+                    aiScore += existing.getWeightedScore();
                 }
                 evaluationCriteriaScoreRepository.save(existing);
 
@@ -434,13 +438,13 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
             }
             if (csData.getAiScore() != null && criteriaScore.getScoringCriteria() != null) {
                 criteriaScore.setWeightedScore(
-                        csData.getAiScore() * criteriaScore.getScoringCriteria().getWeight()
+                        csData.getAiScore() * criteriaScore.getScoringCriteria().getWeight() / 100f
                 );
 
-                aiScore += csData.getAiScore();
+                aiScore += criteriaScore.getWeightedScore();
             }
 
-
+            evaluation.setAiOverallScore(aiScore);
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
             // Save nested details and suggestions

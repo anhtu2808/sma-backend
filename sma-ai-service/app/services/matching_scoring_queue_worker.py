@@ -160,15 +160,6 @@ class MatchingScoringQueueWorker:
                 payload.get("resumeId"),
                 matching_type,
             )
-            append_matching_trace(
-                "ai.queue.received_request",
-                payload,
-                evaluationId=evaluation_id,
-                jobId=payload.get("jobId"),
-                resumeId=payload.get("resumeId"),
-                usageEventId=usage_event_id,
-                matchingType=matching_type,
-            )
 
             # Route to appropriate matching analysis based on type
             if matching_type == "OVERVIEW":
@@ -242,14 +233,6 @@ class MatchingScoringQueueWorker:
             "processedAt": datetime.now(timezone.utc).isoformat(),
             "parsedData": parsed_data,
         }
-        append_matching_trace(
-            "ai.queue.publish_result",
-            message,
-            evaluationId=evaluation_id,
-            usageEventId=usage_event_id,
-            status=status.value,
-            resultQueue=settings.RABBITMQ_MATCHING_RESULT_QUEUE,
-        )
 
         self._channel.basic_publish(
             exchange="",

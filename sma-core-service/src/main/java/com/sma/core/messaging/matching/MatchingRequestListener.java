@@ -4,7 +4,6 @@ import com.sma.core.dto.message.matching.MatchingResultMessage;
 import com.sma.core.enums.EvaluationStatus;
 import com.sma.core.repository.ResumeEvaluationRepository;
 import com.sma.core.service.ResumeEvaluationService;
-import com.sma.core.utils.MatchingDebugTraceWriter;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -32,11 +31,6 @@ public class MatchingRequestListener {
         context.put("evaluationId", message.getEvaluationId());
         context.put("status", message.getStatus());
         context.put("processedAt", message.getProcessedAt());
-        MatchingDebugTraceWriter.write(
-                "core.listener.received_result_message",
-                context,
-                message
-        );
         try {
             evaluationService.processMatchingResult(message);
         } catch (Exception e) {

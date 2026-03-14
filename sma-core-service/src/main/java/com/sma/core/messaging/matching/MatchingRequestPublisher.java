@@ -2,7 +2,6 @@ package com.sma.core.messaging.matching;
 
 import com.sma.core.config.RabbitMQProperties.MatchingRabbitMQProperties;
 import com.sma.core.dto.message.matching.MatchingRequestMessage;
-import com.sma.core.utils.MatchingDebugTraceWriter;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -30,11 +29,6 @@ public class MatchingRequestPublisher {
         context.put("jobId", message.getJobId());
         context.put("resumeId", message.getResumeId());
         context.put("matchingType", message.getMatchingType());
-        MatchingDebugTraceWriter.write(
-                "core.publisher.before_convert_and_send",
-                context,
-                message
-        );
         rabbitTemplate.convertAndSend(matchingRabbitMQProperties.getRequestQueue(), message);
         log.info("Matching request published successfully for evaluationId={}", message.getEvaluationId());
     }
