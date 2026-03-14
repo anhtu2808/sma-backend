@@ -14,7 +14,7 @@ import java.util.List;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CriteriaScoreData {
 
-    CriteriaType criteriaType;
+    Integer id;
     Float aiScore;
     String aiExplanation;
     List<CriteriaScoreDetailData> details;

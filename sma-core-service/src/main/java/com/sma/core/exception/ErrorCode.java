@@ -119,9 +119,12 @@ public enum ErrorCode {
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
     WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
     NO_DATA_TO_EXPORT(HttpStatus.NOT_FOUND, "No data to export"),
+    SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Suggestion not exist"),
+    EVALUATION_CRITERIA_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "Evaluation criteria detail not found"),
 
     //500 - Server Error
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
+    SERVER_ERROR_RE_SUGGESTION(HttpStatus.INTERNAL_SERVER_ERROR, "Server error when re suggestion"),;
 
     String message;
     HttpStatusCode statusCode;

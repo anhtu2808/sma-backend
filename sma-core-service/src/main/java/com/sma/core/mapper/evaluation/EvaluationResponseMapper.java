@@ -2,9 +2,12 @@ package com.sma.core.mapper.evaluation;
 
 import com.sma.core.dto.response.evaluation.*;
 import com.sma.core.entity.*;
+import jdk.jshell.SourceCodeAnalysis;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+
+import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface EvaluationResponseMapper {
@@ -18,24 +21,15 @@ public interface EvaluationResponseMapper {
     @Named("toDetailResponse")
     ResumeEvaluationDetailResponse toDetailResponse(ResumeEvaluation evaluation);
 
-    @Named("detailCriteriaScores")
-    default java.util.List<EvaluationCriteriaScoreResponse> toDetailCriteriaScores(java.util.Set<EvaluationCriteriaScore> scores) {
-        if (scores == null) return null;
-        return scores.stream().map(this::toCriteriaScoreResponse).toList();
-    }
+    SuggestionResponse toSuggestionResponse(EvaluationCriteriaSuggestion suggestion);
 
     @Mapping(target = "scoringCriteriaId", source = "scoringCriteria.id")
     @Mapping(target = "scoringCriteriaContext", source = "scoringCriteria.context")
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")
-    @Mapping(target = "criteriaType", source = "scoringCriteria.criteria.criteriaType")
     @Mapping(target = "criteriaName", source = "scoringCriteria.criteria.name")
     EvaluationCriteriaScoreResponse toCriteriaScoreResponse(EvaluationCriteriaScore criteriaScore);
 
     EvaluationCriteriaDetailResponse toDetailCriteriaScoreResponse(EvaluationCriteriaDetail criteriaScore);
-
-    default String mapSuggestion(EvaluationCriteriaSuggestion suggestion) {
-        return suggestion.getSuggestion();
-    }
 
     // --- Overview Response ---
     @Mapping(target = "jobId", source = "job.id")
