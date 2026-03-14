@@ -28,4 +28,5 @@ public class ApplicationListResponse {
      Float aiScore;
      MatchLevel matchLevel;
      String aiSummary;
+     Boolean isRejectedByAi;
 }
