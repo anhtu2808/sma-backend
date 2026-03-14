@@ -11,7 +11,6 @@ import com.sma.core.exception.ErrorCode;
 import com.sma.core.mapper.plan.UsageLimitMapper;
 import com.sma.core.repository.FeatureRepository;
 import com.sma.core.repository.PlanRepository;
-import com.sma.core.repository.SubscriptionRepository;
 import com.sma.core.repository.UsageLimitRepository;
 import com.sma.core.service.UsageLimitService;
 import lombok.AccessLevel;
@@ -31,16 +30,12 @@ public class UsageLimitServiceImpl implements UsageLimitService {
     PlanRepository planRepository;
     FeatureRepository featureRepository;
     UsageLimitRepository usageLimitRepository;
-    SubscriptionRepository subscriptionRepository;
     UsageLimitMapper usageLimitMapper;
 
     @Override
     public UsageLimitResponse addLimit(Integer planId, UsageLimitRequest request) {
         Plan plan = planRepository.findById(planId)
                 .orElseThrow(() -> new AppException(ErrorCode.PLAN_NOT_FOUND));
-        if (subscriptionRepository.existsByPlanId(planId)) {
-            throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
-        }
         if (usageLimitRepository.existsByPlanIdAndFeatureId(planId, request.getFeatureId())) {
             throw new AppException(ErrorCode.BAD_REQUEST);
         }
@@ -57,9 +52,6 @@ public class UsageLimitServiceImpl implements UsageLimitService {
 
     @Override
     public UsageLimitResponse updateLimit(Integer planId, Integer featureId, UsageLimitUpdateRequest request) {
-        if (subscriptionRepository.existsByPlanId(planId)) {
-            throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
-        }
         UsageLimit limit = usageLimitRepository.findByPlanIdAndFeatureId(planId, featureId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
         usageLimitMapper.updateFromRequest(request, limit);
@@ -68,9 +60,6 @@ public class UsageLimitServiceImpl implements UsageLimitService {
 
     @Override
     public void deleteLimit(Integer planId, Integer featureId) {
-        if (subscriptionRepository.existsByPlanId(planId)) {
-            throw new AppException(ErrorCode.PLAN_UPDATE_ONLY_PRICE_ALLOWED);
-        }
         UsageLimit limit = usageLimitRepository.findByPlanIdAndFeatureId(planId, featureId)
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
         usageLimitRepository.delete(limit);
