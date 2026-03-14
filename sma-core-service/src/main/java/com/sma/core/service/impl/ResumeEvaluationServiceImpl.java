@@ -1,5 +1,6 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.client.AIServiceClient;
 import com.sma.core.dto.model.UsageContextModel;
 import com.sma.core.dto.message.matching.CriteriaScoreData;
 import com.sma.core.dto.message.matching.CriteriaScoreDetailData;
@@ -13,6 +14,7 @@ import com.sma.core.dto.request.evaluation.ManualScoreMatchingRequest;
 import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
+import com.sma.core.dto.response.evaluation.SuggestionResponse;
 import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
 import com.sma.core.dto.response.suggestion.WeaknessSuggestionResponse;
 import com.sma.core.entity.*;
@@ -31,7 +33,6 @@ import com.sma.core.service.QuotaService;
 import com.sma.core.service.ResumeEvaluationService;
 import com.sma.core.service.ResumeService;
 import com.sma.core.service.ScoringCriteriaService;
-import com.sma.core.utils.MatchingDebugTraceWriter;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -66,6 +67,9 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     EvaluationMapper evaluationMapper;
     ScoringCriteriaRepository scoringCriteriaRepository;
     ScoringCriteriaService scoringCriteriaService;
+    EvaluationCriteriaSuggestionRepository evaluationCriteriaSuggestionRepository;
+    AIServiceClient aiClient;
+    EvaluationCriteriaDetailRepository evaluationCriteriaDetailRepository;
 
     @Override
     @Transactional(noRollbackFor = MatchingPublishException.class)
@@ -153,18 +157,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     public void processMatchingResult(MatchingResultMessage message) {
         log.info("Processing matching result for evaluationId={}, status={}",
                 message.getEvaluationId(), message.getStatus());
-        MatchingDebugTraceWriter.write(
-                "core.service.process_matching_result.received",
-                buildMatchingContext(
-                        message.getEvaluationId(),
-                        null,
-                        null,
-                        null,
-                        message.getStatus() != null ? message.getStatus().name() : null,
-                        message.getUsageEventId()
-                ),
-                message
-        );
 
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(message.getEvaluationId())
                 .orElseThrow(() -> {
@@ -189,34 +181,14 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 return;
             }
 
-            log.info(
-                    "Matching result payload summary for evaluationId={}: criteriaCount={}, matchLevel={}, summaryLength={}",
-                    evaluation.getId(),
-                    data.getCriteriaScores() != null ? data.getCriteriaScores().size() : 0,
-                    data.getMatchLevel(),
-                    data.getSummary() != null ? data.getSummary().length() : 0
-            );
-            MatchingDebugTraceWriter.write(
-                    "core.service.process_matching_result.parsed_data",
-                    buildMatchingContext(
-                            evaluation.getId(),
-                            evaluation.getJob() != null ? evaluation.getJob().getId() : null,
-                            evaluation.getResume() != null ? evaluation.getResume().getId() : null,
-                            evaluation.getEvaluationType() != null ? evaluation.getEvaluationType().name() : null,
-                            message.getStatus() != null ? message.getStatus().name() : null,
-                            message.getUsageEventId()
-                    ),
-                    data
-            );
-
-            if (evaluation.getEvaluationType() == EvaluationType.DETAIL
-                    && hasExistingCriteriaScores(evaluation)) {
-                // Detail supplement mode: add explanations, details, and suggestions
-                processDetailSupplementResult(data, evaluation);
-            } else {
-                // Overview or full detail mode: save everything from scratch
-                processFullResult(data, evaluation);
-            }
+        if (evaluation.getEvaluationType() == EvaluationType.DETAIL
+                && hasExistingCriteriaScores(evaluation)) {
+            // Detail supplement mode: add explanations, details, and suggestions
+            processDetailSupplementResult(data, evaluation);
+        } else {
+            // Overview or full detail mode: save everything from scratch
+            processFullResult(data, evaluation);
+        }
 
             log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
                     evaluation.getId(), evaluation.getAiOverallScore());
@@ -228,59 +200,25 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    public void generateSuggestion(Integer id) {
-        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        SuggestionRequestMessage message = evaluationMapper.toSuggestionRequestMessage(evaluation);
-        suggestionRequestPublisher.publish(message);
-        log.info("generateSuggestion called for evaluationId={} - not yet implemented", id);
-    }
-
-    @Override
-    public void reGenerateSuggestion(Integer id, Integer evaluationWeaknessId) {
-        ResumeEvaluation evaluation = resumeEvaluationRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-        EvaluationWeakness weakness = evaluationWeaknessRepository.findByIdAndEvaluationId(evaluationWeaknessId, id)
-                .orElseThrow(() -> new AppException(ErrorCode.WEAKNESS_NOT_FOUND));
-        ReSuggestRequestMessage message = evaluationMapper.toReSuggestRequestMessage(evaluation);
-        message.setWeakness(evaluationMapper.toWeaknessSuggestionRequest(weakness));
-        suggestionRequestPublisher.publish(message);
-        log.info("reGenerateSuggestion called for evaluationId={}, weaknessId={} - not yet implemented",
-                id, evaluationWeaknessId);
+    public SuggestionResponse reGenerateSuggestion(Integer suggestionId) {
+        EvaluationCriteriaSuggestion suggestion = evaluationCriteriaSuggestionRepository.findById(suggestionId)
+                .orElseThrow(() -> new AppException(ErrorCode.SUGGESTION_NOT_FOUND));
+        ReSuggestRequestMessage message = evaluationMapper.toReSuggestRequestMessage(suggestion);
+        SuggestResultMessage resultMessage = aiClient.reSuggestion(message);
+        if (resultMessage == null || resultMessage.getErrorMessage() != null || !resultMessage.getStatus().equals("SUCCESS")) {
+            throw new AppException(ErrorCode.SERVER_ERROR_RE_SUGGESTION);
+        }
+        suggestion.setSuggestion(resultMessage.getSuggestion());
+        evaluationCriteriaSuggestionRepository.save(suggestion);
+        return SuggestionResponse.builder()
+                .id(suggestion.getId())
+                .suggestion(suggestion.getSuggestion())
+                .build();
     }
 
     @Transactional
     @Override
     public void saveSuggestion(SuggestResultMessage message) {
-
-        resumeEvaluationRepository.findById(message.getEvaluationId())
-                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_NOT_EXISTED));
-
-        Map<Integer, String> gapSuggestions =
-                message.getGapSuggestion().stream()
-                        .collect(Collectors.toMap(
-                                GapSuggestionResponse::getId,
-                                GapSuggestionResponse::getSuggestion
-                        ));
-
-        evaluationGapRepository
-                .findAllById(gapSuggestions.keySet())
-                .forEach(gap ->
-                        gap.setSuggestion(gapSuggestions.get(gap.getId()))
-                );
-
-        Map<Integer, String> weaknessSuggestions =
-                message.getWeaknessSuggestion().stream()
-                        .collect(Collectors.toMap(
-                                WeaknessSuggestionResponse::getId,
-                                WeaknessSuggestionResponse::getSuggestion
-                        ));
-
-        evaluationWeaknessRepository
-                .findAllById(weaknessSuggestions.keySet())
-                .forEach(w ->
-                        w.setSuggestion(weaknessSuggestions.get(w.getId()))
-                );
     }
 
     @Override
@@ -304,6 +242,15 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
         resumeEvaluationRepository.save(evaluation);
         return evaluationResponseMapper.toDetailResponse(evaluation);
+    }
+
+    @Override
+    public void markAsFixed(Integer scoringDetailId) {
+        EvaluationCriteriaDetail detail = evaluationCriteriaDetailRepository.findById(scoringDetailId)
+                .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_CRITERIA_DETAIL_NOT_FOUND));
+
+        detail.setIsFixed(true);
+        evaluationCriteriaDetailRepository.save(detail);
     }
 
     // ---- Private helpers ----
@@ -551,27 +498,6 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
         UsageEvent usageEvent = createMatchingUsageEvent(job.getId(), resume.getId());
         message.setUsageEventId(usageEvent.getId());
-        log.info(
-                "Prepared matching request for evaluationId={}, jobId={}, resumeId={}, matchingType={}, criteriaCount={}, hasOverviewScores={}",
-                evaluation.getId(),
-                job.getId(),
-                resume.getId(),
-                evaluationType,
-                message.getCriteria() != null ? message.getCriteria().size() : 0,
-                overviewScores != null && !overviewScores.isEmpty()
-        );
-        MatchingDebugTraceWriter.write(
-                "core.service.publish_matching_request.pre_publish",
-                buildMatchingContext(
-                        evaluation.getId(),
-                        job.getId(),
-                        resume.getId(),
-                        evaluationType.name(),
-                        evaluation.getEvaluationStatus() != null ? evaluation.getEvaluationStatus().name() : null,
-                        usageEvent.getId()
-                ),
-                message
-        );
 
         try {
             matchingRequestPublisher.publish(message);
@@ -604,41 +530,5 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         resumeEvaluationRepository.save(evaluation);
         quotaService.markUsageEventFailed(usageEventId);
         log.warn("Matching failed for evaluationId={}: {}", evaluation.getId(), errorMessage);
-        MatchingDebugTraceWriter.write(
-                "core.service.process_matching_result.failed",
-                buildMatchingContext(
-                        evaluation.getId(),
-                        evaluation.getJob() != null ? evaluation.getJob().getId() : null,
-                        evaluation.getResume() != null ? evaluation.getResume().getId() : null,
-                        evaluation.getEvaluationType() != null ? evaluation.getEvaluationType().name() : null,
-                        EvaluationStatus.FAIL.name(),
-                        usageEventId
-                ),
-                buildErrorPayload(errorMessage)
-        );
-    }
-
-    private Map<String, Object> buildMatchingContext(
-            Integer evaluationId,
-            Integer jobId,
-            Integer resumeId,
-            String matchingType,
-            String status,
-            Integer usageEventId
-    ) {
-        Map<String, Object> context = new LinkedHashMap<>();
-        context.put("evaluationId", evaluationId);
-        context.put("jobId", jobId);
-        context.put("resumeId", resumeId);
-        context.put("matchingType", matchingType);
-        context.put("status", status);
-        context.put("usageEventId", usageEventId);
-        return context;
-    }
-
-    private Map<String, Object> buildErrorPayload(String errorMessage) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("errorMessage", errorMessage);
-        return payload;
     }
 }

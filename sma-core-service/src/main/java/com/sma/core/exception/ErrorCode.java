@@ -28,7 +28,6 @@ public enum ErrorCode {
     MISSING_SEPAY_CONTENT(HttpStatus.BAD_REQUEST, "Missing sepay content"),
     INVALID_EXPIRED_DATE(HttpStatus.BAD_REQUEST, "Invalid expired date"),
     RECRUITER_NOT_HAVE_COMPANY(HttpStatus.BAD_REQUEST, "Current company is not available"),
-
     //401 - Unauthenticated
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Unauthenticated"),
     PASSWORD_INCORRECT(HttpStatus.UNAUTHORIZED, "Password incorrect"),
@@ -120,11 +119,14 @@ public enum ErrorCode {
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Invitation not found"),
     WEAKNESS_NOT_FOUND(HttpStatus.NOT_FOUND, "Weakness not found"),
     NO_DATA_TO_EXPORT(HttpStatus.NOT_FOUND, "No data to export"),
+    SUGGESTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Suggestion not exist"),
+    EVALUATION_CRITERIA_DETAIL_NOT_FOUND(HttpStatus.NOT_FOUND, "Evaluation criteria detail not found"),
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
     SERVER_ERROR_EMBEDDING(HttpStatus.INTERNAL_SERVER_ERROR, "Server error while embedding"),
-    SERVER_ERROR_PROPOSE(HttpStatus.INTERNAL_SERVER_ERROR, "Server error propose"),;
+    SERVER_ERROR_PROPOSE(HttpStatus.INTERNAL_SERVER_ERROR, "Server error propose"),
+    SERVER_ERROR_RE_SUGGESTION(HttpStatus.INTERNAL_SERVER_ERROR, "Server error when re suggestion"),;
 
     String message;
     HttpStatusCode statusCode;

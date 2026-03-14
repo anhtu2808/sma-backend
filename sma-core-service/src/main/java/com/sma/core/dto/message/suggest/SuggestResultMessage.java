@@ -15,10 +15,9 @@ import java.util.Set;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SuggestResultMessage {
 
-    Integer evaluationId;
+    Integer suggestionId;
+    String suggestion;
     String status;
     String errorMessage;
-    Set<WeaknessSuggestionResponse> weaknessSuggestion;
-    Set<GapSuggestionResponse> gapSuggestion;
 
 }

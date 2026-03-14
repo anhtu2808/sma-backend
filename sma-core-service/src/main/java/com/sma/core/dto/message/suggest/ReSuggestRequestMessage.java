@@ -14,15 +14,17 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ReSuggestRequestMessage {
 
-    Integer jobId;
-    Integer resumeId;
-    Integer evaluationId;
-    String jobName;
+    Integer suggestionId;
+    String jobTitle;
     JobLevel jobLevel;
-    Boolean isTrueLevel;
-    Boolean hasRelatedExperience;
-    MatchLevel matchLevel;
     String summary;
-    WeaknessSuggestionRequest weakness;
+    String weakness;
+    String scoringCriteriaContext;
+    String rule;
+    String label;
+    String context;
+    String suggestion;
+    String aiExplanation;
+    String description;
 
 }
