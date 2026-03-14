@@ -11,7 +11,7 @@ from loguru import logger
 from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.embedding import EmbeddingJobResultMessage
+from app.schemas.embedding import EmbeddingJobResultMessage, EmbedStatus
 from app.services.embedding_job_service import process_and_embed_job
 
 
@@ -185,8 +185,8 @@ class EmbeddingJobQueueWorker:
     def _send_error_result(self, ch, method, routing_key: str, job_id: int, error_msg: str) -> None:
         try:
             error_result = EmbeddingJobResultMessage(
-                jobId=job_id,
-                status="ERROR",
+                id=job_id,
+                status=EmbedStatus.FAIL,
                 errorMessage=error_msg,
             )
             self._publish_result(

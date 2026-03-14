@@ -20,6 +20,7 @@ import com.sma.core.dto.response.company.BaseCompanyResponse;
 import com.sma.core.dto.response.company.CompanyDetailResponse;
 import com.sma.core.enums.Role;
 import com.sma.core.mapper.company.CompanyMapper;
+import com.sma.core.service.CriteriaService;
 import com.sma.core.service.EmailService;
 import com.sma.core.service.NotificationService;
 import com.sma.core.specification.CompanySpecification;
@@ -57,6 +58,7 @@ public class CompanyServiceImpl implements CompanyService {
     CompanyLocationMapper companyLocationMapper;
     NotificationService notificationService;
     EmailService emailService;
+    CriteriaService criteriaService;
 
     @Override
     @Transactional
@@ -80,7 +82,7 @@ public class CompanyServiceImpl implements CompanyService {
             recruiter.setIsVerified(true);
             recruiter.setVerifiedAt(LocalDateTime.now());
             recruiter.getUser().setStatus(UserStatus.ACTIVE);
-
+            criteriaService.initCriteria(company);
         } else if (nextStatus == CompanyStatus.REJECTED) {
             recruiter.setIsVerified(false);
             recruiter.getUser().setStatus(UserStatus.INACTIVE);

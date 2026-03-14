@@ -102,9 +102,8 @@ async def analyze_matching_overview(request_data: dict) -> MatchingOverviewResul
     total_ms = (time.perf_counter() - start_total) * 1000
     logger.info(f"Total overview matching analysis time: {total_ms:.2f}ms")
     logger.info(
-        "Overview matching analysis completed: evaluationId={}, overallScore={}, matchLevel={}",
+        "Overview matching analysis completed: evaluationId={}, matchLevel={}",
         evaluation_id,
-        overview_result.aiOverallScore,
         overview_result.matchLevel,
     )
 

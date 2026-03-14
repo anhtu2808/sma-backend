@@ -88,4 +88,7 @@ public class Company {
 
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<Invitation> invitations = new HashSet<>();
+
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<Criteria> criterias = new HashSet<>();
 }

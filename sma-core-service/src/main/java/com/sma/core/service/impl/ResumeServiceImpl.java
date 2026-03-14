@@ -1,20 +1,15 @@
 package com.sma.core.service.impl;
 
+import com.sma.core.dto.message.embedding.EmbeddingResultMessage;
 import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationHistoryResponse;
 import com.sma.core.dto.response.resume.ResumeDetailResponse;
 import com.sma.core.dto.response.resume.ResumeResponse;
-import com.sma.core.entity.Candidate;
-import com.sma.core.entity.UsageEvent;
-import com.sma.core.entity.User;
+import com.sma.core.entity.*;
+import com.sma.core.enums.*;
 import com.sma.core.enums.FeatureKey;
-import com.sma.core.entity.Resume;
-import com.sma.core.enums.ResumeParseStatus;
-import com.sma.core.enums.EventSource;
-import com.sma.core.enums.ResumeStatus;
-import com.sma.core.enums.ResumeType;
-import com.sma.core.enums.Role;
 import com.sma.core.exception.AppException;
 import com.sma.core.exception.ErrorCode;
 import com.sma.core.exception.ResumeParsingPublishException;
@@ -25,6 +20,7 @@ import com.sma.core.messaging.embedding.resume.EmbeddingResumeRequestPublisher;
 import com.sma.core.messaging.resume.ResumeParsingRequestPublisher;
 import com.sma.core.repository.ApplicationRepository;
 import com.sma.core.repository.CandidateRepository;
+import com.sma.core.repository.ResumeEvaluationRepository;
 import com.sma.core.repository.ResumeRepository;
 import com.sma.core.service.ResumeService;
 import com.sma.core.service.ResumeCloneService;
@@ -41,9 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,13 +56,27 @@ public class ResumeServiceImpl implements ResumeService {
     final QuotaService quotaService;
     final ResumeSkillMapper resumeSkillMapper;
     final EmbeddingResumeRequestPublisher embeddingResumeRequestPublisher;
+    final ResumeEvaluationRepository resumeEvaluationRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public List<ResumeResponse> getMyResumes(String keyword, ResumeType type) {
+    public List<ResumeResponse> getMyResumes(String keyword, ResumeType type, Integer jobId) {
         Candidate candidate = getCurrentCandidate();
         List<Resume> resumes = resumeRepository.findAll(ResumeSpecification.candidateResumeFilter(candidate.getId(), keyword, type), Sort.by(Sort.Direction.DESC, "id"));
-        return resumes.stream().map(resumeMapper::toResponse).toList();
+        Set<Integer> resumeIds = resumes.stream().map(Resume::getId).collect(Collectors.toSet());
+        Set<ResumeEvaluation> evaluations = resumeEvaluationRepository.findByJobIdAndResumeIdIn(jobId, resumeIds);
+        Map<Integer, ResumeEvaluation> evaluationMap =
+                evaluations.stream()
+                        .collect(Collectors.toMap(
+                                e -> e.getResume().getId(),
+                                e -> e
+                        ));
+        return resumes.stream()
+                .map(resume -> resumeMapper.toResponse(
+                        resume,
+                        evaluationMap.get(resume.getId())
+                ))
+                .toList();
     }
 
     @Override
@@ -312,6 +320,21 @@ public class ResumeServiceImpl implements ResumeService {
         );
         embeddingResumeRequestPublisher.publish(message);
         return message;
+    }
+
+    @Override
+    public void updateEmbeddingResume(EmbeddingResultMessage message) {
+        Resume resume = resumeRepository.findById(message.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.RESUME_NOT_EXISTED));
+
+        if (message.getStatus() != null && message.getStatus().equals(EmbedStatus.FAIL)) {
+            resume.setEmbedStatus(EmbedStatus.FAIL);
+            resumeRepository.save(resume);
+            throw new AppException(ErrorCode.SERVER_ERROR_EMBEDDING);
+        }
+
+        resume.setEmbedStatus(EmbedStatus.SUCCESS);
+        resumeRepository.save(resume);
     }
 
     private Candidate getCurrentCandidate() {

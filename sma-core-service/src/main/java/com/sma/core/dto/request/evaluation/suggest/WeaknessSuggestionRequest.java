@@ -1,6 +1,5 @@
 package com.sma.core.dto.request.evaluation.suggest;
 
-import com.sma.core.enums.CriteriaType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -16,7 +15,7 @@ public class WeaknessSuggestionRequest {
     String weaknessText;
     String context;
     Short severity;
-    CriteriaType criterionType;
+    String criterionName;
     String suggestion;
 
 }

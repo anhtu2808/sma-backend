@@ -11,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -22,6 +25,12 @@ public class MatchingRequestListener {
 
     @RabbitListener(queues = "${app.rabbitmq.matching.result-queue}")
     public void handleMatchingResult(MatchingResultMessage message) {
+        log.info("Received matching result message for evaluationId={}, status={}, processedAt={}",
+                message.getEvaluationId(), message.getStatus(), message.getProcessedAt());
+        Map<String, Object> context = new LinkedHashMap<>();
+        context.put("evaluationId", message.getEvaluationId());
+        context.put("status", message.getStatus());
+        context.put("processedAt", message.getProcessedAt());
         try {
             evaluationService.processMatchingResult(message);
         } catch (Exception e) {

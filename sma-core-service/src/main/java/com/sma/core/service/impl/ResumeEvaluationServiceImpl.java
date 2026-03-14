@@ -16,6 +16,7 @@ import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
 import com.sma.core.dto.response.evaluation.SuggestionResponse;
 import com.sma.core.dto.response.suggestion.GapSuggestionResponse;
+import com.sma.core.dto.response.suggestion.MarkAsFixedResponse;
 import com.sma.core.dto.response.suggestion.WeaknessSuggestionResponse;
 import com.sma.core.entity.*;
 import com.sma.core.enums.*;
@@ -245,12 +246,23 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     }
 
     @Override
-    public void markAsFixed(Integer scoringDetailId) {
+    public MarkAsFixedResponse markAsFixed(Integer scoringDetailId) {
         EvaluationCriteriaDetail detail = evaluationCriteriaDetailRepository.findById(scoringDetailId)
                 .orElseThrow(() -> new AppException(ErrorCode.EVALUATION_CRITERIA_DETAIL_NOT_FOUND));
-
         detail.setIsFixed(true);
         evaluationCriteriaDetailRepository.save(detail);
+        EvaluationCriteriaScore cs = detail.getEvaluationCriteriaScore();
+        ResumeEvaluation re = cs.getEvaluation();
+        float currentOverallScore = re.getAiOverallScore();
+        float oldWeightedScore = cs.getWeightedScore();
+        float newCriteriaScore = cs.getAiScore() + detail.getImpactScore();
+        float newWeightedCriteriaScore =
+                newCriteriaScore * cs.getScoringCriteria().getWeight() / 100f;
+        float newOverallScore = currentOverallScore - oldWeightedScore + newWeightedCriteriaScore;
+        return MarkAsFixedResponse.builder()
+                .afterOverallScore(newOverallScore)
+                .afterCriteriaScore(newWeightedCriteriaScore)
+                .build();
     }
 
     // ---- Private helpers ----
@@ -348,10 +360,12 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         List<Map<String, Object>> criteriaScoresList = new ArrayList<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
-                Map<String, Object> csMap = new HashMap<>();
-                if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    csMap.put("criteriaId", cs.getScoringCriteria().getCriteria().getId());
+                if (cs.getScoringCriteria() == null || cs.getScoringCriteria().getCriteria() == null) {
+                    continue;
                 }
+
+                Map<String, Object> csMap = new HashMap<>();
+                csMap.put("id", cs.getId());
                 csMap.put("aiScore", cs.getAiScore());
                 criteriaScoresList.add(csMap);
             }
@@ -369,16 +383,16 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                                           ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
-        // Build lookup map: criteriaType -> existing EvaluationCriteriaScore
+        // Build lookup map: criteria id -> existing EvaluationCriteriaScore
         Map<Integer, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
-                if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getId(), cs);
+                if (cs.getScoringCriteria() != null) {
+                    existingScoresMap.put(cs.getScoringCriteria().getId(), cs);
                 }
             }
         }
-
+        float aiScore = 0.0f;
         for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore existing = existingScoresMap.get(csData.getId());
             if (existing != null) {
@@ -386,38 +400,56 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 if (csData.getAiExplanation() != null) {
                     existing.setAiExplanation(csData.getAiExplanation());
                 }
+                if (csData.getAiScore() != null) {
+                    existing.setWeightedScore(
+                            csData.getAiScore() * existing.getScoringCriteria().getWeight() / 100f
+                    );
+
+                    aiScore += existing.getWeightedScore();
+                }
                 evaluationCriteriaScoreRepository.save(existing);
 
                 // Save nested details and suggestions
                 saveDetails(csData.getDetails(), existing);
 
             } else {
-                log.warn("No existing criteria score found for scoring criteria={} in evaluationId={}",
-                        csData.getId(), evaluation.getId());
+                log.warn("No existing criteria score found for evaluationId={}", evaluation.getId());
             }
         }
+        evaluation.setAiOverallScore(aiScore);
+        resumeEvaluationRepository.save(evaluation);
     }
 
     private void saveCriteriaScores(List<CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
+        float aiScore = 0.0f;
         for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore criteriaScore = matchingResultMapper.toCriteriaScore(csData);
             criteriaScore.setEvaluation(evaluation);
 
-            // Link to existing ScoringCriteria by criteriaType
+            // Link to existing ScoringCriteria by criteria id
             if (csData.getId() != null && evaluation.getJob() != null) {
                 evaluation.getJob().getScoringCriterias().stream()
                         .filter(sc -> sc.getCriteria() != null
-                                && Objects.equals(sc.getCriteria().getId(), csData.getId()))
+                                && csData.getId().equals(sc.getId()))
                         .findFirst()
                         .ifPresent(criteriaScore::setScoringCriteria);
             }
+            if (csData.getAiScore() != null && criteriaScore.getScoringCriteria() != null) {
+                criteriaScore.setWeightedScore(
+                        csData.getAiScore() * criteriaScore.getScoringCriteria().getWeight() / 100f
+                );
 
+                aiScore += criteriaScore.getWeightedScore();
+            }
+
+            evaluation.setAiOverallScore(aiScore);
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
             // Save nested details and suggestions
             saveDetails(csData.getDetails(), criteriaScore);
+            resumeEvaluationRepository.save(evaluation);
         }
     }
 

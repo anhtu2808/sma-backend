@@ -1,5 +1,6 @@
 package com.sma.core.dto.response.resume;
 
+import com.sma.core.dto.response.evaluation.ResumeEvaluationHistoryResponse;
 import com.sma.core.enums.ResumeLanguage;
 import com.sma.core.enums.ResumeParseStatus;
 import com.sma.core.enums.ResumeStatus;
@@ -15,47 +16,28 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResumeResponse {
 
-     Integer id;
+    Integer id;
+    String resumeName;
+    String fileName;
+    String originalFile;
+    String rawText;
+    String addressInResume;
+    String phoneInResume;
+    String emailInResume;
+    String githubLink;
+    String linkedinLink;
+    String portfolioLink;
+    String fullName;
+    String jobTitle;
+    String avatar;
+    String resumeUrl;
+    ResumeType type;
+    Integer rootResumeId;
+    ResumeStatus status;
+    ResumeParseStatus parseStatus;
+    ResumeLanguage language;
+    Boolean isDefault;
+    Boolean isDeleted;
+    ResumeEvaluationHistoryResponse evaluationHistory;
 
-     String resumeName;
-    
-     String fileName;
-    
-     String originalFile;
-    
-     String rawText;
-    
-     String addressInResume;
-    
-     String phoneInResume;
-    
-     String emailInResume;
-    
-     String githubLink;
-
-     String linkedinLink;
-
-     String portfolioLink;
-
-     String fullName;
-
-     String jobTitle;
-
-     String avatar;
-
-     String resumeUrl;
-
-     ResumeType type;
-
-     Integer rootResumeId;
-
-     ResumeStatus status;
-
-     ResumeParseStatus parseStatus;
-
-     ResumeLanguage language;
-
-     Boolean isDefault;
-
-     Boolean isDeleted;
 }

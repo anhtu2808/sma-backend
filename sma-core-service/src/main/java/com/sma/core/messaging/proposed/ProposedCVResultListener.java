@@ -1,7 +1,9 @@
 package com.sma.core.messaging.proposed;
 
+import com.sma.core.dto.message.proposed.ProposedCVResultMessage;
 import com.sma.core.dto.message.suggest.SuggestResultMessage;
 import com.sma.core.service.JobService;
+import com.sma.core.service.ProposedResumeService;
 import com.sma.core.service.ResumeEvaluationService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +18,12 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProposedCVResultListener {
 
-    JobService jobService;
+    ProposedResumeService proposedResumeService;
 
     @RabbitListener(queues = "${app.rabbitmq.proposed.cv.result-queue}")
-    public void handleMatchingSuggestionResult(SuggestResultMessage message) {
+    public void handleMatchingSuggestionResult(ProposedCVResultMessage message) {
         try {
-           // jobService.saveSuggestion(message);
+            proposedResumeService.addProposedResume(message);
         } catch (Exception e) {
             log.error("Failed to process matching result message: {}", message, e);
         }

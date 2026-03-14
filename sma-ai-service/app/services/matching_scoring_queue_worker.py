@@ -180,10 +180,10 @@ class MatchingScoringQueueWorker:
                 error_message=None,
             )
             logger.info(
-                "Completed matching scoring for evaluationId={}, matchingType={}, score={}",
+                "Completed matching scoring for evaluationId={}, matchingType={}, matchLevel={}",
                 evaluation_id,
                 matching_type,
-                getattr(matching_result, "aiOverallScore", None),
+                getattr(matching_result, "matchLevel", None),
             )
         except Exception as matching_error:
             logger.exception("Failed to process matching scoring message")

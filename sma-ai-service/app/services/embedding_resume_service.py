@@ -1,91 +1,98 @@
 import uuid
 import asyncio
 from loguru import logger
-from qdrant_client.models import PointStruct
+from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue
 
 from app.core.config import settings
 from app.schemas.embedding import (
     EmbeddingResumeRequestMessage,
-    EmbeddingResumeResultMessage
+    EmbeddingResumeResultMessage,
+    EmbedStatus
 )
-from app.clients.openai_client import create_embeddings
+from app.clients.openai_client import create_embeddings, create_json_chat_completion
 from app.services.vector_service import vector_service
+import json
 
 
-def _safe_join(values):
-    if not values:
-        return ""
-    return ", ".join([v for v in values if v])
+def _generate_chunks_with_ai(resume_data: EmbeddingResumeRequestMessage) -> dict:
+    prompt = """You are an expert HR data assistant. Your task is to transform the provided candidate's resume data into clean, highly structured text chunks optimized for vector embedding and semantic search.
 
+Follow these rules:
 
-def _build_skill_text(skill):
+1. Keep each chunk concise (100–300 words max).
+2. Preserve technical context (technologies used, role responsibilities).
+3. Do NOT invent any information.
+4. Omit fields that are missing.
+5. Return ONLY a valid JSON object.
 
-    if skill.yearsOfExperience:
-        return f"Skill: {skill.name} with {skill.yearsOfExperience} years of professional experience"
+Based on the provided JSON data, generate a JSON object containing the exact fields below. Follow the format of the examples strictly, omitting any data points that are not present in the input.
 
-    return f"Skill: {skill.name}"
+1. "overview" (string or null): A single summary paragraph combining the candidate's job title and key skills.
+   Example: "Senior Backend Engineer building scalable microservices using Java, Spring Boot, Kafka and PostgreSQL."
 
+2. "skills" (list of strings): A list where each element is a formatted text block for a specific skill context. Group skills by their `group` field if it exists, otherwise use their `category` field. If both are missing, use "other". Each string in the list should begin with the context name followed by the skills in that context.
+   Example:
+   [
+  "Backend Development Skills\nJava (5 years)\nSpring Boot (4 years)\nREST API\nMicroservices",
 
-def _build_education_text(edu):
+  "Database Technologies\nPostgreSQL (4 years)\nMongoDB (2 years)\nMySQL",
 
-    parts = []
+  "DevOps and Infrastructure\nDocker\nGit\nAWS",
 
-    if edu.degree:
-        parts.append(f"{edu.degree}")
+  "Other Tools\nPostman\nJira"
+]
 
-    if edu.majorField:
-        parts.append(f"in {edu.majorField}")
+3. "experiences" (list of strings): A list where each element is a formatted text block for an experience detail.
+   Example:
+   Senior Backend Developer at ABC Tech
+   Jan 2020 – Jun 2023
+   
+   Developed microservices architecture handling millions of requests.
+   
+   Responsibilities:
+   - Built REST APIs using Spring Boot
+   - Designed Kafka event streaming pipelines
+   
+   Technologies:
+   Java, Spring Boot, Kafka, PostgreSQL
 
-    if edu.institution:
-        parts.append(f"from {edu.institution}")
+4. "projects" (list of strings): A list where each element is a formatted text block for a project.
+   Example:
+   E-commerce Platform
+   Role: Tech Lead
+   Team Size: 4
+   
+   Developed scalable order processing system handling 10k daily orders.
+   
+   Technologies:
+   React, Node.js, MongoDB, Redis
 
-    return " ".join(parts)
+5. "educations" (list of strings): A list where each element is a formatted text block for an education entry.
+   Example:
+   Bachelor of Computer Science
+   University of Technology
+   Major: Software Engineering
 
+Return ONLY a valid JSON object with the keys: "overview", "skills", "experiences", "projects", "educations"."""
 
-def _build_experience_text(exp):
-
-    texts = []
-
-    if not exp.details:
-        return texts
-
-    for detail in exp.details:
-
-        skills = _safe_join(
-            [s.name for s in (detail.experienceSkills or [])]
-        )
-
-        description = detail.description or ""
-
-        text = f"""
-Worked at {exp.company or 'a company'} as {detail.title or 'a developer'}.
-{description}
-"""
-
-        if skills:
-            text += f"\nTechnologies used: {skills}"
-
-        texts.append(text.strip())
-
-    return texts
-
-
-def _build_project_text(project):
-
-    skills = _safe_join(
-        [s.name for s in (project.projectSkills or [])]
+    messages = [
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": resume_data.model_dump_json(exclude_none=True)}
+    ]
+    
+    response = create_json_chat_completion(
+        model="gpt-4o-mini",
+        messages=messages,
+        timeout=60,
+        temperature=0.1
     )
-
-    text = f"""
-Project: {project.title or 'Unnamed project'}
-Role: {project.position or 'Developer'}
-{project.description or ''}
-"""
-
-    if skills:
-        text += f"\nTechnologies used: {skills}"
-
-    return text.strip()
+    
+    content = response.choices[0].message.content
+    try:
+        return json.loads(content)
+    except Exception as e:
+        logger.error(f"Failed to parse LLM JSON output for chunking: {e}")
+        return {}
 
 
 async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessage:
@@ -95,75 +102,62 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
     chunks = []
     metadata = []
 
-    logger.info(f"Building semantic chunks for resume {resume_data.id}")
+    logger.info(f"Building semantic chunks for resume {resume_data.id} using AI...")
 
-    # ---------- Skills ----------
-    for index, skill in enumerate(resume_data.skills or []):
+    logger.info(f"Deleting existing vector chunks for resume {resume_data.id}")
+    delete_filter = Filter(
+        must=[
+            FieldCondition(
+                key="resume_id",
+                match=MatchValue(value=resume_data.id)
+            )
+        ]
+    )
+    vector_service.delete_points_by_filter(
+        settings.QDRANT_COLLECTION_NAME,
+        delete_filter
+    )
 
-        if not skill.name:
-            continue
+    ai_chunks_dict = await asyncio.to_thread(_generate_chunks_with_ai, resume_data)
 
-        text = _build_skill_text(skill)
-
-        chunks.append(text)
-
-        metadata.append({
-            "type": "skill",
-            "sourceId": index
-        })
-
-    # ---------- Education ----------
-    for index, edu in enumerate(resume_data.educations or []):
-
-        text = _build_education_text(edu)
-
-        if not text:
-            continue
-
-        chunks.append(text)
-
-        metadata.append({
-            "type": "education",
-            "sourceId": index
-        })
-
-    # ---------- Experience ----------
-    for exp_index, exp in enumerate(resume_data.experiences or []):
-
-        exp_chunks = _build_experience_text(exp)
-
-        for text in exp_chunks:
-
-            chunks.append(text)
-
-            metadata.append({
-                "type": "experience",
-                "sourceId": exp_index,
-                "company": exp.company
-            })
-
-    # ---------- Projects ----------
-    for proj_index, proj in enumerate(resume_data.projects or []):
-
-        text = _build_project_text(proj)
-
-        if not text:
-            continue
-
-        chunks.append(text)
-
-        metadata.append({
-            "type": "project",
-            "sourceId": proj_index
-        })
+    overview = ai_chunks_dict.get("overview")
+    if overview:
+        chunks.append(overview)
+        metadata.append({"type": "overview", "sourceId": 0})
+        
+    skills = ai_chunks_dict.get("skills")
+    if skills and isinstance(skills, list):
+        for i, skill_chunk in enumerate(skills):
+            if not skill_chunk: continue
+            chunks.append(skill_chunk)
+            metadata.append({"type": "skill", "sourceId": i})
+    elif skills and isinstance(skills, str):
+        chunks.append(skills)
+        metadata.append({"type": "skill", "sourceId": 0})
+        
+    for exp_index, exp in enumerate(ai_chunks_dict.get("experiences") or []):
+        if not exp: continue
+        chunks.append(exp)
+        metadata.append({"type": "experience", "sourceId": exp_index})
+        
+    for proj_index, proj in enumerate(ai_chunks_dict.get("projects") or []):
+        if not proj: continue
+        chunks.append(proj)
+        metadata.append({"type": "project", "sourceId": proj_index})
+        
+    for edu_index, edu in enumerate(ai_chunks_dict.get("educations") or []):
+        if not edu: continue
+        chunks.append(edu)
+        metadata.append({"type": "education", "sourceId": edu_index})
 
     if not chunks:
 
         logger.warning(f"No valid chunks found for resume {resume_data.id}")
 
         return EmbeddingResumeResultMessage(
-            resumeId=resume_data.id,
-            status="EMPTY"
+            id=resume_data.id,
+            status=EmbedStatus.FAIL,
+            errorMessage="No valid chunks found for resume"
         )
 
     logger.info(f"Generating embeddings for {len(chunks)} chunks")
@@ -175,7 +169,7 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
 
     points = []
 
-    for text, vector, meta in zip(chunks, embeddings, metadata):
+    for i, (text, vector, meta) in enumerate(zip(chunks, embeddings, metadata)):
 
         point = PointStruct(
             id=str(uuid.uuid4()),
@@ -184,6 +178,8 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
                 "resume_id": resume_data.id,
                 "chunk_type": meta["type"],
                 "source_id": meta["sourceId"],
+                "chunk_index": i,
+                "language": resume_data.language,
                 "text": text,
                 **meta
             }
@@ -201,6 +197,6 @@ async def process_and_embed_resume(request: dict) -> EmbeddingResumeResultMessag
     )
 
     return EmbeddingResumeResultMessage(
-        resumeId=resume_data.id,
-        status="SUCCESS"
+        id=resume_data.id,
+        status=EmbedStatus.SUCCESS
     )

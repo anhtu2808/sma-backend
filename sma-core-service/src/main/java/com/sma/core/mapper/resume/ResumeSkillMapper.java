@@ -29,6 +29,8 @@ public interface ResumeSkillMapper {
     ResumeSkillDetailResponse toResponse(ResumeSkill resumeSkill);
 
     @Mapping(target = "name", source = "skill.name")
+    @Mapping(target = "group", source = "skillGroup.name")
+    @Mapping(target = "category", source = "skill.category.name")
     EmbeddingResumeSkill toEmbeddingResumeSkill(ResumeSkill resumeSkill);
 
 }

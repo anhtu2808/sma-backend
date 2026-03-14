@@ -1,8 +1,10 @@
 package com.sma.core.dto.message.embedding.resume;
 
+import com.sma.core.enums.ProjectType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.time.LocalDate;
 import java.util.Set;
 
 @Getter
@@ -14,6 +16,10 @@ import java.util.Set;
 public class EmbeddingResumeProject {
 
     String title;
+    Integer teamSize;
+    ProjectType projectType;
+    LocalDate startDate;
+    LocalDate endDate;
     String position;
     String description;
     Set<EmbeddingExperienceSkill> projectSkills;

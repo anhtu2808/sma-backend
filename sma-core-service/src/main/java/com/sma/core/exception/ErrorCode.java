@@ -124,6 +124,8 @@ public enum ErrorCode {
 
     //500 - Server Error
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
+    SERVER_ERROR_EMBEDDING(HttpStatus.INTERNAL_SERVER_ERROR, "Server error while embedding"),
+    SERVER_ERROR_PROPOSE(HttpStatus.INTERNAL_SERVER_ERROR, "Server error propose"),
     SERVER_ERROR_RE_SUGGESTION(HttpStatus.INTERNAL_SERVER_ERROR, "Server error when re suggestion"),;
 
     String message;

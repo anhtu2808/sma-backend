@@ -1,3 +1,4 @@
+from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 
@@ -6,8 +7,21 @@ class BaseSchema(BaseModel):
     model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
 
 
+class EmbedStatus(str, Enum):
+    NONE = "NONE"
+    SUCCESS = "SUCCESS"
+    FAIL = "FAIL"
+
+class WorkingModel(str, Enum):
+    ONSITE = "ONSITE"
+    REMOTE = "REMOTE"
+    HYBRID = "HYBRID"
+
+
 class EmbeddingResumeSkill(BaseSchema):
     name: Optional[str] = None
+    category: Optional[str] = None
+    group: Optional[str] = None
     yearsOfExperience: Optional[int] = None
 
 
@@ -49,7 +63,9 @@ class EmbeddingResumeProject(BaseSchema):
 
 class EmbeddingResumeRequestMessage(BaseSchema):
     id: int
-    address: Optional[str] = None
+    jobTitle: Optional[str] = None
+    language: Optional[str] = None
+    location: Optional[str] = None
 
     skills: List[EmbeddingResumeSkill] = Field(default_factory=list)
     educations: List[EmbeddingResumeEducation] = Field(default_factory=list)
@@ -58,8 +74,8 @@ class EmbeddingResumeRequestMessage(BaseSchema):
 
 
 class EmbeddingResumeResultMessage(BaseSchema):
-    resumeId: int
-    status: str
+    id: int
+    status: EmbedStatus
     errorMessage: Optional[str] = None
 
 
@@ -75,10 +91,11 @@ class EmbeddingJobRequestMessage(BaseSchema):
     requirement: Optional[str] = None
     jobLevel: Optional[str] = None
     expertiseName: Optional[str] = None
+    workingModel: Optional[WorkingModel] = None
     skills: List[EmbeddingJobSkill] = Field(default_factory=list)
 
 
 class EmbeddingJobResultMessage(BaseSchema):
-    jobId: int
-    status: str
+    id: int
+    status: EmbedStatus
     errorMessage: Optional[str] = None

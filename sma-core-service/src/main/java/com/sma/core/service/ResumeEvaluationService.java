@@ -7,6 +7,7 @@ import com.sma.core.dto.response.PagingResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationDetailResponse;
 import com.sma.core.dto.response.evaluation.ResumeEvaluationOverviewResponse;
 import com.sma.core.dto.response.evaluation.SuggestionResponse;
+import com.sma.core.dto.response.suggestion.MarkAsFixedResponse;
 import org.springframework.data.domain.Pageable;
 
 public interface ResumeEvaluationService {
@@ -21,5 +22,5 @@ public interface ResumeEvaluationService {
     SuggestionResponse reGenerateSuggestion(Integer suggestionId);
     void saveSuggestion(SuggestResultMessage message);
     ResumeEvaluationDetailResponse scoreManual(Integer id, ManualScoreMatchingRequest request);
-    void markAsFixed(Integer scoringDetailId);
+    MarkAsFixedResponse markAsFixed(Integer scoringDetailId);
 }

@@ -2,9 +2,11 @@ package com.sma.core.dto.message.embedding.job;
 
 import com.sma.core.entity.JobExpertise;
 import com.sma.core.enums.JobLevel;
+import com.sma.core.enums.WorkingModel;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -20,6 +22,7 @@ public class EmbeddingJobRequestMessage {
     String responsibilities;
     String requirement;
     JobLevel jobLevel;
+    WorkingModel workingModel;
     String expertiseName;
     Set<EmbeddingJobSkill> skills;
 }

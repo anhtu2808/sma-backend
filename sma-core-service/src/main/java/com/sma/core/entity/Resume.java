@@ -1,9 +1,6 @@
 package com.sma.core.entity;
 
-import com.sma.core.enums.ResumeLanguage;
-import com.sma.core.enums.ResumeParseStatus;
-import com.sma.core.enums.ResumeStatus;
-import com.sma.core.enums.ResumeType;
+import com.sma.core.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -107,6 +104,12 @@ public class Resume {
     @Builder.Default
     private Boolean isDeleted = Boolean.FALSE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "embed_status", columnDefinition = "embed_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Builder.Default
+    private EmbedStatus embedStatus = EmbedStatus.NONE;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id")
     private Candidate candidate;
@@ -128,4 +131,7 @@ public class Resume {
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ResumeEvaluation> evaluations = new HashSet<>();
+
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ProposedResume> proposes = new HashSet<>();
 }

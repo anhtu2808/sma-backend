@@ -1,6 +1,5 @@
 package com.sma.core.dto.message.matching;
 
-import com.sma.core.enums.CriteriaType;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 

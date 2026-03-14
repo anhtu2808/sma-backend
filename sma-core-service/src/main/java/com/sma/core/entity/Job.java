@@ -1,9 +1,6 @@
 package com.sma.core.entity;
 
-import com.sma.core.enums.Currency;
-import com.sma.core.enums.JobLevel;
-import com.sma.core.enums.JobStatus;
-import com.sma.core.enums.WorkingModel;
+import com.sma.core.enums.*;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -92,6 +89,11 @@ public class Job {
     @JoinColumn(name = "company_id", nullable = true)
     private Company company;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "embed_status", columnDefinition = "embed_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private EmbedStatus embedStatus;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "expertise_id")
     private JobExpertise expertise;
@@ -127,6 +129,9 @@ public class Job {
     @JoinTable(name = "job_locations", joinColumns = @JoinColumn(name = "job_id"), inverseJoinColumns = @JoinColumn(name = "company_location_id"))
     @Builder.Default
     private Set<CompanyLocation> locations = new HashSet<>();
+
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<ProposedResume> proposedResumes = new HashSet<>();
 
     @Column(name = "is_sample")
     private Boolean isSample;

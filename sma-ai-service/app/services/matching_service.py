@@ -51,9 +51,11 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
     logger.info("Calling GPT for matching analysis")
     start_gpt = time.perf_counter()
     timeout = getattr(settings, "OPENAI_REQUEST_TIMEOUT", 120)
+
     parsed_data = analyze_matching_with_gpt(request_data, timeout=timeout)
     gpt_ms = (time.perf_counter() - start_gpt) * 1000
     logger.info(f"GPT matching analysis completed in {gpt_ms:.2f}ms")
+
 
     # Add model info and processing time
     model = getattr(settings, "OPENAI_MATCHING_MODEL", settings.OPENAI_MODEL)
@@ -67,6 +69,7 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
         matching_result = MatchingResult(**parsed_data)
     except ValidationError as e:
         logger.error(f"Matching result schema validation failed: {e}")
+
         raise ValueError(f"Matching result does not match expected schema: {str(e)}")
     validate_ms = (time.perf_counter() - start_validate) * 1000
     total_ms = (time.perf_counter() - start_total) * 1000
@@ -74,10 +77,10 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
     logger.info(f"Schema validation completed in {validate_ms:.2f}ms")
     logger.info(f"Total matching analysis time: {total_ms:.2f}ms")
     logger.info(
-        "Matching analysis completed: evaluationId={}, overallScore={}, matchLevel={}",
+        "Matching analysis completed: evaluationId={}, matchLevel={}",
         evaluation_id,
-        matching_result.aiOverallScore,
         matching_result.matchLevel,
     )
+
 
     return matching_result

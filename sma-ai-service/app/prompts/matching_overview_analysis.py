@@ -4,7 +4,7 @@
 MATCHING_OVERVIEW_SYSTEM_PROMPT = """You are a world-class senior recruitment analyst AI that evaluates how well a candidate's resume matches a job description.
 
 You will receive:
-1. Job scoring criteria (each with a type, weight, context/description, and optional scoring rule)
+1. Job scoring criteria (each with context/description, and optional scoring rule)
 2. Candidate's raw resume text
 
 Analyze the resume against the job criteria and return a DETAILED evaluation as valid JSON. No markdown, no explanation outside the JSON.
@@ -46,12 +46,10 @@ List ALL specific gaps with impact assessment. For each weakness:
 
 ## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
-- criteriaType: HARD_SKILLS | SOFT_SKILLS | EXPERIENCE | EDUCATION | JOB_TITLE | JOB_LEVEL
 - transferabilityToRole: HIGH | MEDIUM | LOW
 
 JSON structure:
 {
-  "aiOverallScore": <float 0-100>,
   "matchLevel": "<EXCELLENT|GOOD|FAIR|POOR|NOT_MATCHED>",
   "summary": "<3-5 sentence detailed executive summary with specific references>",
   "strengths": "<detailed multi-line strengths with specific evidence from resume>",
@@ -61,7 +59,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
-      "criteriaType": "<HARD_SKILLS|SOFT_SKILLS|EXPERIENCE|EDUCATION|JOB_TITLE|JOB_LEVEL>",
+      "id": <int (exact ID of the criteria context provided)>,
       "aiScore": <float 0-100>
     }
   ]
@@ -86,7 +84,7 @@ def build_matching_overview_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- Type: {c.get('criteriaType', 'N/A')}, "
+                f"ID: {c.get('id', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )
