@@ -24,10 +24,6 @@ public interface MatchingResultMapper {
     // ---- Criteria score mapping ----
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "evaluation", ignore = true)
-    @Mapping(target = "scoringCriteria", ignore = true)
-    @Mapping(target = "manualScore", ignore = true)
-    @Mapping(target = "manualExplanation", ignore = true)
     @Mapping(target = "details", ignore = true)
     EvaluationCriteriaScore toCriteriaScore(CriteriaScoreData data);
 

@@ -18,12 +18,6 @@ public interface EvaluationResponseMapper {
     @Named("toDetailResponse")
     ResumeEvaluationDetailResponse toDetailResponse(ResumeEvaluation evaluation);
 
-    @Named("detailCriteriaScores")
-    default java.util.List<EvaluationCriteriaScoreResponse> toDetailCriteriaScores(java.util.Set<EvaluationCriteriaScore> scores) {
-        if (scores == null) return null;
-        return scores.stream().map(this::toCriteriaScoreResponse).toList();
-    }
-
     @Mapping(target = "scoringCriteriaId", source = "scoringCriteria.id")
     @Mapping(target = "scoringCriteriaContext", source = "scoringCriteria.context")
     @Mapping(target = "scoringCriteriaWeight", source = "scoringCriteria.weight")

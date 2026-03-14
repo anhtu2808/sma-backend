@@ -19,7 +19,9 @@ Rules:
 6. If a scoring rule is provided for a criterion, reference that rule in your explanation to justify the score.
 7. For context — these are the quoted texts from the raw resume that serve as evidence. Provide the exact string from the resume (or a short snippet).
 
-CRITICAL CONSISTENCY RULE:
+CRITICAL CONSISTENCY AND MAPPING RULE:
+- STRICTLY MAP each skill, experience, or qualification to the CORRECT criteria based on the criteria's Context.
+- NEVER misclassify items (e.g., do not place Soft Skills under Hard Skills criteria, or Education items under Experience criteria).
 - Avoid duplicating the same competency across multiple criteria.
 - Each criterion must evaluate ONLY the aspect it is responsible for and must NOT overlap with other criteria.
 
@@ -46,7 +48,6 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 - suggestions: If status is MISSING, provide actionable suggestions for improvement
 
 ## Enums
-- criteriaName: string (the exact name of the criteria provided)
 - status (LabelStatus): MISSING | MATCHED
 - skillLevel: NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
@@ -63,8 +64,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
-      "criteriaId": <int (exact ID of the criteria context provided)>,
-      "criteriaName": "<string (exact name of the criteria)>",
+      "id": <int (exact ID of the criteria context provided)>,
       "aiScore": <float 0-100>,
       "aiExplanation": "<3-5 sentence DETAILED explanation with specific evidence, comparisons, and reasoning>",
       "details": [
@@ -113,8 +113,7 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- ID: {c.get('criteriaId', 'N/A')}, "
-                f"Name: {c.get('criteriaName', 'N/A')}, "
+                f"ID: {c.get('id', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )
@@ -142,8 +141,7 @@ def build_matching_detail_supplement_prompt(request_data: dict) -> list[dict]:
             overview_lines.append("\nCriteria Scores:")
             for cs in criteria_scores:
                 overview_lines.append(
-                    f"  - ID: {cs.get('criteriaId', 'N/A')}, "
-                    f"Name: {cs.get('criteriaName', 'N/A')}: "
+                    f"ID: {cs.get('id', 'N/A')}, "
                     f"score={cs.get('aiScore', 'N/A')}"
                 )
         overview_text = "\n".join(overview_lines)

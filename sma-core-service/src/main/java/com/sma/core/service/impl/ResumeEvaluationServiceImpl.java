@@ -31,6 +31,7 @@ import com.sma.core.service.QuotaService;
 import com.sma.core.service.ResumeEvaluationService;
 import com.sma.core.service.ResumeService;
 import com.sma.core.service.ScoringCriteriaService;
+import com.sma.core.utils.MatchingDebugTraceWriter;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -152,6 +153,18 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     public void processMatchingResult(MatchingResultMessage message) {
         log.info("Processing matching result for evaluationId={}, status={}",
                 message.getEvaluationId(), message.getStatus());
+        MatchingDebugTraceWriter.write(
+                "core.service.process_matching_result.received",
+                buildMatchingContext(
+                        message.getEvaluationId(),
+                        null,
+                        null,
+                        null,
+                        message.getStatus() != null ? message.getStatus().name() : null,
+                        message.getUsageEventId()
+                ),
+                message
+        );
 
         ResumeEvaluation evaluation = resumeEvaluationRepository.findById(message.getEvaluationId())
                 .orElseThrow(() -> {
@@ -176,14 +189,34 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 return;
             }
 
-        if (evaluation.getEvaluationType() == EvaluationType.DETAIL
-                && hasExistingCriteriaScores(evaluation)) {
-            // Detail supplement mode: add explanations, details, and suggestions
-            processDetailSupplementResult(data, evaluation);
-        } else {
-            // Overview or full detail mode: save everything from scratch
-            processFullResult(data, evaluation);
-        }
+            log.info(
+                    "Matching result payload summary for evaluationId={}: criteriaCount={}, matchLevel={}, summaryLength={}",
+                    evaluation.getId(),
+                    data.getCriteriaScores() != null ? data.getCriteriaScores().size() : 0,
+                    data.getMatchLevel(),
+                    data.getSummary() != null ? data.getSummary().length() : 0
+            );
+            MatchingDebugTraceWriter.write(
+                    "core.service.process_matching_result.parsed_data",
+                    buildMatchingContext(
+                            evaluation.getId(),
+                            evaluation.getJob() != null ? evaluation.getJob().getId() : null,
+                            evaluation.getResume() != null ? evaluation.getResume().getId() : null,
+                            evaluation.getEvaluationType() != null ? evaluation.getEvaluationType().name() : null,
+                            message.getStatus() != null ? message.getStatus().name() : null,
+                            message.getUsageEventId()
+                    ),
+                    data
+            );
+
+            if (evaluation.getEvaluationType() == EvaluationType.DETAIL
+                    && hasExistingCriteriaScores(evaluation)) {
+                // Detail supplement mode: add explanations, details, and suggestions
+                processDetailSupplementResult(data, evaluation);
+            } else {
+                // Overview or full detail mode: save everything from scratch
+                processFullResult(data, evaluation);
+            }
 
             log.info("Successfully processed matching result for evaluationId={}, overallScore={}",
                     evaluation.getId(), evaluation.getAiOverallScore());
@@ -368,7 +401,12 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         List<Map<String, Object>> criteriaScoresList = new ArrayList<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
+                if (cs.getScoringCriteria() == null || cs.getScoringCriteria().getCriteria() == null) {
+                    continue;
+                }
+
                 Map<String, Object> csMap = new HashMap<>();
+                csMap.put("id", cs.getId());
                 csMap.put("aiScore", cs.getAiScore());
                 criteriaScoresList.add(csMap);
             }
@@ -386,18 +424,18 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                                           ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
-        // Build lookup map: criteriaName -> existing EvaluationCriteriaScore
+        // Build lookup map: criteria id -> existing EvaluationCriteriaScore
         Map<Integer, EvaluationCriteriaScore> existingScoresMap = new HashMap<>();
         if (evaluation.getCriteriaScores() != null) {
             for (EvaluationCriteriaScore cs : evaluation.getCriteriaScores()) {
-                if (cs.getScoringCriteria() != null && cs.getScoringCriteria().getCriteria() != null) {
-                    existingScoresMap.put(cs.getScoringCriteria().getCriteria().getId(), cs);
+                if (cs.getScoringCriteria() != null) {
+                    existingScoresMap.put(cs.getScoringCriteria().getId(), cs);
                 }
             }
         }
         float aiScore = 0.0f;
         for (CriteriaScoreData csData : criteriaScores) {
-            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getCriteriaId());
+            EvaluationCriteriaScore existing = existingScoresMap.get(csData.getId());
             if (existing != null) {
                 // Supplement existing record with explanation
                 if (csData.getAiExplanation() != null) {
@@ -413,8 +451,7 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
                 saveDetails(csData.getDetails(), existing);
 
             } else {
-                log.warn("No existing criteria score found for criteriaName={} in evaluationId={}",
-                        csData.getCriteriaName(), evaluation.getId());
+                log.warn("No existing criteria score found for evaluationId={}", evaluation.getId());
             }
         }
         evaluation.setAiOverallScore(aiScore);
@@ -424,23 +461,33 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
     private void saveCriteriaScores(List<CriteriaScoreData> criteriaScores, ResumeEvaluation evaluation) {
         if (criteriaScores == null) return;
 
+        float aiScore = 0.0f;
         for (CriteriaScoreData csData : criteriaScores) {
             EvaluationCriteriaScore criteriaScore = matchingResultMapper.toCriteriaScore(csData);
             criteriaScore.setEvaluation(evaluation);
 
-            // Link to existing ScoringCriteria by criteriaName
-            if (csData.getCriteriaId() != null && evaluation.getJob() != null) {
+            // Link to existing ScoringCriteria by criteria id
+            if (csData.getId() != null && evaluation.getJob() != null) {
                 evaluation.getJob().getScoringCriterias().stream()
                         .filter(sc -> sc.getCriteria() != null
-                                && csData.getCriteriaId().equals(sc.getCriteria().getId()))
+                                && csData.getId().equals(sc.getId()))
                         .findFirst()
                         .ifPresent(criteriaScore::setScoringCriteria);
             }
+            if (csData.getAiScore() != null && criteriaScore.getScoringCriteria() != null) {
+                criteriaScore.setWeightedScore(
+                        csData.getAiScore() * criteriaScore.getScoringCriteria().getWeight()
+                );
+
+                aiScore += csData.getAiScore();
+            }
+
 
             criteriaScore = evaluationCriteriaScoreRepository.save(criteriaScore);
 
             // Save nested details and suggestions
             saveDetails(csData.getDetails(), criteriaScore);
+            resumeEvaluationRepository.save(evaluation);
         }
     }
 
@@ -504,6 +551,27 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
 
         UsageEvent usageEvent = createMatchingUsageEvent(job.getId(), resume.getId());
         message.setUsageEventId(usageEvent.getId());
+        log.info(
+                "Prepared matching request for evaluationId={}, jobId={}, resumeId={}, matchingType={}, criteriaCount={}, hasOverviewScores={}",
+                evaluation.getId(),
+                job.getId(),
+                resume.getId(),
+                evaluationType,
+                message.getCriteria() != null ? message.getCriteria().size() : 0,
+                overviewScores != null && !overviewScores.isEmpty()
+        );
+        MatchingDebugTraceWriter.write(
+                "core.service.publish_matching_request.pre_publish",
+                buildMatchingContext(
+                        evaluation.getId(),
+                        job.getId(),
+                        resume.getId(),
+                        evaluationType.name(),
+                        evaluation.getEvaluationStatus() != null ? evaluation.getEvaluationStatus().name() : null,
+                        usageEvent.getId()
+                ),
+                message
+        );
 
         try {
             matchingRequestPublisher.publish(message);
@@ -536,5 +604,41 @@ public class ResumeEvaluationServiceImpl implements ResumeEvaluationService {
         resumeEvaluationRepository.save(evaluation);
         quotaService.markUsageEventFailed(usageEventId);
         log.warn("Matching failed for evaluationId={}: {}", evaluation.getId(), errorMessage);
+        MatchingDebugTraceWriter.write(
+                "core.service.process_matching_result.failed",
+                buildMatchingContext(
+                        evaluation.getId(),
+                        evaluation.getJob() != null ? evaluation.getJob().getId() : null,
+                        evaluation.getResume() != null ? evaluation.getResume().getId() : null,
+                        evaluation.getEvaluationType() != null ? evaluation.getEvaluationType().name() : null,
+                        EvaluationStatus.FAIL.name(),
+                        usageEventId
+                ),
+                buildErrorPayload(errorMessage)
+        );
+    }
+
+    private Map<String, Object> buildMatchingContext(
+            Integer evaluationId,
+            Integer jobId,
+            Integer resumeId,
+            String matchingType,
+            String status,
+            Integer usageEventId
+    ) {
+        Map<String, Object> context = new LinkedHashMap<>();
+        context.put("evaluationId", evaluationId);
+        context.put("jobId", jobId);
+        context.put("resumeId", resumeId);
+        context.put("matchingType", matchingType);
+        context.put("status", status);
+        context.put("usageEventId", usageEventId);
+        return context;
+    }
+
+    private Map<String, Object> buildErrorPayload(String errorMessage) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("errorMessage", errorMessage);
+        return payload;
     }
 }

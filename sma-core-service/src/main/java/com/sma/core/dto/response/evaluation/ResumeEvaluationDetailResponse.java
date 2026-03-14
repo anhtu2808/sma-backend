@@ -9,6 +9,7 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -19,5 +20,5 @@ public class ResumeEvaluationDetailResponse extends ResumeEvaluationOverviewResp
     Boolean isTrueLevel;
     Boolean hasRelatedExperience;
     RelevanceType transferabilityToRole;
-    List<EvaluationCriteriaScoreResponse> criteriaScores;
+    Set<EvaluationCriteriaScoreResponse> criteriaScores;
 }

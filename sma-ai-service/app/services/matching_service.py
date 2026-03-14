@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from app.schemas.matching import MatchingResult
 from app.services.matching_gpt_client import analyze_matching_with_gpt
 from app.core.config import settings
+from app.utils.matching_trace_logger import append_matching_trace
 
 
 async def analyze_matching(request_data: dict) -> MatchingResult:
@@ -38,6 +39,14 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
         request_data.get("jobId"),
         request_data.get("resumeId"),
     )
+    append_matching_trace(
+        "ai.matching_service.request_received",
+        request_data,
+        evaluationId=evaluation_id,
+        jobId=request_data.get("jobId"),
+        resumeId=request_data.get("resumeId"),
+        matchingType=request_data.get("matchingType"),
+    )
     start_total = time.perf_counter()
 
     # Step 1: Validate input has minimum required data
@@ -51,9 +60,21 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
     logger.info("Calling GPT for matching analysis")
     start_gpt = time.perf_counter()
     timeout = getattr(settings, "OPENAI_REQUEST_TIMEOUT", 120)
+    append_matching_trace(
+        "ai.matching_service.before_gpt",
+        request_data,
+        evaluationId=evaluation_id,
+        timeout=timeout,
+    )
     parsed_data = analyze_matching_with_gpt(request_data, timeout=timeout)
     gpt_ms = (time.perf_counter() - start_gpt) * 1000
     logger.info(f"GPT matching analysis completed in {gpt_ms:.2f}ms")
+    append_matching_trace(
+        "ai.matching_service.after_gpt_raw",
+        parsed_data,
+        evaluationId=evaluation_id,
+        durationMs=round(gpt_ms, 2),
+    )
 
     # Add model info and processing time
     model = getattr(settings, "OPENAI_MATCHING_MODEL", settings.OPENAI_MODEL)
@@ -67,6 +88,12 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
         matching_result = MatchingResult(**parsed_data)
     except ValidationError as e:
         logger.error(f"Matching result schema validation failed: {e}")
+        append_matching_trace(
+            "ai.matching_service.validation_failed",
+            parsed_data,
+            evaluationId=evaluation_id,
+            error=str(e),
+        )
         raise ValueError(f"Matching result does not match expected schema: {str(e)}")
     validate_ms = (time.perf_counter() - start_validate) * 1000
     total_ms = (time.perf_counter() - start_total) * 1000
@@ -77,6 +104,13 @@ async def analyze_matching(request_data: dict) -> MatchingResult:
         "Matching analysis completed: evaluationId={}, matchLevel={}",
         evaluation_id,
         matching_result.matchLevel,
+    )
+    append_matching_trace(
+        "ai.matching_service.after_validation",
+        matching_result.model_dump(mode="json"),
+        evaluationId=evaluation_id,
+        matchLevel=getattr(matching_result, "matchLevel", None),
+        totalDurationMs=round(total_ms, 2),
     )
 
     return matching_result

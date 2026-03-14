@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface ResumeEvaluationRepository extends JpaRepository<ResumeEvaluation, Integer> {
@@ -17,5 +18,5 @@ public interface ResumeEvaluationRepository extends JpaRepository<ResumeEvaluati
     Optional<ResumeEvaluation> findByResumeIdAndJobIdAndEvaluationType(Integer resumeId, Integer jobId, EvaluationType evaluationType);
 
     Page<ResumeEvaluation> findByJobId(Integer jobId, Pageable pageable);
-
+    Set<ResumeEvaluation> findByJobIdAndResumeIdIn(Integer jobId, Set<Integer> resumeIds);
 }

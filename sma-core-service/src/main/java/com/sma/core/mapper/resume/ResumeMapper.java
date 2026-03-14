@@ -3,8 +3,10 @@ package com.sma.core.mapper.resume;
 import com.sma.core.dto.message.embedding.resume.EmbeddingResumeRequestMessage;
 import com.sma.core.dto.request.resume.UpdateResumeRequest;
 import com.sma.core.dto.request.resume.UploadResumeRequest;
+import com.sma.core.dto.response.evaluation.ResumeEvaluationHistoryResponse;
 import com.sma.core.dto.response.resume.ResumeResponse;
 import com.sma.core.entity.Resume;
+import com.sma.core.entity.ResumeEvaluation;
 import com.sma.core.entity.ResumeSkill;
 import com.sma.core.enums.ResumeType;
 import org.mapstruct.BeanMapping;
@@ -91,4 +93,12 @@ public interface ResumeMapper {
     @Mapping(target = "location", source = "addressInResume")
     EmbeddingResumeRequestMessage toEmbeddingMessage(Resume resume);
 
+    @Mapping(target = "id", source = "resume.id")
+    @Mapping(target = "evaluationHistory", source = "evaluation")
+    @Mapping(target = "rawText", ignore = true)
+    ResumeResponse toResponse(Resume resume, ResumeEvaluation evaluation);
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "overallScore", source = "aiOverallScore")
+    ResumeEvaluationHistoryResponse toHistoryResponse(ResumeEvaluation evaluation);
 }

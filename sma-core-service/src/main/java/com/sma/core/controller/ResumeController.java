@@ -54,11 +54,12 @@ public class ResumeController {
     @PreAuthorize("hasRole('CANDIDATE')")
     public ApiResponse<List<ResumeResponse>> getMyResumes(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) ResumeType type
+            @RequestParam(required = false) ResumeType type,
+            @RequestParam(required = false) Integer jobId
     ) {
         return ApiResponse.<List<ResumeResponse>>builder()
                 .message("Get candidate resumes successfully")
-                .data(resumeService.getMyResumes(keyword, type))
+                .data(resumeService.getMyResumes(keyword, type, jobId))
                 .build();
     }
 

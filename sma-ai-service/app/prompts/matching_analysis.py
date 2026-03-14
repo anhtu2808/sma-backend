@@ -20,7 +20,9 @@ Rules:
 8. If a scoring rule is provided for a criterion, you MUST follow that rule exactly to determine the score. This ensures consistency across multiple scoring sessions.
 9. For context — these are the quoted texts from the raw resume that serve as evidence. Provide the exact string from the resume (or a short snippet).
 
-CRITICAL CONSISTENCY RULE:
+CRITICAL CONSISTENCY AND MAPPING RULE:
+- STRICTLY MAP each skill, experience, or qualification to the CORRECT criteria based on the criteria's Context.
+- NEVER misclassify items (e.g., do not place Soft Skills under Hard Skills criteria, or Education items under Experience criteria).
 - Avoid duplicating the same competency across multiple criteria.
 - Each criterion must evaluate ONLY the aspect it is responsible for and must NOT overlap with other criteria.
 
@@ -68,7 +70,6 @@ For each criterion, list ALL relevant items (skills, experiences, education item
 
 ## Enums
 - matchLevel: EXCELLENT | GOOD | FAIR | POOR | NOT_MATCHED
-- criteriaName: string (the exact name of the criteria provided)
 - status (LabelStatus): MISSING | MATCHED
 - skillLevel: NONE | FRESHER | JUNIOR | MID | SENIOR | EXPERT
 - transferabilityToRole: HIGH | MEDIUM | LOW
@@ -84,8 +85,7 @@ JSON structure:
   "transferabilityToRole": "<HIGH|MEDIUM|LOW>",
   "criteriaScores": [
     {
-      "criteriaId": <int (exact ID of the criteria context provided)>,
-      "criteriaName": "<string (exact name of the criteria)>",
+      "id": <int (exact ID of the criteria)>,
       "aiScore": <float 0-100>,
       "aiExplanation": "<3-5 sentence DETAILED explanation>",
       "details": [
@@ -129,8 +129,7 @@ def build_matching_analysis_prompt(request_data: dict) -> list[dict]:
         criteria_lines = []
         for c in criteria:
             line = (
-                f"- ID: {c.get('criteriaId', 'N/A')}, "
-                f"Name: {c.get('criteriaName', 'N/A')}, "
+                f"ID: {c.get('id', 'N/A')}, "
                 f"Weight: {c.get('weight', 0)}%, "
                 f"Context: {c.get('context', 'N/A')}"
             )

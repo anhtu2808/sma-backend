@@ -4,12 +4,16 @@ import com.sma.core.dto.message.matching.MatchingResultMessage;
 import com.sma.core.enums.EvaluationStatus;
 import com.sma.core.repository.ResumeEvaluationRepository;
 import com.sma.core.service.ResumeEvaluationService;
+import com.sma.core.utils.MatchingDebugTraceWriter;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -22,6 +26,17 @@ public class MatchingRequestListener {
 
     @RabbitListener(queues = "${app.rabbitmq.matching.result-queue}")
     public void handleMatchingResult(MatchingResultMessage message) {
+        log.info("Received matching result message for evaluationId={}, status={}, processedAt={}",
+                message.getEvaluationId(), message.getStatus(), message.getProcessedAt());
+        Map<String, Object> context = new LinkedHashMap<>();
+        context.put("evaluationId", message.getEvaluationId());
+        context.put("status", message.getStatus());
+        context.put("processedAt", message.getProcessedAt());
+        MatchingDebugTraceWriter.write(
+                "core.listener.received_result_message",
+                context,
+                message
+        );
         try {
             evaluationService.processMatchingResult(message);
         } catch (Exception e) {

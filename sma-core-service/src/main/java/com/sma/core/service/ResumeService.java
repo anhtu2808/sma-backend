@@ -11,7 +11,7 @@ import com.sma.core.enums.ResumeType;
 import java.util.List;
 
 public interface ResumeService {
-    List<ResumeResponse> getMyResumes(String keyword, ResumeType type);
+    List<ResumeResponse> getMyResumes(String keyword, ResumeType type, Integer jobId);
     ResumeDetailResponse getResumeDetail(Integer resumeId);
     ResumeResponse uploadResume(UploadResumeRequest request);
     ResumeResponse parseResume(Integer resumeId);

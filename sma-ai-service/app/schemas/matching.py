@@ -28,8 +28,7 @@ class CriteriaScoreDetailResult(BaseModel):
 class CriteriaScoreResult(BaseModel):
     """Evaluation result for a single scoring criterion."""
 
-    criteriaId: int
-    criteriaName: str
+    id: int
     aiScore: float = Field(ge=0, le=100)
     aiExplanation: Optional[str] = None
     details: List[CriteriaScoreDetailResult] = Field(default_factory=list)

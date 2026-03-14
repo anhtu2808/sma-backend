@@ -110,7 +110,6 @@ async def analyze_matching_detail_supplement(request_data: dict) -> MatchingDeta
         total_details,
     )
 
-    import json
     logger.info(f"\n===== FULL AI JSON RESPONSE FOR EVALUATION {evaluation_id} =====\n"
                 f"{json.dumps(detail_result.model_dump(mode='json'), indent=2, ensure_ascii=False)}\n"
                 f"================================================================")

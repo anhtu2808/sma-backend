@@ -12,8 +12,7 @@ RelevanceType = Literal["HIGH", "MEDIUM", "LOW"]
 class OverviewCriteriaScoreResult(BaseModel):
     """Lightweight criteria score — scores only, no explanations or nested details."""
 
-    criteriaId: int
-    criteriaName: str
+    id: int
     aiScore: float = Field(ge=0, le=100)
 
 
